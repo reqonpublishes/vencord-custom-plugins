@@ -89,16 +89,30 @@ const PrivateIcon = () => (
     </svg>
 );
 
+/** The flex item of `bar` that `el` sits inside, or null if it isn't in there at all */
+function itemOf(bar: HTMLElement, el: HTMLElement) {
+    let node = el;
+    while (node.parentElement && node.parentElement !== bar) node = node.parentElement;
+
+    return node.parentElement === bar ? node : null;
+}
+
 /**
- * The "only you can see this" line, on its own row underneath the buttons.
+ * The action bar, laid out the way this modal wants it.
  *
- * Discord lays the action bar out as a row and drops this slot in to the left of the
- * buttons, which is the wrong place for a footnote and squeezes the buttons besides. There
- * is no prop for it, so the row is found by walking up from here to the first ancestor
- * that also holds the buttons - durable in a way that matching Discord's generated class
- * names is not - and the item containing us is told to take a full width line, last.
+ * Discord gives the footer one row: this slot on the left, the buttons on the right, each
+ * sized to its own label. That leaves the buttons huddled in the middle of a wide modal
+ * with dead space either side, and puts a footnote where it reads as a fourth control.
  *
- * Only styles are set, never the tree itself, so React stays free to re-render around it.
+ * There is no prop for any of this, so it's done from here. The row is found by walking up
+ * to the first ancestor that also holds the buttons - durable in a way that matching
+ * Discord's generated class names is not - then the buttons are stretched to share the
+ * full width and this note is dropped onto a line of its own beneath them.
+ *
+ * Only styles are set, never the tree, so React stays free to re-render around it; every
+ * value is recorded first and put back on the way out. It runs after each render rather
+ * than once, so anything React does overwrite is restored on the next pass - and because
+ * layout effects all run before the browser paints, the restore and reapply are invisible.
  */
 function Footnote({ author }: { author: string; }) {
     const ref = useRef<HTMLDivElement>(null);
@@ -117,26 +131,53 @@ function Footnote({ author }: { author: string; }) {
 
         // Only touch it if it really is a horizontal row of items. If Discord ever moves
         // the buttons out of this slot's ancestry we'd find something else entirely, and
-        // stretching a column to full width would wreck the modal; leaving the footnote
-        // where it started is a far better failure than that.
+        // stretching a column to full width would wreck the modal; leaving the footer
+        // alone is a far better failure than that.
         const layout = getComputedStyle(parent);
         if (!layout.display.includes("flex") || !layout.flexDirection.startsWith("row")) return;
 
         const bar = parent;
         const item = child;
-        const previousWrap = bar.style.flexWrap;
 
-        bar.style.flexWrap = "wrap";
+        const undo: (() => void)[] = [];
+        const style = (el: HTMLElement, prop: string, value: string) => {
+            const previous = el.style.getPropertyValue(prop);
+            undo.push(() => el.style.setProperty(prop, previous));
+            el.style.setProperty(prop, value);
+        };
+
+        style(bar, "flex-wrap", "wrap");
         // a full width item can't share a line, and ordering it last puts that line below
-        item.style.flex = "1 0 100%";
-        item.style.order = "99";
+        style(item, "flex", "1 0 100%");
+        style(item, "order", "99");
+
+        // every button in the bar is one of the actions; this note holds none of its own
+        const buttons = [...bar.querySelectorAll<HTMLElement>("button")];
+        const groups = new Set<HTMLElement>();
+        for (const button of buttons) {
+            const owner = itemOf(bar, button);
+            if (owner && owner !== item) groups.add(owner);
+        }
+
+        if (groups.size === 1) {
+            // the usual shape: one container holding all of them. Widen it to the whole
+            // line, then let the buttons share that line out between themselves, so two
+            // buttons take half each and a third simply narrows them to a third each.
+            const [group] = groups;
+            style(group, "flex", "1 1 100%");
+            style(group, "display", "flex");
+            style(group, "gap", "8px");
+
+            for (const button of buttons) style(button, "flex", "1 1 0");
+        } else {
+            // or each button is its own item in the bar, which shares out the same way
+            for (const group of groups) style(group, "flex", "1 1 0");
+        }
 
         return () => {
-            bar.style.flexWrap = previousWrap;
-            item.style.flex = "";
-            item.style.order = "";
+            for (let i = undo.length - 1; i >= 0; i--) undo[i]();
         };
-    }, []);
+    });
 
     return (
         <div className={cl("footnote")} ref={ref}>
@@ -236,7 +277,7 @@ function InspectModal({ rootProps, message }: { rootProps: RenderModalProps; mes
                     <FormSwitch
                         className={cl("switch")}
                         title="Highlighted message"
-                        description="The message reads as if it had mentioned you, whoever wrote it"
+                        description="The message looks as if it had mentioned you"
                         value={highlight}
                         onChange={next => {
                             setHighlight(next);
@@ -250,7 +291,7 @@ function InspectModal({ rootProps, message }: { rootProps: RenderModalProps; mes
                     <FormSwitch
                         className={cl("switch")}
                         title={"Show \"(edited)\" tag"}
-                        description="Adds the edited marker, at a time of your choosing"
+                        description="Adds the edited marker, at a time you choose"
                         value={showEdited}
                         onChange={setShowEdited}
                         hideBorder
@@ -288,7 +329,7 @@ function InspectModal({ rootProps, message }: { rootProps: RenderModalProps; mes
                         // keep following the text until you decide for yourself
                         if (!highlightTouched) setHighlight(looksLikePing(next));
                     }}
-                    rows={5}
+                    rows={3}
                     autosize
                     spellCheck={false}
                     placeholder="Message content (markdown works)"
