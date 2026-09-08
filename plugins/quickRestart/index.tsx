@@ -17,68 +17,105 @@ import { showToast, Toasts } from "@webpack/common";
 const cl = classNameFactory("vc-qr-");
 const logger = new Logger("CustomPluginQuickRestart");
 
-// ---------------------------------------------------------------- the three restarts
+const SELF = "CustomPluginQuickRestart";
+
+// ---------------------------------------------------------------- the restarts
 
 /**
- * Reload the window. This is what Ctrl+R has always done, and on the desktop client it
- * rebuilds the renderer only, so your session and gateway connection are picked straight
- * back up rather than re-established.
+ * Reload the window. What Ctrl+R has always done: on the desktop client it rebuilds the
+ * renderer only, so the session and gateway connection are picked back up rather than
+ * re-established.
  */
 const reload = () => location.reload();
 
+interface QuickResult {
+    restarted: number;
+    failed: string[];
+    /** enabled, but never started - only a reload can bring these in */
+    needsReload: string[];
+    ms: number;
+}
+
 /**
- * Restart Vencord's plugins where they stand, without touching the page.
+ * Restart every plugin that is currently running.
  *
- * This is the fast one, and it is fast because nothing is thrown away: no bundle is parsed
- * again, no connection is dropped, the message you were typing is still there. It is the
- * right tool for the thing people actually reload for, which is making a plugin or a
- * setting take effect.
+ * Vencord's stop/start pair is a complete lifecycle cycle - commands, context menus, flux
+ * subscriptions, styles, badges, listeners, chat bar buttons, decorations, all torn down
+ * and registered again. It is the same pair the settings page uses when you toggle a
+ * plugin. So this covers everything a reload would, bar one thing: webpack patches, which
+ * were applied to Discord's modules as those modules first loaded and cannot be redone
+ * without loading them again.
  *
- * Plugins that patch Discord's own code are left alone. Their patches were applied to
- * modules as those modules first loaded, so re-running start() would not re-apply them;
- * only a real reload can. Reporting them is more honest than pretending they restarted.
+ * That distinction matters, and getting it wrong is what made this useless before. A
+ * plugin that *has* patches restarts perfectly well - its patches are already in place and
+ * stay there. It is a plugin that has been switched on since the last load whose patches
+ * were never applied, and no amount of restarting will change that. Those are reported
+ * separately rather than silently skipped.
  */
-function softRestart() {
-    // Reached through the global rather than imported. Importing the plugin manager from a
+function quickRestart(): QuickResult | null {
+    // Reached through the global rather than imported: importing the plugin manager from a
     // plugin is a circular dependency by definition, and Vencord's own webpack commons
     // dodge it the same way.
     const PM: any = Vencord?.Plugins;
     if (!PM?.plugins) return null;
 
     const began = performance.now();
-    const restarted: string[] = [];
-    const patched: string[] = [];
-    const failed: string[] = [];
+
+    const running: any[] = [];
+    const needsReload: string[] = [];
 
     for (const name in PM.plugins) {
         const plugin = PM.plugins[name];
 
-        if (!PM.isPluginEnabled(name)) continue;
-        if (PM.pluginRequiresRestart(plugin)) {
-            patched.push(name);
-            continue;
-        }
+        // The API plugins everything else is built on. Cycling those buys nothing and
+        // takes the ground out from under the plugins being restarted around them.
+        if (plugin.required) continue;
 
+        // Restarting the thing currently running the restart is asking for trouble, and
+        // there's no reason to: every setting here is read fresh at the keypress.
+        if (name === SELF) continue;
+
+        if (plugin.started) running.push(plugin);
+        else if (PM.isPluginEnabled(name)) needsReload.push(name);
+    }
+
+    // Stopped in reverse and started in order - the order Vencord itself uses - so nothing
+    // is left running while something it depends on is down.
+    for (let i = running.length - 1; i >= 0; i--) {
         try {
-            PM.stopPlugin(plugin);
-            PM.startPlugin(plugin);
-            restarted.push(name);
+            PM.stopPlugin(running[i]);
         } catch (e) {
-            failed.push(name);
-            logger.error(`Failed to restart ${name}`, e);
+            logger.error(`Failed to stop ${running[i].name}`, e);
         }
     }
 
-    return { restarted, patched, failed, ms: Math.round(performance.now() - began) };
+    const failed: string[] = [];
+    for (const plugin of running) {
+        try {
+            if (!PM.startPlugin(plugin)) failed.push(plugin.name);
+        } catch (e) {
+            failed.push(plugin.name);
+            logger.error(`Failed to start ${plugin.name}`, e);
+        }
+    }
+
+    return {
+        restarted: running.length - failed.length,
+        failed,
+        needsReload,
+        ms: Math.round(performance.now() - began)
+    };
 }
 
 // bottom of the screen, out of the way of whatever you were doing when you hit the key
 const toast = (message: string, type: string) =>
     showToast(message, type, { position: Toasts.Position.BOTTOM });
 
-/** Soft restart plus the bit that tells you what it managed to do */
-function softRestartWithFeedback() {
-    const result = softRestart();
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+/** Restart the plugins, and say what happened */
+function runQuick(fallBackToReload: boolean) {
+    const result = quickRestart();
 
     if (!result) {
         toast("Couldn't reach the plugin manager - reloading instead", Toasts.Type.FAILURE);
@@ -86,29 +123,33 @@ function softRestartWithFeedback() {
         return;
     }
 
-    const { restarted, patched, failed, ms } = result;
-
-    if (failed.length) {
-        toast(`Restarted ${restarted.length}, but ${failed.length} failed - see the console`, Toasts.Type.FAILURE);
+    // Plugins switched on since the last load are the one case a restart can't answer,
+    // because their patches were never applied. Reloading is the only thing that will
+    // help, so the sensible default is to just do it.
+    if (result.needsReload.length && fallBackToReload) {
+        reload();
         return;
     }
 
-    if (!restarted.length) {
-        // every enabled plugin patches Discord, so there was nothing a soft restart could
-        // have done. Say so rather than flashing a cheerful toast that changed nothing.
-        toast("Nothing here can be restarted without a reload", Toasts.Type.MESSAGE);
+    if (result.failed.length) {
+        toast(`Restarted ${result.restarted}, but ${plural(result.failed.length, "plugin")} failed - see the console`, Toasts.Type.FAILURE);
         return;
     }
 
-    const rest = patched.length ? `, ${patched.length} need a reload` : "";
-    toast(`Restarted ${restarted.length} plugin${restarted.length === 1 ? "" : "s"} in ${ms}ms${rest}`, Toasts.Type.SUCCESS);
+    if (result.needsReload.length) {
+        toast(`Restarted ${result.restarted} - ${plural(result.needsReload.length, "plugin")} still needs a reload`, Toasts.Type.MESSAGE);
+        return;
+    }
+
+    toast(`Restarted ${plural(result.restarted, "plugin")} in ${result.ms}ms`, Toasts.Type.SUCCESS);
 }
 
 function runAction() {
     switch (settings.store.action) {
-        case "soft": return softRestartWithFeedback();
+        case "quick": return runQuick(false);
+        case "reload": return reload();
         case "full": return relaunch();
-        default: return reload();
+        default: return runQuick(true);
     }
 }
 
@@ -135,7 +176,7 @@ function parseHotkey(value: string): Combo {
     };
 }
 
-// parsed once per change rather than on every keypress
+// parsed once per distinct setting rather than on every keypress
 const cache = new Map<string, Combo>();
 function hotkey(raw: string) {
     let combo = cache.get(raw);
@@ -161,10 +202,10 @@ function matches(e: KeyboardEvent, raw: string) {
  * you happen to be - mid-message, inside a modal, in the settings you just changed.
  */
 function onKeyDown(e: KeyboardEvent) {
-    if (matches(e, settings.store.softHotkey)) {
+    if (matches(e, settings.store.reloadHotkey)) {
         e.preventDefault();
         e.stopPropagation();
-        softRestartWithFeedback();
+        reload();
         return;
     }
 
@@ -180,14 +221,14 @@ function onKeyDown(e: KeyboardEvent) {
 function RestartButtons() {
     return (
         <div className={cl("buttons")}>
-            <Button size="small" onClick={softRestartWithFeedback}>
+            <Button size="small" onClick={() => runQuick(false)}>
                 Restart plugins
             </Button>
             <Button variant="secondary" size="small" onClick={reload}>
                 Reload window
             </Button>
             <Button variant="secondary" size="small" onClick={relaunch}>
-                Full restart
+                Restart Discord
             </Button>
         </div>
     );
@@ -203,14 +244,15 @@ const settings = definePluginSettings({
         type: OptionType.SELECT,
         description: "What the main shortcut does",
         options: [
-            { label: "Reload the window - about a second, same as Ctrl+R always did", value: "reload", default: true },
-            { label: "Restart plugins only - instant", value: "soft" },
-            { label: "Restart Discord completely - several seconds", value: "full" }
+            { label: "Restart plugins, reloading only if it has to", value: "smart", default: true },
+            { label: "Restart plugins, never reload", value: "quick" },
+            { label: "Reload the window", value: "reload" },
+            { label: "Restart Discord completely", value: "full" }
         ]
     },
-    softHotkey: {
+    reloadHotkey: {
         type: OptionType.STRING,
-        description: "Second shortcut, always a plugin-only restart",
+        description: "Second shortcut, always a full window reload",
         default: "ctrl+shift+r"
     },
     buttons: {
@@ -223,8 +265,8 @@ const settings = definePluginSettings({
 migratePluginSettings("CustomPluginQuickRestart", "CustomQuickRestart", "QuickRestart");
 
 export default definePlugin({
-    name: "CustomPluginQuickRestart",
-    description: "Restart Discord from a shortcut. Ctrl+R reloads the window the way it always did; Ctrl+Shift+R restarts just the plugins, which is instant and keeps your connection and your half-typed message.",
+    name: SELF,
+    description: "A restart that takes milliseconds instead of seconds. Ctrl+R restarts every running plugin in place, keeping your connection and your half-typed message, and falls back to a real reload on the rare change that needs one. Ctrl+Shift+R always reloads.",
     tags: ["Utility"],
     authors: [{ name: "reqon", id: 0n }],
 
