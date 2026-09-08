@@ -330,7 +330,60 @@ function startObserver() {
     scheduleSweep();
 }
 
+/** ~4 seconds at 60fps. A cold start has rendered a channel by then, or it never will. */
+const MAX_LIST_WAIT = 240;
+
+/** Frames spent looking for the message list so far; -1 when we aren't looking */
+let listWaitFrames = -1;
+
+/**
+ * Bind the observer as soon as the message list exists, however late that is.
+ *
+ * Plugins start when the gateway connects, which is before Discord has rendered a channel,
+ * so looking once finds nothing: the observer never binds, and the sweep that drops the
+ * date heading above a fully hidden day never runs. That is the bare "September 8" sitting
+ * on top of an otherwise empty channel after a restart. The rules themselves are keyed by
+ * element id and so apply whenever the rows do turn up, which is why the messages were
+ * already hidden and only the heading was left behind.
+ */
+function ensureObserver() {
+    if (findList()) {
+        listWaitFrames = -1;
+        startObserver();
+        scheduleSweep();
+        return;
+    }
+
+    // already looking; a second loop would just double the work
+    if (listWaitFrames >= 0) return;
+
+    listWaitFrames = 0;
+    requestAnimationFrame(keepLooking);
+}
+
+function keepLooking() {
+    if (!enabled || listWaitFrames < 0) {
+        listWaitFrames = -1;
+        return;
+    }
+
+    if (findList()) {
+        listWaitFrames = -1;
+        startObserver();
+        scheduleSweep();
+        return;
+    }
+
+    if (++listWaitFrames >= MAX_LIST_WAIT) {
+        listWaitFrames = -1;
+        return;
+    }
+
+    requestAnimationFrame(keepLooking);
+}
+
 function stopObserver() {
+    listWaitFrames = -1;
     observer?.disconnect();
     observer = null;
     observed = null;
@@ -418,11 +471,8 @@ export function catchUpAll() {
 
     for (const channelId of channelIds) catchUpChannel(channelId);
 
-    // the message list is built after the plugin starts, so look for it on the next frame
-    requestAnimationFrame(() => {
-        startObserver();
-        scheduleSweep();
-    });
+    // the list is built well after the plugin starts, so keep looking until it appears
+    ensureObserver();
 }
 
 // ---------------------------------------------------------------- persistence
@@ -667,11 +717,10 @@ function releaseBackfill(channelId: string) {
 export function onChannelSelect(channelId: string | null) {
     if (!enabled || !channelId || !hasHidesIn(channelId)) return;
 
-    // the list is built after this dispatch, so look for it on the next frame
+    // the list is rebuilt after this dispatch, so look for it on the next frame
     requestAnimationFrame(() => {
         catchUpChannel(channelId);
-        startObserver();
-        scheduleSweep();
+        ensureObserver();
     });
 }
 

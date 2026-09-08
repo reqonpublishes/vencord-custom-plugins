@@ -1,8 +1,27 @@
 /* ---------------------------------------------------------------- inspect modal */
 
-.vc-cim-heading {
-    margin-top: 20px;
-    margin-bottom: 8px;
+/*
+ * One rhythm for the whole form: every block is a section, every section is separated by
+ * the same gap, and nothing sets its own ad-hoc margins. Keeping the spacing in one place
+ * is what stops the modal drifting out of alignment as fields are added or hidden.
+ */
+.vc-cim-section {
+    margin-bottom: 20px;
+}
+
+.vc-cim-section-last {
+    margin-bottom: 0;
+}
+
+.vc-cim-label {
+    margin: 0 0 8px;
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 700;
+    font-family: var(--font-display, var(--font-primary));
+    line-height: 16px;
+    letter-spacing: .02em;
+    text-transform: uppercase;
 }
 
 /* date and time on one line, sized so a 12 hour time never clips */
@@ -103,17 +122,22 @@
     background: rgb(128 128 128 / 32%);
 }
 
-/* the two switches read as one block, separated from the fields around them */
-.vc-cim-toggles {
-    margin: 20px 0 0;
-    padding: 4px 12px;
+/* the switches read as one panel, set apart from the plain fields around them */
+.vc-cim-card {
+    padding: 2px 12px;
     border: 1px solid rgb(128 128 128 / 14%);
     border-radius: 8px;
     background: rgb(128 128 128 / 7%);
 }
 
 .vc-cim-switch {
-    margin: 8px 0;
+    margin: 10px 0;
+}
+
+/* hairline between the two switches, inset so it doesn't touch the card edges */
+.vc-cim-divider {
+    height: 1px;
+    background: rgb(128 128 128 / 14%);
 }
 
 /*
@@ -121,16 +145,21 @@
  * on the left so it reads as belonging to that switch rather than as a third setting.
  */
 .vc-cim-nested {
-    margin: 0 0 10px 12px;
+    margin: 0 0 12px 4px;
     padding-left: 12px;
     border-left: 2px solid rgb(128 128 128 / 20%);
 }
 
-/* the reassurance, sharing the action bar with the buttons */
+/*
+ * The "only you can see this" line. It is handed to Discord as the action bar's input
+ * slot, which is a row shared with the buttons; InspectModal moves it onto its own line
+ * underneath them. These rules only cover how it looks once it is there.
+ */
 .vc-cim-footnote {
     display: flex;
     gap: 6px;
     align-items: center;
+    padding-top: 2px;
     color: var(--text-muted);
     font-size: 12px;
     line-height: 16px;

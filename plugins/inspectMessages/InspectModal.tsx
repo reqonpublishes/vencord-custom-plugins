@@ -6,9 +6,8 @@
 
 import { classNameFactory } from "@api/Styles";
 import { FormSwitch } from "@components/FormSwitch";
-import { Heading } from "@components/Heading";
 import { Message, ModalAction, RenderModalProps } from "@vencord/discord-types";
-import { Modal, openModal, TextArea, useState } from "@webpack/common";
+import { Modal, openModal, TextArea, useLayoutEffect, useRef, useState } from "@webpack/common";
 
 import { applyEdit, getHighlight, getOriginal, isEdited, looksLikePing, resetEdit, toDate } from "./edits";
 
@@ -76,7 +75,7 @@ const OFFSETS = [
     { label: "+1d", ms: DAY }
 ];
 
-/** The eye-with-a-slash beside the "only you" line in the action bar */
+/** The eye-with-a-slash beside the "only you" line */
 const PrivateIcon = () => (
     <svg viewBox="0 0 24 24" height={14} width={14} aria-hidden className={cl("footnote-icon")}>
         <path
@@ -89,6 +88,63 @@ const PrivateIcon = () => (
         />
     </svg>
 );
+
+/**
+ * The "only you can see this" line, on its own row underneath the buttons.
+ *
+ * Discord lays the action bar out as a row and drops this slot in to the left of the
+ * buttons, which is the wrong place for a footnote and squeezes the buttons besides. There
+ * is no prop for it, so the row is found by walking up from here to the first ancestor
+ * that also holds the buttons - durable in a way that matching Discord's generated class
+ * names is not - and the item containing us is told to take a full width line, last.
+ *
+ * Only styles are set, never the tree itself, so React stays free to re-render around it.
+ */
+function Footnote({ author }: { author: string; }) {
+    const ref = useRef<HTMLDivElement>(null);
+
+    useLayoutEffect(() => {
+        const note = ref.current;
+        if (!note) return;
+
+        let child: HTMLElement = note;
+        let parent = note.parentElement;
+        while (parent && !parent.querySelector("button")) {
+            child = parent;
+            parent = parent.parentElement;
+        }
+        if (!parent) return;
+
+        // Only touch it if it really is a horizontal row of items. If Discord ever moves
+        // the buttons out of this slot's ancestry we'd find something else entirely, and
+        // stretching a column to full width would wreck the modal; leaving the footnote
+        // where it started is a far better failure than that.
+        const layout = getComputedStyle(parent);
+        if (!layout.display.includes("flex") || !layout.flexDirection.startsWith("row")) return;
+
+        const bar = parent;
+        const item = child;
+        const previousWrap = bar.style.flexWrap;
+
+        bar.style.flexWrap = "wrap";
+        // a full width item can't share a line, and ordering it last puts that line below
+        item.style.flex = "1 0 100%";
+        item.style.order = "99";
+
+        return () => {
+            bar.style.flexWrap = previousWrap;
+            item.style.flex = "";
+            item.style.order = "";
+        };
+    }, []);
+
+    return (
+        <div className={cl("footnote")} ref={ref}>
+            <PrivateIcon />
+            <span><strong>@{author}</strong> &mdash; only you can see this</span>
+        </div>
+    );
+}
 
 function InspectModal({ rootProps, message }: { rootProps: RenderModalProps; message: Message; }) {
     const [content, setContent] = useState(message.content ?? "");
@@ -143,104 +199,104 @@ function InspectModal({ rootProps, message }: { rootProps: RenderModalProps; mes
         actions.push({ text: "Revert", variant: "critical-primary", onClick: revert });
     }
 
-    const author = message.author?.username ?? "unknown";
-
     return (
         <Modal
             {...rootProps}
             size="md"
             title="Inspect Message"
             notice={error ? { message: error, type: "critical" } : undefined}
-            // the action bar, so the reassurance sits on the same line as the buttons
-            // instead of reading as another paragraph of the form
-            actionBarInput={
-                <div className={cl("footnote")}>
-                    <PrivateIcon />
-                    <span><strong>@{author}</strong> &mdash; only you can see this</span>
-                </div>
-            }
+            actionBarInput={<Footnote author={message.author?.username ?? "unknown"} />}
             actions={actions}
         >
-            <Heading tag="h5">Sent</Heading>
-            <DateTimeField
-                value={timestamp}
-                onChange={next => {
-                    setTimestamp(next);
-                    setError(null);
-                }}
-            />
-            <div className={cl("row")}>
-                <div className={cl("chips")}>
-                    {OFFSETS.map(({ label, ms }) => (
-                        <Chip key={label} onClick={() => nudge(ms)}>{label}</Chip>
-                    ))}
-                </div>
-                <div className={cl("chips")}>
-                    <Chip onClick={() => setTimestamp(toInputValue(new Date()))}>Now</Chip>
-                    <Chip onClick={() => setTimestamp(toInputValue(originalDate))}>Original</Chip>
-                </div>
-            </div>
-
-            <div className={cl("toggles")}>
-                <FormSwitch
-                    className={cl("switch")}
-                    title="Highlighted message"
-                    description="The message reads as if it had mentioned you, whoever wrote it"
-                    value={highlight}
+            <section className={cl("section")}>
+                <h3 className={cl("label")}>Sent</h3>
+                <DateTimeField
+                    value={timestamp}
                     onChange={next => {
-                        setHighlight(next);
-                        setHighlightTouched(true);
+                        setTimestamp(next);
+                        setError(null);
                     }}
-                    hideBorder
                 />
+                <div className={cl("row")}>
+                    <div className={cl("chips")}>
+                        {OFFSETS.map(({ label, ms }) => (
+                            <Chip key={label} onClick={() => nudge(ms)}>{label}</Chip>
+                        ))}
+                    </div>
+                    <div className={cl("chips")}>
+                        <Chip onClick={() => setTimestamp(toInputValue(new Date()))}>Now</Chip>
+                        <Chip onClick={() => setTimestamp(toInputValue(originalDate))}>Original</Chip>
+                    </div>
+                </div>
+            </section>
 
-                <FormSwitch
-                    className={cl("switch")}
-                    title={"Show \"(edited)\" tag"}
-                    description="Adds the edited marker, at a time of your choosing"
-                    value={showEdited}
-                    onChange={setShowEdited}
-                    hideBorder
-                />
+            <section className={cl("section")}>
+                <h3 className={cl("label")}>Appearance</h3>
+                <div className={cl("card")}>
+                    <FormSwitch
+                        className={cl("switch")}
+                        title="Highlighted message"
+                        description="The message reads as if it had mentioned you, whoever wrote it"
+                        value={highlight}
+                        onChange={next => {
+                            setHighlight(next);
+                            setHighlightTouched(true);
+                        }}
+                        hideBorder
+                    />
 
-                {/* indented under the switch that reveals it, so it reads as part of it */}
-                {showEdited && (
-                    <div className={cl("nested")}>
-                        <DateTimeField
-                            value={editedAt}
-                            onChange={next => {
-                                setEditedAt(next);
-                                setError(null);
-                            }}
-                        />
-                        <div className={cl("row", "row-end")}>
-                            <div className={cl("chips")}>
-                                <Chip onClick={() => setEditedAt(toInputValue(new Date()))}>Now</Chip>
-                                <Chip onClick={() => setEditedAt(timestamp)} title="Same moment the message was sent">
-                                    Match sent
-                                </Chip>
+                    <div className={cl("divider")} />
+
+                    <FormSwitch
+                        className={cl("switch")}
+                        title={"Show \"(edited)\" tag"}
+                        description="Adds the edited marker, at a time of your choosing"
+                        value={showEdited}
+                        onChange={setShowEdited}
+                        hideBorder
+                    />
+
+                    {/* indented under the switch that reveals it, so it reads as part of it */}
+                    {showEdited && (
+                        <div className={cl("nested")}>
+                            <DateTimeField
+                                value={editedAt}
+                                onChange={next => {
+                                    setEditedAt(next);
+                                    setError(null);
+                                }}
+                            />
+                            <div className={cl("row", "row-end")}>
+                                <div className={cl("chips")}>
+                                    <Chip onClick={() => setEditedAt(toInputValue(new Date()))}>Now</Chip>
+                                    <Chip onClick={() => setEditedAt(timestamp)} title="Same moment the message was sent">
+                                        Match sent
+                                    </Chip>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                )}
-            </div>
+                    )}
+                </div>
+            </section>
 
-            <Heading tag="h5" className={cl("heading")}>Content</Heading>
-            <TextArea
-                value={content}
-                onChange={next => {
-                    setContent(next);
-                    // keep following the text until you decide for yourself
-                    if (!highlightTouched) setHighlight(looksLikePing(next));
-                }}
-                rows={5}
-                autosize
-                spellCheck={false}
-                placeholder="Message content (markdown works)"
-                onKeyDown={(e: React.KeyboardEvent) => {
-                    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) apply();
-                }}
-            />
+            <section className={cl("section", "section-last")}>
+                <h3 className={cl("label")}>Content</h3>
+                <TextArea
+                    value={content}
+                    onChange={next => {
+                        setContent(next);
+                        // keep following the text until you decide for yourself
+                        if (!highlightTouched) setHighlight(looksLikePing(next));
+                    }}
+                    rows={5}
+                    autosize
+                    spellCheck={false}
+                    placeholder="Message content (markdown works)"
+                    onKeyDown={(e: React.KeyboardEvent) => {
+                        if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) apply();
+                    }}
+                />
+            </section>
         </Modal>
     );
 }
