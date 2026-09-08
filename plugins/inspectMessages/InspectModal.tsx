@@ -167,11 +167,16 @@ function Footnote({ author }: { author: string; }) {
             style(group, "flex", "1 1 100%");
             style(group, "display", "flex");
             style(group, "gap", "8px");
-
-            for (const button of buttons) style(button, "flex", "1 1 0");
         } else {
             // or each button is its own item in the bar, which shares out the same way
             for (const group of groups) style(group, "flex", "1 1 0");
+        }
+
+        for (const button of buttons) {
+            style(button, "flex", "1 1 0");
+            // Discord sizes these for a footer of small print. They're the whole point of
+            // this modal, so they get the height of a proper primary action instead.
+            style(button, "min-height", "44px");
         }
 
         return () => {
