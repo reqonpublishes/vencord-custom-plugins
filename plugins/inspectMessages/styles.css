@@ -1,0 +1,157 @@
+/* ---------------------------------------------------------------- inspect modal */
+
+.vc-cim-heading {
+    margin-top: 20px;
+    margin-bottom: 8px;
+}
+
+/* date and time on one line, sized so a 12 hour time never clips */
+.vc-cim-field {
+    display: flex;
+    gap: 8px;
+}
+
+.vc-cim-input {
+    flex: 1 1 150px;
+    min-width: 0;
+    padding: 8px 8px 8px 11px;
+    border: 1px solid rgb(128 128 128 / 22%);
+    border-radius: 6px;
+
+    /* A neutral translucent grey rather than a theme variable: --input-background is
+       black in plenty of themes, which left these invisible against the modal. Mid grey
+       at low alpha lifts on dark themes and sits back on light ones, so it stays
+       readable whatever theme is loaded. */
+    background: rgb(128 128 128 / 18%);
+    color: var(--text-normal);
+    font-size: 14px;
+    font-family: var(--font-primary);
+    font-variant-numeric: tabular-nums;
+    color-scheme: dark;
+    cursor: text;
+    transition: background-color .15s ease, border-color .15s ease;
+}
+
+.vc-cim-input-time {
+    flex: 0 0 auto;
+    min-width: 158px;
+}
+
+.vc-cim-input:hover {
+    background: rgb(128 128 128 / 26%);
+}
+
+.vc-cim-input:focus {
+    border-color: var(--brand-500, var(--brand-experiment));
+    outline: none;
+}
+
+/*
+ * The indicator ships as a black glyph, so it has to be inverted to show at all. Halfway
+ * lands on a true mid grey, which has contrast against both a dark field and a light one.
+ * Brightening it on hover was a mistake: the field lightens on hover too, so the icon went
+ * pale against a paler background and looked like it had vanished. It stays put instead.
+ */
+.vc-cim-input::-webkit-calendar-picker-indicator {
+    margin-left: 4px;
+    padding: 0;
+    opacity: 1;
+    cursor: pointer;
+    filter: invert(55%);
+}
+
+/* nudges on the left, jump-to buttons on the right, wrapping as one unit each */
+.vc-cim-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 8px;
+}
+
+.vc-cim-row-end {
+    justify-content: flex-end;
+}
+
+.vc-cim-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.vc-cim-chip {
+    padding: 5px 10px;
+    border: 1px solid rgb(128 128 128 / 18%);
+    border-radius: 6px;
+    background: rgb(128 128 128 / 12%);
+    color: var(--text-normal);
+    font-size: 12px;
+    font-weight: 500;
+    font-family: var(--font-primary);
+    font-variant-numeric: tabular-nums;
+    line-height: 16px;
+    cursor: pointer;
+    transition: background-color .15s ease;
+}
+
+.vc-cim-chip:hover {
+    background: rgb(128 128 128 / 24%);
+}
+
+.vc-cim-chip:active {
+    background: rgb(128 128 128 / 32%);
+}
+
+/* the two switches read as one block, separated from the fields around them */
+.vc-cim-toggles {
+    margin: 20px 0 0;
+    padding: 4px 12px;
+    border: 1px solid rgb(128 128 128 / 14%);
+    border-radius: 8px;
+    background: rgb(128 128 128 / 7%);
+}
+
+.vc-cim-switch {
+    margin: 8px 0;
+}
+
+/*
+ * The edited time, tucked under the switch that reveals it. Indented and hung off a rule
+ * on the left so it reads as belonging to that switch rather than as a third setting.
+ */
+.vc-cim-nested {
+    margin: 0 0 10px 12px;
+    padding-left: 12px;
+    border-left: 2px solid rgb(128 128 128 / 20%);
+}
+
+/* the reassurance, sharing the action bar with the buttons */
+.vc-cim-footnote {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 16px;
+    text-align: start;
+}
+
+.vc-cim-footnote strong {
+    color: var(--text-default, var(--text-normal));
+    font-weight: 600;
+}
+
+.vc-cim-footnote-icon {
+    flex: 0 0 auto;
+}
+
+/* ---------------------------------------------------------------- shift gating */
+
+/*
+ * One rule, matched only against buttons this plugin tagged, so revealing them is a
+ * single class toggle on <body> with no React work.
+ */
+body:not(.vc-cim-shift-down) .vc-cim-shift-only {
+    display: none !important;
+}
