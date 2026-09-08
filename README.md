@@ -16,97 +16,137 @@ Custom plugins for [Vencord](https://vencord.dev).
 
 Click a plugin for how to use it and what its settings do.
 
-## Install
+## Install — Windows
 
-> [!IMPORTANT]
-> Custom plugins have to be compiled into Vencord, so the normal installer can't load them.
-> You build Vencord from source once — about five minutes — and after that adding or
-> updating plugins is a single paste.
+**1.** [**Download install.bat**](https://github.com/reqonpublishes/vencord-custom-plugins/raw/main/install.bat)
+
+**2.** Double-click it.
+
+**3.** Follow the prompts. When it finishes, open Discord →
+**Settings → Vencord → Plugins** → search `CustomPlugin` → switch on all three.
+
+That's it.
 
 <details>
-<summary><b>Need Node and Git first?</b> (skip if <code>node -v</code> prints v22 or higher)</summary>
+<summary><b>What is it actually doing?</b></summary>
+
+In order, it:
+
+1. installs Node.js and Git, if you don't already have them
+2. downloads Vencord to `C:\Users\you\Vencord`
+3. downloads these plugins to `C:\Users\you\vc-plugins`
+4. builds Vencord with the plugins compiled in
+5. points Discord at that build
+
+Nothing outside those two folders is changed, and it's plain Windows commands you could
+type yourself — [read it here](https://github.com/reqonpublishes/vencord-custom-plugins/blob/main/install.bat)
+before running it.
+
+</details>
+
+Two things that look alarming but are normal:
+
+- **"The publisher could not be verified"** when you open it. Windows says that about every
+  script downloaded from the internet. Click **Run**.
+- **It asks you to close the window and run it again.** Only on the very first run, if it had
+  to install Node and Git — Windows only gives new programs to new windows.
+
+> [!IMPORTANT]
+> When it asks, quit Discord *properly* — right-click its icon in the system tray, down by
+> the clock, and choose **Quit Discord**. Closing the window leaves it running.
+
+## Install — macOS and Linux
+
+<details>
+<summary><b>Terminal commands</b></summary>
+
+Node 22+ and Git first:
+
+```sh
+brew install node git                     # macOS
+sudo apt install -y nodejs git            # Debian / Ubuntu
+sudo dnf install -y nodejs git            # Fedora
+sudo pacman -S --needed nodejs npm git    # Arch
+```
+
+On Debian and Ubuntu the packaged Node is usually older than 22 — if `node -v` disagrees,
+use [NodeSource](https://github.com/nodesource/distributions).
+
+Then:
+
+```sh
+corepack enable
+git clone https://github.com/Vendicated/Vencord ~/Vencord
+git clone https://github.com/reqonpublishes/vencord-custom-plugins ~/vc-plugins
+cd ~/Vencord
+pnpm install --frozen-lockfile
+mkdir -p src/userplugins
+cp -r ~/vc-plugins/plugins/* src/userplugins/
+pnpm build
+pnpm inject
+```
+
+</details>
+
+<details>
+<summary><b>Windows, by hand</b></summary>
+
+If you'd rather not run a script. In PowerShell:
 
 ```powershell
-# Windows
 winget install -e --id OpenJS.NodeJS.LTS
 winget install -e --id Git.Git
 ```
 
-```sh
-# macOS
-brew install node git
+Close PowerShell, open it again, then:
 
-# Debian / Ubuntu
-curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash - && sudo apt install -y nodejs git
-
-# Fedora
-sudo dnf install -y nodejs git
-
-# Arch
-sudo pacman -S --needed nodejs npm git
-```
-
-Reopen your terminal afterwards. Installers from [nodejs.org](https://nodejs.org) and
-[git-scm.com](https://git-scm.com/downloads) work just as well.
-
-</details>
-
-**1. Get Vencord** — skip if you already build it from source.
-
-```bash
-git clone https://github.com/Vendicated/Vencord
-cd Vencord
+```powershell
 corepack enable
+git clone https://github.com/Vendicated/Vencord "$HOME\Vencord"
+git clone https://github.com/reqonpublishes/vencord-custom-plugins "$HOME\vc-plugins"
+cd "$HOME\Vencord"
 pnpm install --frozen-lockfile
-```
-
-**2. Add the plugins**
-
-```bash
-git clone https://github.com/reqonpublishes/vencord-custom-plugins ~/vencord-custom-plugins
-mkdir -p src/userplugins
-cp -r ~/vencord-custom-plugins/plugins/* src/userplugins/
+New-Item -ItemType Directory -Force src\userplugins | Out-Null
+Copy-Item -Recurse -Force "$HOME\vc-plugins\plugins\*" src\userplugins\
 pnpm build
 ```
 
-> [!TIP]
-> On Windows PowerShell, swap the two middle lines for these:
-> ```powershell
-> New-Item -ItemType Directory -Force src\userplugins | Out-Null
-> Copy-Item -Recurse -Force "$HOME\vencord-custom-plugins\plugins\*" src\userplugins\
-> ```
+Quit Discord from the system tray, then `pnpm inject`.
 
-**3. Put it into Discord** — quit Discord completely first, from its tray icon.
-
-```bash
-pnpm inject
-```
-
-Start Discord, open **Settings → Vencord → Plugins**, search `CustomPlugin`, and switch on
-the three.
+</details>
 
 > [!NOTE]
-> On Vesktop or the web build the last step is different — see
-> [Vencord's docs](https://docs.vencord.dev/installing/custom-plugins/).
+> On Vesktop, or Discord in a browser, the last step differs — run `install.bat --no-inject`
+> and see [Vencord's docs](https://docs.vencord.dev/installing/custom-plugins/).
 
 ## Update
 
-```bash
-git -C ~/vencord-custom-plugins pull
-cp -r ~/vencord-custom-plugins/plugins/* ~/Vencord/src/userplugins/
+Run `install.bat` again. It updates both folders and rebuilds.
+
+On macOS and Linux:
+
+```sh
+git -C ~/vc-plugins pull
+cp -r ~/vc-plugins/plugins/* ~/Vencord/src/userplugins/
 cd ~/Vencord && pnpm build
 ```
 
-Then reload Discord with `Ctrl+R`.
-
-> [!WARNING]
-> Only plugin *folders* may sit directly in `src/userplugins`. A stray `README.md` or any
-> other loose file in there will break the build.
+Then reload Discord with <kbd>Ctrl</kbd>+<kbd>R</kbd>.
 
 ## Uninstall
 
-Delete the plugin folders out of `src/userplugins` and run `pnpm build` again. To remove
-Vencord itself, run `pnpm uninject`.
+Delete the plugin folders from `src/userplugins` and run `pnpm build` again. To remove
+Vencord itself, run `pnpm uninject` from the `Vencord` folder.
+
+## If something goes wrong
+
+| Problem | Fix |
+| --- | --- |
+| `git`, `node` or `pnpm` not recognised | Close the window and run `install.bat` again |
+| It says Discord is running | Quit it from the system tray, not just the window |
+| Plugins don't show up in Discord | Run `install.bat` again, then reload Discord |
+| Build fails with "could not resolve" | Only plugin *folders* may sit in `src/userplugins` — remove any loose files |
+| "name too long" during install | Your Vencord folder is nested too deep — keep it at `C:\Users\you\Vencord` |
 
 ---
 
