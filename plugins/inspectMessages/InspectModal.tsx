@@ -89,14 +89,6 @@ const PrivateIcon = () => (
     </svg>
 );
 
-/** The flex item of `bar` that `el` sits inside, or null if it isn't in there at all */
-function itemOf(bar: HTMLElement, el: HTMLElement) {
-    let node = el;
-    while (node.parentElement && node.parentElement !== bar) node = node.parentElement;
-
-    return node.parentElement === bar ? node : null;
-}
-
 /**
  * The action bar, laid out the way this modal wants it.
  *
@@ -153,30 +145,28 @@ function Footnote({ author }: { author: string; }) {
 
         // every button in the bar is one of the actions; this note holds none of its own
         const buttons = [...bar.querySelectorAll<HTMLElement>("button")];
-        const groups = new Set<HTMLElement>();
-        for (const button of buttons) {
-            const owner = itemOf(bar, button);
-            if (owner && owner !== item) groups.add(owner);
-        }
-
-        if (groups.size === 1) {
-            // the usual shape: one container holding all of them. Widen it to the whole
-            // line, then let the buttons share that line out between themselves, so two
-            // buttons take half each and a third simply narrows them to a third each.
-            const [group] = groups;
-            style(group, "flex", "1 1 100%");
-            style(group, "display", "flex");
-            style(group, "gap", "8px");
-        } else {
-            // or each button is its own item in the bar, which shares out the same way
-            for (const group of groups) style(group, "flex", "1 1 0");
-        }
 
         for (const button of buttons) {
             style(button, "flex", "1 1 0");
+            style(button, "width", "100%");
             // Discord sizes these for a footer of small print. They're the whole point of
             // this modal, so they get the height of a proper primary action instead.
             style(button, "min-height", "44px");
+
+            /*
+             * Widen every wrapper between the button and the row.
+             *
+             * Telling the button to grow achieves nothing on its own: it only grows if the
+             * element directly above it is a flex container that lets it, and Discord's
+             * action bar nests them deeper than one level. So the whole chain up to the
+             * row is stretched, which is what actually carries the width down to the
+             * button instead of leaving it the size of its own label.
+             */
+            for (let node = button.parentElement; node && node !== bar; node = node.parentElement) {
+                style(node, "display", "flex");
+                style(node, "flex", "1 1 0");
+                style(node, "gap", "8px");
+            }
         }
 
         return () => {
