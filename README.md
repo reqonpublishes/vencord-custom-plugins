@@ -8,14 +8,11 @@ Custom plugins for [Vencord](https://vencord.dev).
 
 ## Plugins
 
-🙈 **[Hide Messages](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/hideMessages)**
-Hide messages, or a whole chat's history, from your own Discord. Nothing is deleted and the other person still sees everything.
-
-🔍 **[Inspect Messages](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/inspectMessages)**
-Change what a message says and when it was sent, on your screen only.
-
-⚡ **[Quick Restart](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/quickRestart)**
-Restart Discord with a shortcut, including an instant plugin-only restart.
+| Plugin | What it does |
+| --- | --- |
+| 🙈 **[Hide Messages](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/hideMessages)** | Hide messages, or a whole chat's history, from your own Discord. Nothing is deleted and the other person still sees everything. |
+| 🔍 **[Inspect Messages](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/inspectMessages)** | Change what a message says and when it was sent, on your screen only. |
+| ⚡ **[Quick Restart](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/quickRestart)** | Restart Discord with a shortcut, including an instant plugin-only restart. |
 
 Click a plugin for how to use it and what its settings do.
 
