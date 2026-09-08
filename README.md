@@ -18,9 +18,10 @@ Click a plugin for how to use it and what its settings do.
 
 ## Install — Windows
 
-**1.** [**Download install.bat**](https://github.com/reqonpublishes/vencord-custom-plugins/raw/main/install.bat)
+**1.** Open **[install.bat](https://github.com/reqonpublishes/vencord-custom-plugins/blob/main/install.bat)**
+and click the download button — the **⤓** at the top right of the file.
 
-**2.** Double-click it.
+**2.** Double-click the downloaded file.
 
 **3.** Follow the prompts. When it finishes, open Discord →
 **Settings → Vencord → Plugins** → search `CustomPlugin` → switch on all three.
