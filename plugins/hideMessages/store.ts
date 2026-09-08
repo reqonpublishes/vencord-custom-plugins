@@ -319,71 +319,68 @@ function startObserver() {
     const list = findList();
     if (!list) return;
 
-    // the container is replaced when you change channel, so re-bind when it moves
+    // The container is replaced when you change channel - and again during startup, as
+    // Discord swaps the placeholder it draws first for the real list. Re-bind whenever it
+    // moves, or the observer sits watching an element that left the page.
     if (observed === list) return;
 
     observer?.disconnect();
     observed = list;
     observer = new MutationObserver(scheduleSweep);
-    observer.observe(list, { childList: true });
+    // subtree, because a heading can be re-rendered inside a row rather than added
+    // alongside one, and that has to book a sweep too
+    observer.observe(list, { childList: true, subtree: true });
 
     scheduleSweep();
 }
 
-/** ~4 seconds at 60fps. A cold start has rendered a channel by then, or it never will. */
-const MAX_LIST_WAIT = 240;
+/** A cold start has a lot to get through before it draws a channel, so look for a while */
+const WATCH_MS = 30_000;
+const WATCH_EVERY_MS = 500;
 
-/** Frames spent looking for the message list so far; -1 when we aren't looking */
-let listWaitFrames = -1;
+let watchdog: ReturnType<typeof setInterval> | undefined;
+let watchUntil = 0;
 
-/**
- * Bind the observer as soon as the message list exists, however late that is.
- *
- * Plugins start when the gateway connects, which is before Discord has rendered a channel,
- * so looking once finds nothing: the observer never binds, and the sweep that drops the
- * date heading above a fully hidden day never runs. That is the bare "September 8" sitting
- * on top of an otherwise empty channel after a restart. The rules themselves are keyed by
- * element id and so apply whenever the rows do turn up, which is why the messages were
- * already hidden and only the heading was left behind.
- */
-function ensureObserver() {
-    if (findList()) {
-        listWaitFrames = -1;
-        startObserver();
-        scheduleSweep();
-        return;
-    }
-
-    // already looking; a second loop would just double the work
-    if (listWaitFrames >= 0) return;
-
-    listWaitFrames = 0;
-    requestAnimationFrame(keepLooking);
+function stopWatchdog() {
+    clearInterval(watchdog);
+    watchdog = undefined;
 }
 
-function keepLooking() {
-    if (!enabled || listWaitFrames < 0) {
-        listWaitFrames = -1;
-        return;
-    }
+/**
+ * Keep binding the observer until the message list has settled.
+ *
+ * Looking once isn't enough, and neither is looking only until something is found. Plugins
+ * start when the gateway connects, well before Discord has drawn a channel, and the first
+ * thing it draws is a placeholder that is replaced moments later. Binding to that and
+ * calling it done leaves the observer watching a detached element, so no sweep ever runs
+ * again - which is why a hidden channel still came back with its date heading after a
+ * restart even though the messages themselves were correctly hidden.
+ *
+ * Re-checking on a timer covers all of it: the list arriving late, the list being swapped,
+ * and the list being rebuilt underneath us. `startObserver` is a comparison and a return
+ * when nothing has moved, and sweeps are capped at one a frame, so this costs nothing
+ * while it runs and stops on its own afterwards.
+ */
+function ensureObserver() {
+    startObserver();
+    scheduleSweep();
 
-    if (findList()) {
-        listWaitFrames = -1;
+    watchUntil = Date.now() + WATCH_MS;
+    if (watchdog) return;
+
+    watchdog = setInterval(() => {
+        if (!enabled || Date.now() > watchUntil) {
+            stopWatchdog();
+            return;
+        }
+
         startObserver();
         scheduleSweep();
-        return;
-    }
-
-    if (++listWaitFrames >= MAX_LIST_WAIT) {
-        listWaitFrames = -1;
-        return;
-    }
-
-    requestAnimationFrame(keepLooking);
+    }, WATCH_EVERY_MS);
 }
 
 function stopObserver() {
-    listWaitFrames = -1;
+    stopWatchdog();
     observer?.disconnect();
     observer = null;
     observed = null;
@@ -421,34 +418,21 @@ function applyToLoaded(channelId: string) {
 }
 
 /**
- * Hide what a wholly hidden channel has already loaded.
+ * Re-apply one channel's hides to whatever is in the store right now.
  *
- * The fast path for these channels is emptying the payload as it arrives, but that only
- * works if we were listening when it arrived. When the load has already happened the
- * messages are in the store and can't be un-loaded without throwing away the ones that
- * came in after you hid the channel, so they're hidden by rule instead - same result on
- * screen, and unhiding still costs nothing.
+ * A wholly hidden channel is emptied rather than covered up. Hiding rows one by one leaves
+ * their date headings behind - the headings carry no message id, so they can only be
+ * tidied by a DOM sweep, and a sweep is one more thing to get right on a cold start.
+ * Emptying is what hiding the channel does live anyway, so this is the same channel in the
+ * same state, arrived at the same way.
  */
-function applyToLoadedChannel(channelId: string, allowed: Set<string>) {
-    let hid = false;
-
-    for (const message of loadedIn(channelId)) {
-        if (allowed.has(message.id)) continue;
-
-        addRule(channelId, message.id);
-        hid = true;
+function catchUpChannel(channelId: string) {
+    if (hiddenChannels.has(channelId)) {
+        if (loadedIn(channelId).length) clearLoadedMessages(channelId);
+        return;
     }
 
-    // it already holds history it shouldn't; don't let it pull any more
-    if (hid) clampBackfill(channelId);
-}
-
-/** Re-apply one channel's hides to whatever is in the store right now */
-function catchUpChannel(channelId: string) {
-    const allowed = hiddenChannels.get(channelId);
-
-    if (allowed) applyToLoadedChannel(channelId, allowed);
-    else applyToLoaded(channelId);
+    applyToLoaded(channelId);
 }
 
 /**
@@ -628,14 +612,6 @@ function clampBackfill(channelId: string) {
 }
 
 /**
- * Reload the channel you're looking at, once, after unhiding.
- *
- * Not for the data - nothing was ever removed, so the messages are already in the store.
- * It's for the scroller: it caches row heights, and it measured every hidden row at zero,
- * so dropping the rules leaves it rendering a collapsed list of bare date separators until
- * something resets it. This is the single request either plugin makes.
- */
-/**
  * Empty a channel that is already loaded. Local dispatch, no network.
  *
  * `hasMoreBefore` stays off when hiding, so the blank channel doesn't go looking for
@@ -658,36 +634,36 @@ function clearLoadedMessages(channelId: string, hasMoreBefore = false) {
     }
 }
 
-function refresh(channelId: string, wasWholeChannel: boolean) {
-    /*
-     * A wholly hidden channel had its messages dropped before the store saw them, so it
-     * holds an empty list that Discord nonetheless considers fully fetched. It will not
-     * reload that by itself, not even when you open the channel, so the reload has to be
-     * asked for here whether or not the channel is on screen.
-     *
-     * Both calls are made rather than stopping at the first that exists. A loader can be
-     * present and still decline to do anything - a channel that looks loaded and has no
-     * more history is exactly the state it skips - and taking "the function was there" as
-     * success is what silently swallowed the reload before. Marking it as having more
-     * history first is what stops it being skipped.
-     */
-    if (wasWholeChannel) {
-        clearLoadedMessages(channelId, true);
+/**
+ * Reload a channel after unhiding it.
+ *
+ * Not for the data - nothing was ever removed from the store - but for the scroller. It
+ * caches row heights, it measured every hidden row at zero, and it drops rows it believes
+ * are empty. Take the rules away and it is left rendering a collapsed list: a stack of
+ * bare date headings with nothing underneath them. Only a real reload makes it measure
+ * again, and it is asked for on every unhide rather than only after a whole-channel one,
+ * because a long hidden range collapses the list exactly the same way.
+ *
+ * Both loaders are called rather than stopping at the first that exists. A loader can be
+ * present and still decline to do anything - a channel that looks loaded and has no more
+ * history is exactly the state it skips - and taking "the function was there" as success
+ * is what silently swallowed the reload before. Marking it as having more history first is
+ * what stops it being skipped.
+ */
+function refresh(channelId: string) {
+    clearLoadedMessages(channelId, true);
 
-        const jumped = callLoader("jumpToPresent", channelId);
-        const fetched = callLoader("fetchMessages", channelId);
+    const jumped = callLoader("jumpToPresent", channelId);
+    const fetched = callLoader("fetchMessages", channelId);
 
-        // silent when it works; only speaks up if there's nothing to reload with
-        if (!jumped && !fetched) {
-            logger.warn("Couldn't find Discord's message loader - reopen the channel to reload it");
-        }
+    // silent when it works; only speaks up if there's nothing to reload with
+    if (!jumped && !fetched) {
+        logger.warn("Couldn't find Discord's message loader - reopen the channel to reload it");
     }
 
     if (SelectedChannelStore.getChannelId() !== channelId) return;
 
-    // Put the view back at the newest messages. This also makes the scroller remeasure,
-    // which matters for hidden rows: it cached them at zero height, so the list stays
-    // collapsed until something makes it look again.
+    // put the view back at the newest messages once the reload has landed
     requestAnimationFrame(() => {
         const scroller = document.querySelector(SCROLLER) as HTMLElement | null;
         if (scroller) scroller.scrollTop = scroller.scrollHeight;
@@ -757,14 +733,13 @@ export function hideChannel(channelId: string) {
  * takes. Nothing is refetched, which is also why this can't half-work.
  */
 export function showChannel(channelId: string) {
-    const wasWholeChannel = hiddenChannels.delete(channelId);
-
+    hiddenChannels.delete(channelId);
     hiddenMessages.delete(channelId);
     hiddenRanges.delete(channelId);
     blankPages.delete(channelId);
     dropRulesFor(channelId);
     releaseBackfill(channelId);
-    refresh(channelId, wasWholeChannel);
+    refresh(channelId);
 
     saveNow();
 }
@@ -785,10 +760,9 @@ function showEverything() {
 /** Undo everything and wipe the saved list */
 export function clearAll() {
     const open = SelectedChannelStore.getChannelId();
-    const openWasHidden = !!open && hiddenChannels.has(open);
 
     showEverything();
-    if (open) refresh(open, openWasHidden);
+    if (open) refresh(open);
 
     if (settings.store.persist) writeNow();
 }
