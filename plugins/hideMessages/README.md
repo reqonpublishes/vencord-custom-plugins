@@ -18,8 +18,13 @@ last one → **Hide To Here**.
 > everything in between, including messages that hadn't even loaded yet when you set it.
 
 **A whole chat** — right-click a DM, channel, person, or their profile → **Hide Messages**.
-The history goes blank, but the conversation carries on as normal: new messages still
-arrive and stay visible.
+The history goes blank, but the conversation carries on as normal.
+
+> [!TIP]
+> This hides everything sent *up to that moment*, and nothing after it. Anything that
+> arrives later shows up as usual, whether you were online when it was sent or not — so a
+> chat you hid last week isn't still swallowing messages today. Hide it again whenever you
+> want to clear it back down.
 
 **Undoing it** — the same menu now says **View Messages**. There's also a *Bring every
 hidden message back* button in the plugin's settings.

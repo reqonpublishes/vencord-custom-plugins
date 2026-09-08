@@ -48,6 +48,9 @@ function callLoader(method: "fetchMessages" | "jumpToPresent", channelId: string
 
 const SCROLLER = '[data-list-id^="chat-messages"]';
 
+/** Marks a load we dispatched ourselves, so the interceptor leaves it alone */
+const SYNTHETIC = "__vcHideMessages";
+
 const KEY = "HideMessages_Hidden";
 const logger = new Logger("CustomPluginHideMessages");
 
@@ -56,7 +59,8 @@ type Range = [from: string, to: string];
 interface Stored {
     messages: string[];
     ranges: [string, Range[]][];
-    channels: [string, string[]][];
+    /** channel id -> the cutoff it was hidden at */
+    channels: [string, string][];
 }
 
 /**
@@ -78,11 +82,16 @@ let hiddenMessages = new Map<string, Set<string>>();
 let hiddenRanges = new Map<string, Range[]>();
 
 /**
- * Channels hidden wholesale -> allowlist of message ids that stay visible (messages that
- * arrived after the channel was hidden), so the conversation carries on as normal on top
- * of a blank history.
+ * Channels hidden wholesale -> the moment they were hidden, as a snowflake.
+ *
+ * A cutoff rather than a list of messages to spare. Keeping an allowlist of what should
+ * stay visible sounds equivalent and isn't: it can only ever record messages this client
+ * watched arrive, so everything sent while Discord was closed came back hidden, and the
+ * chat you unhid nothing in stayed blank as it filled up. A cutoff needs no bookkeeping
+ * and can't miss anything - "sent before I hid this" is a comparison, and it answers the
+ * same for a message from a week ago as for one that arrived overnight.
  */
-let hiddenChannels = new Map<string, Set<string>>();
+let hiddenChannels = new Map<string, string>();
 
 /**
  * Consecutive fully hidden pages per channel, reset as soon as one has something to show.
@@ -108,6 +117,12 @@ let observed: Element | null = null;
 let enabled = false;
 
 const keyFor = (channelId: string, messageId: string) => `${channelId}:${messageId}`;
+
+/** Discord's epoch: snowflakes count milliseconds from the start of 2015, shifted up 22 */
+const DISCORD_EPOCH = 1420070400000n;
+
+/** The snowflake a message sent right now would have, give or take the counter bits */
+const snowflakeNow = () => String((BigInt(Date.now()) - DISCORD_EPOCH) << 22n);
 
 /** Snowflakes are numeric strings of varying length, so compare length first */
 function cmpId(a: string, b: string) {
@@ -420,15 +435,18 @@ function applyToLoaded(channelId: string) {
 /**
  * Re-apply one channel's hides to whatever is in the store right now.
  *
- * A wholly hidden channel is emptied rather than covered up. Hiding rows one by one leaves
- * their date headings behind - the headings carry no message id, so they can only be
- * tidied by a DOM sweep, and a sweep is one more thing to get right on a cold start.
- * Emptying is what hiding the channel does live anyway, so this is the same channel in the
- * same state, arrived at the same way.
+ * A wholly hidden channel is reloaded rather than covered up. Hiding its rows one by one
+ * leaves their date headings behind - headings carry no message id, so only a DOM sweep
+ * can reach them - whereas pulling the channel back through the interceptor drops
+ * everything up to the cutoff and keeps everything after it, which is the same state, by
+ * the same path, as hiding it live.
  */
 function catchUpChannel(channelId: string) {
-    if (hiddenChannels.has(channelId)) {
-        if (loadedIn(channelId).length) clearLoadedMessages(channelId);
+    const cutoff = hiddenChannels.get(channelId);
+
+    if (cutoff !== undefined) {
+        // only when it's actually holding something it shouldn't be
+        if (loadedIn(channelId).some(m => cmpId(m.id, cutoff) <= 0)) refresh(channelId);
         return;
     }
 
@@ -472,34 +490,16 @@ function writeNow() {
     set(KEY, {
         messages,
         ranges: [...hiddenRanges],
-        channels: [...hiddenChannels].map(([id, allowed]) => [id, [...allowed]])
+        channels: [...hiddenChannels]
     } satisfies Stored);
 }
 
-/**
- * Incoming messages in a hidden channel each touch state, so writes are coalesced instead
- * of hitting IndexedDB once per message.
+/*
+ * Writes go straight to disk. There used to be a debounce here for message traffic, back
+ * when every incoming message in a hidden channel touched state; a cutoff needs no such
+ * bookkeeping, so the only things reaching this are ones you asked for by hand. Letting
+ * those sit in a window is how a hide you just clicked went missing when Discord closed.
  */
-let saveTimer: ReturnType<typeof setTimeout> | undefined;
-function save() {
-    if (!settings.store.persist) return;
-
-    clearTimeout(saveTimer);
-    saveTimer = setTimeout(writeNow, 300);
-}
-
-/**
- * Write immediately, for anything you asked for by hand.
- *
- * The debounce above exists for message traffic, which can touch state many times a
- * second. Letting a hide you just clicked sit in a 300ms window is a different matter:
- * close Discord inside it and the hide is gone when it comes back, which is one of the
- * ways hidden messages used to reappear after a restart.
- */
-function saveNow() {
-    clearTimeout(saveTimer);
-    writeNow();
-}
 
 async function load() {
     if (!settings.store.persist) return;
@@ -516,7 +516,33 @@ async function load() {
     }
 
     hiddenRanges = new Map(stored.ranges ?? []);
-    hiddenChannels = new Map((stored.channels ?? []).map(([id, allowed]) => [id, new Set(allowed)]));
+
+    hiddenChannels = new Map();
+    for (const [id, value] of stored.channels ?? []) hiddenChannels.set(id, toCutoff(value));
+}
+
+/**
+ * Read a channel's cutoff, from either shape it might have been saved in.
+ *
+ * Earlier versions kept an allowlist of the messages to leave visible. The earliest of
+ * those is the closest thing on record to the moment the channel was hidden, so a cutoff
+ * just below it keeps exactly what was on screen visible. With an empty list there is
+ * nothing to go on, so hide up to now and let the chat carry on from here.
+ */
+function toCutoff(value: string | string[]): string {
+    if (typeof value === "string") return value;
+    if (!Array.isArray(value) || !value.length) return snowflakeNow();
+
+    let earliest = value[0];
+    for (const id of value) {
+        if (cmpId(id, earliest) < 0) earliest = id;
+    }
+
+    try {
+        return String(BigInt(earliest) - 1n);
+    } catch {
+        return snowflakeNow();
+    }
 }
 
 /** Called when the persist setting is switched off, so nothing is left behind on disk */
@@ -536,6 +562,9 @@ export function interceptor(action: any) {
     // runs for every dispatched action, so the common case bails on cheap checks
     if (!enabled) return false;
     if (action?.type !== "LOAD_MESSAGES_SUCCESS") return false;
+    // one of ours, emptying a channel on purpose - filtering it again achieves nothing
+    // and would undo the `hasMoreBefore` it was dispatched with
+    if (action[SYNTHETIC]) return false;
 
     try {
         const messages: Message[] = action.messages ?? [];
@@ -543,12 +572,12 @@ export function interceptor(action: any) {
 
         const { channelId } = action;
 
-        const allowed = hiddenChannels.get(channelId);
-        if (allowed) {
-            // keep only what arrived after you hid it, so you can carry on chatting
-            action.messages = messages.filter(m => allowed.has(m.id));
+        const cutoff = hiddenChannels.get(channelId);
+        if (cutoff !== undefined) {
+            // keep whatever was sent after you hid it, so the chat carries on as normal
+            action.messages = messages.filter(m => cmpId(m.id, cutoff) > 0);
+            // there is nothing older worth fetching, but newer is exactly what we keep
             action.hasMoreBefore = false;
-            action.hasMoreAfter = false;
             return false;
         }
 
@@ -620,6 +649,7 @@ function clampBackfill(channelId: string) {
 function clearLoadedMessages(channelId: string, hasMoreBefore = false) {
     try {
         FluxDispatcher.dispatch({
+            [SYNTHETIC]: true,
             type: "LOAD_MESSAGES_SUCCESS",
             channelId,
             messages: [],
@@ -705,7 +735,7 @@ export function onChannelSelect(channelId: string | null) {
 export function hideMessage(channelId: string, messageId: string) {
     addHidden(channelId, messageId);
     addRule(channelId, messageId);
-    saveNow();
+    writeNow();
 }
 
 /**
@@ -717,13 +747,14 @@ export function hideMessage(channelId: string, messageId: string) {
 export function hideRange(channelId: string, fromId: string, toId: string) {
     addRange(channelId, fromId, toId);
     applyToLoaded(channelId);
-    saveNow();
+    writeNow();
 }
 
 export function hideChannel(channelId: string) {
-    hiddenChannels.set(channelId, new Set());
+    // everything already sent goes; everything after this moment carries on as normal
+    hiddenChannels.set(channelId, snowflakeNow());
     clearLoadedMessages(channelId);
-    saveNow();
+    writeNow();
 }
 
 /**
@@ -741,7 +772,7 @@ export function showChannel(channelId: string) {
     releaseBackfill(channelId);
     refresh(channelId);
 
-    saveNow();
+    writeNow();
 }
 
 function showEverything() {
@@ -789,24 +820,9 @@ export async function startStore() {
 
 export function stopStore() {
     enabled = false;
-    clearTimeout(saveTimer);
     showEverything();
     stopObserver();
 
     styleEl?.remove();
     styleEl = null;
-}
-
-/**
- * Messages that arrive after a channel was hidden stay visible, so the conversation
- * carries on as normal on top of a blank history.
- */
-export function trackNewMessage(message: Message) {
-    if (!hiddenChannels.size) return;
-
-    const allowed = hiddenChannels.get(message?.channel_id);
-    if (!allowed || allowed.has(message.id)) return;
-
-    allowed.add(message.id);
-    save();
 }

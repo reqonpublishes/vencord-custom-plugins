@@ -24,8 +24,7 @@ import {
     onChannelSelect,
     showChannel,
     startStore,
-    stopStore,
-    trackNewMessage
+    stopStore
 } from "./store";
 
 const HideIcon: GatedIcon = ({ height = 20, width = 20, className, innerRef }) => (
@@ -206,9 +205,6 @@ export default definePlugin({
     },
 
     flux: {
-        MESSAGE_CREATE({ message }: { message: Message; }) {
-            trackNewMessage(message);
-        },
         CHANNEL_SELECT({ channelId }: { channelId: string | null; }) {
             // a channel unhidden while you weren't looking reloads when you open it
             onChannelSelect(channelId);
