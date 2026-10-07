@@ -12,7 +12,7 @@ import { settings } from "./settings";
 
 export default definePlugin({
     name: "CustomPluginSync",
-    description: "Keep what you have hidden and rewritten the same on your phone and this computer. One link joins them, and nothing moves until you press a button.",
+    description: "Keep what you have hidden, rewritten and added the same on your phone and this computer. One link joins them, and nothing moves until you press a button.",
     tags: ["Utility"],
     authors: [{ name: "reqon", id: 0n }],
 

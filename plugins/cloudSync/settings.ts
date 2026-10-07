@@ -25,6 +25,11 @@ export const settings = definePluginSettings({
         description: "Share rewritten messages",
         default: true
     },
+    fakeMessages: {
+        type: OptionType.BOOLEAN,
+        description: "Share messages you added",
+        default: true
+    },
     sync: {
         type: OptionType.COMPONENT,
         description: "Send what this computer has, or replace it with what is on the link",

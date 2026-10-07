@@ -1,0 +1,71 @@
+.vc-cfm-section {
+    margin-bottom: 18px;
+}
+
+.vc-cfm-section-last {
+    margin-bottom: 4px;
+}
+
+.vc-cfm-label {
+    color: var(--header-secondary);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .02em;
+    margin: 0 0 8px;
+    text-transform: uppercase;
+}
+
+.vc-cfm-field {
+    display: flex;
+    gap: 8px;
+}
+
+.vc-cfm-input {
+    background: var(--input-background);
+    border: none;
+    border-radius: 4px;
+    color: var(--text-normal);
+    flex: 1;
+    font-size: 15px;
+    padding: 9px 10px;
+}
+
+.vc-cfm-row {
+    align-items: center;
+    display: flex;
+    gap: 8px;
+    justify-content: space-between;
+    margin-top: 8px;
+}
+
+.vc-cfm-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.vc-cfm-chip {
+    background: var(--background-secondary-alt);
+    border: none;
+    border-radius: 99px;
+    color: var(--text-normal);
+    cursor: pointer;
+    font-size: 12px;
+    padding: 5px 11px;
+}
+
+.vc-cfm-chip:hover {
+    background: var(--background-modifier-hover);
+}
+
+.vc-cfm-card {
+    background: var(--background-secondary);
+    border-radius: 8px;
+    padding: 4px 12px;
+}
+
+.vc-cfm-who {
+    color: var(--text-muted);
+    font-size: 13px;
+    margin-top: 6px;
+}

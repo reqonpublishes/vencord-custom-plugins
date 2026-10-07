@@ -1,6 +1,6 @@
 # Sync
 
-Keep what you have hidden and rewritten the same on your phone and this computer.
+Keep what you have hidden, rewritten and added the same on your phone and this computer.
 
 > [!NOTE]
 > Nothing moves on its own. **Send** puts this computer's copy on the link; **Fetch**
@@ -33,8 +33,9 @@ password, so treat the link like one.
 | --- | --- |
 | **Share hidden messages and hidden chats** | Everything Hide Messages is holding: single messages, ranges, and whole chats hidden up to a moment |
 | **Share rewritten messages** | Everything Inspect Messages is holding: new text, timestamps and edited markers |
+| **Share messages you added** | Everything Fake Messages is holding, in every conversation |
 
-Switch either off and that part is left alone in both directions.
+Switch any of them off and that part is left alone in both directions.
 
 Anything the phone has that this computer has no idea about - words it hides everywhere,
 for instance - is carried across untouched rather than thrown away. Sending from here
