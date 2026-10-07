@@ -11,6 +11,9 @@ Take a conversation out of your DM list, for you only.
 **Hiding one** — right-click a conversation in the sidebar → **Hide DM**. It leaves the
 list exactly as if you had closed it.
 
+**Hiding all of them** — the plugin's settings page has **Hide all DMs**. The conversation
+you are in is left alone.
+
 **Bringing one back** — open **Settings → Vencord → Plugins → CustomPluginHideDMs**. Every
 hidden conversation is listed there with a **Show** button, and **Show all** brings back
 the lot.
