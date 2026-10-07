@@ -1,0 +1,17 @@
+.vc-sync-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.vc-sync-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.vc-sync-said {
+    color: var(--text-muted);
+    font-size: 13px;
+    line-height: 1.4;
+}

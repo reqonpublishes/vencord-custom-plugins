@@ -12,7 +12,7 @@ import { classNameFactory } from "@utils/css";
 import { Logger } from "@utils/Logger";
 import { relaunch } from "@utils/native";
 import definePlugin, { OptionType } from "@utils/types";
-import { showToast, Toasts } from "@webpack/common";
+import { showToast } from "@webpack/common";
 
 const cl = classNameFactory("vc-qr-");
 const logger = new Logger("CustomPluginQuickRestart");
@@ -107,9 +107,19 @@ function quickRestart(): QuickResult | null {
     };
 }
 
-// bottom of the screen, out of the way of whatever you were doing when you hit the key
-const toast = (message: string, type: string) =>
-    showToast(message, type, { position: Toasts.Position.BOTTOM });
+/**
+ * Bottom of the screen, out of the way of whatever you were doing when you hit the key.
+ *
+ * The position is a plain number because Vencord stopped exporting the enum it used to
+ * name - the toast module is mapped by shape now, and only show and pop come back from it.
+ * Discord counts from the top, so one is the bottom.
+ */
+const BOTTOM = 1;
+
+const toast = (message: string, type: ToastKind) =>
+    showToast(message, type, { position: BOTTOM });
+
+type ToastKind = "success" | "failure" | "message";
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
@@ -118,7 +128,7 @@ function runQuick(fallBackToReload: boolean) {
     const result = quickRestart();
 
     if (!result) {
-        toast("Couldn't reach the plugin manager - reloading instead", Toasts.Type.FAILURE);
+        toast("Couldn't reach the plugin manager - reloading instead", "failure");
         reload();
         return;
     }
@@ -132,16 +142,16 @@ function runQuick(fallBackToReload: boolean) {
     }
 
     if (result.failed.length) {
-        toast(`Restarted ${result.restarted}, but ${plural(result.failed.length, "plugin")} failed - see the console`, Toasts.Type.FAILURE);
+        toast(`Restarted ${result.restarted}, but ${plural(result.failed.length, "plugin")} failed - see the console`, "failure");
         return;
     }
 
     if (result.needsReload.length) {
-        toast(`Restarted ${result.restarted} - ${plural(result.needsReload.length, "plugin")} still needs a reload`, Toasts.Type.MESSAGE);
+        toast(`Restarted ${result.restarted} - ${plural(result.needsReload.length, "plugin")} still needs a reload`, "message");
         return;
     }
 
-    toast(`Restarted ${plural(result.restarted, "plugin")} in ${result.ms}ms`, Toasts.Type.SUCCESS);
+    toast(`Restarted ${plural(result.restarted, "plugin")} in ${result.ms}ms`, "success");
 }
 
 function runAction() {

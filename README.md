@@ -13,6 +13,7 @@ Custom plugins for [Vencord](https://vencord.dev).
 | **[Hide&nbsp;Messages](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/hideMessages)** | Hide messages, or a whole chat's history, from your own Discord. Nothing is deleted and the other person still sees everything. |
 | **[Inspect&nbsp;Messages](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/inspectMessages)** | Change what a message says and when it was sent, on your screen only. |
 | **[Quick&nbsp;Restart](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/quickRestart)** | Restart Discord in milliseconds instead of seconds, without losing your connection. |
+| **[Sync](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/cloudSync)** | Keep what you have hidden and rewritten the same here and on your phone. One link joins them, and nothing moves until you press a button. |
 
 Click a plugin for how to use it and what its settings do.
 
@@ -24,7 +25,7 @@ and click the download button — the **⤓** at the top right of the file.
 **2.** Double-click the downloaded file.
 
 **3.** Follow the prompts. When it finishes, open Discord →
-**Settings → Vencord → Plugins** → search `CustomPlugin` → switch on all three.
+**Settings → Vencord → Plugins** → search `CustomPlugin` → switch them all on.
 
 That's it.
 
