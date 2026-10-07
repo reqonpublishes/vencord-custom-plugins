@@ -34,6 +34,7 @@ password, so treat the link like one.
 | **Share hidden messages and hidden chats** | Everything Hide Messages is holding: single messages, ranges, and whole chats hidden up to a moment |
 | **Share rewritten messages** | Everything Inspect Messages is holding: new text, timestamps and edited markers |
 | **Share messages you added** | Everything Fake Messages is holding, in every conversation |
+| **Share which conversations are hidden** | Everything Hide DMs is holding |
 
 Switch any of them off and that part is left alone in both directions.
 

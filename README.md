@@ -13,6 +13,7 @@ Custom plugins for [Vencord](https://vencord.dev).
 | **[Hide&nbsp;Messages](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/hideMessages)** | Hide messages, or a whole chat's history, from your own Discord. Nothing is deleted and the other person still sees everything. |
 | **[Inspect&nbsp;Messages](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/inspectMessages)** | Change what a message says and when it was sent, on your screen only. |
 | **[Fake&nbsp;Messages](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/fakeMessages)** | Put a message in a conversation that nobody sent. Choose who it came from, what it says and when. |
+| **[Hide&nbsp;DMs](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/hideDMs)** | Take a conversation out of your DM list. Nothing is closed on Discord and the messages are all still there. |
 | **[Quick&nbsp;Restart](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/quickRestart)** | Restart Discord in milliseconds instead of seconds, without losing your connection. |
 | **[Sync](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/cloudSync)** | Keep what you have hidden, rewritten and added the same here and on your phone. One link joins them, and nothing moves until you press a button. |
 

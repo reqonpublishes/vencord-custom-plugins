@@ -30,6 +30,11 @@ export const settings = definePluginSettings({
         description: "Share messages you added",
         default: true
     },
+    hideDMs: {
+        type: OptionType.BOOLEAN,
+        description: "Share which conversations are hidden",
+        default: true
+    },
     sync: {
         type: OptionType.COMPONENT,
         description: "Send what this computer has, or replace it with what is on the link",

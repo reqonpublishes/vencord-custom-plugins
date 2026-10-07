@@ -51,6 +51,7 @@ export interface Adapter {
 const HIDES_KEY = "HideMessages_Hidden";
 const EDITS_KEY = "InspectMessages_Edits";
 const FAKES_KEY = "FakeMessages_Added";
+const DMS_KEY = "HideDMs_Hidden";
 
 /** Group the flat "channel:message" list into the records the shelf holds. */
 function groupHidden(flat: string[]): Record<string, string[]> {
@@ -135,7 +136,24 @@ const fakeMessages: Adapter = {
     }
 };
 
-export const ADAPTERS: Adapter[] = [hideMessages, inspectMessages, fakeMessages];
+const hideDMs: Adapter = {
+    plugin: "CustomPluginHideDMs",
+    shelfKey: "hideDMs",
+    label: "Hidden DMs",
+
+    async read() {
+        const stored = await get<[string, string][] | Record<string, string>>(DMS_KEY);
+        if (!stored) return null;
+
+        return { chats: Array.isArray(stored) ? Object.fromEntries(stored) : stored };
+    },
+
+    async write(held) {
+        await set(DMS_KEY, Object.entries(held.chats ?? {}));
+    }
+};
+
+export const ADAPTERS: Adapter[] = [hideMessages, inspectMessages, fakeMessages, hideDMs];
 
 /**
  * Lay what this client has over what the shelf holds, for one plugin.
