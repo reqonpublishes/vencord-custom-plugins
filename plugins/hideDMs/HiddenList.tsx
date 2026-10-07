@@ -7,8 +7,9 @@
 import { classNameFactory } from "@api/Styles";
 import { Button } from "@components/Button";
 import { useForceUpdater } from "@utils/react";
+import { SelectedChannelStore } from "@webpack/common";
 
-import { count, names, showAll, showChat } from "./store";
+import { count, hideAll, names, showAll, showChat } from "./store";
 
 const cl = classNameFactory("vc-chd-");
 
@@ -24,12 +25,31 @@ export function HiddenList() {
     const update = useForceUpdater();
     const held = names();
 
+    const hideEverything = (
+        <Button
+            className={cl("all")}
+            size="small"
+            onClick={() => {
+                hideAll(SelectedChannelStore.getChannelId());
+                update();
+            }}
+        >
+            Hide all DMs
+        </Button>
+    );
+
     if (!count()) {
-        return <div className={cl("empty")}>Nothing is hidden.</div>;
+        return (
+            <div className={cl("list")}>
+                {hideEverything}
+                <div className={cl("empty")}>Nothing is hidden.</div>
+            </div>
+        );
     }
 
     return (
         <div className={cl("list")}>
+            {hideEverything}
             {held.map(([channelId, name]) => (
                 <div className={cl("row")} key={channelId}>
                     <span className={cl("name")}>{name}</span>

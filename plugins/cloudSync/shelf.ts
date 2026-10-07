@@ -17,6 +17,10 @@
  * it is generated rather than typed, and why it should be treated like a password.
  */
 
+import { PluginNative } from "@utils/types";
+
+const Native = VencordNative.pluginHelpers.CustomPluginSync as PluginNative<typeof import("./native")>;
+
 export const DEFAULT_BASE = "https://veil.veil-worker.workers.dev/sync/";
 
 /** The shape both clients write. Anything not listed here is carried across untouched. */
@@ -67,13 +71,19 @@ export function looksLikeLink(link: string): boolean {
 
 /** What is on the shelf now, or an empty one if nothing has been put there yet. */
 export async function fetchShelf(link: string): Promise<Fetched> {
-    const answer = await fetch(link.trim(), { method: "GET", cache: "no-store" });
+    const answer = await Native.request(link.trim(), "GET");
 
     // Nothing there yet is an ordinary answer, not a failure: it is what a new link says.
     if (answer.status === 404) return { at: null, shelf: { ...EMPTY } };
-    if (!answer.ok) throw new Error("The shelf answered " + answer.status);
+    if (answer.status < 200 || answer.status >= 300) throw new Error(describe(answer));
 
-    const body = await answer.json();
+    let body: any = null;
+    try {
+        body = JSON.parse(answer.text);
+    } catch {
+        throw new Error("That link did not answer with a shelf");
+    }
+
     const shelf = body?.data ?? body;
 
     return {
@@ -87,14 +97,20 @@ export async function fetchShelf(link: string): Promise<Fetched> {
 }
 
 export async function sendShelf(link: string, shelf: Shelf): Promise<string | null> {
-    const answer = await fetch(link.trim(), {
-        method: "PUT",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(shelf)
-    });
+    const answer = await Native.request(link.trim(), "PUT", JSON.stringify(shelf));
+    if (answer.status < 200 || answer.status >= 300) throw new Error(describe(answer));
 
-    if (!answer.ok) throw new Error("The shelf answered " + answer.status);
+    try {
+        const body = JSON.parse(answer.text);
+        return typeof body?.at === "string" ? body.at : null;
+    } catch {
+        return null;
+    }
+}
 
-    const body = await answer.json().catch(() => null);
-    return typeof body?.at === "string" ? body.at : null;
+/** A failure in words. Nought is not a status: it means the request never got anywhere. */
+function describe(answer: { status: number; text: string; }): string {
+    return answer.status
+        ? "The shelf answered " + answer.status
+        : "Could not reach the link - " + answer.text;
 }

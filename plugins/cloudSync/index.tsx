@@ -9,6 +9,7 @@ import "./styles.css";
 import definePlugin from "@utils/types";
 
 import { settings } from "./settings";
+import { bringDown, sendUp } from "./sync";
 
 export default definePlugin({
     name: "CustomPluginSync",
@@ -16,5 +17,10 @@ export default definePlugin({
     tags: ["Utility"],
     authors: [{ name: "reqon", id: 0n }],
 
-    settings
+    settings,
+
+    // The two things the buttons do, by name - so a keybind, a script or another plugin can
+    // send or fetch without the settings page being open.
+    sendUp,
+    bringDown
 });

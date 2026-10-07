@@ -153,7 +153,98 @@ const hideDMs: Adapter = {
     }
 };
 
-export const ADAPTERS: Adapter[] = [hideMessages, inspectMessages, fakeMessages, hideDMs];
+/** The parts of a hidden-friends record this client keeps. The phone keeps more. */
+const FRIEND_KEYS = ["hidden", "hiddenWas", "blocked", "blockedWas", "pending", "incoming", "dismissed", "friended"];
+
+const hideFriends: Adapter = {
+    plugin: "CustomPluginHideFriends",
+    shelfKey: "hideFriends",
+    label: "Hidden friends",
+
+    async read() {
+        const stored = await get<Record<string, any>>("HideFriends_State");
+        if (!stored) return null;
+
+        const out: Record<string, any> = {};
+        for (const key of FRIEND_KEYS) out[key] = stored[key] ?? {};
+        return out;
+    },
+
+    async write(held) {
+        const next: Record<string, any> = {};
+        for (const key of FRIEND_KEYS) next[key] = held[key] ?? {};
+        await set("HideFriends_State", next);
+    }
+};
+
+const hideServers: Adapter = {
+    plugin: "CustomPluginHideServers",
+    shelfKey: "hideServers",
+    label: "Hidden servers",
+
+    async read() {
+        const stored = await get<[string, string][] | Record<string, string>>("HideServers_Hidden");
+        if (!stored) return null;
+
+        return { hidden: Array.isArray(stored) ? Object.fromEntries(stored) : stored };
+    },
+
+    async write(held) {
+        await set("HideServers_Hidden", Object.entries(held.hidden ?? {}));
+    }
+};
+
+const fakeCalls: Adapter = {
+    plugin: "CustomPluginFakeCalls",
+    shelfKey: "fakeCalls",
+    label: "Added calls",
+
+    async read() {
+        const stored = await get<[string, any[]][] | Record<string, any[]>>("FakeCalls_Added");
+        if (!stored) return null;
+
+        return { calls: Array.isArray(stored) ? Object.fromEntries(stored) : stored };
+    },
+
+    async write(held) {
+        await set("FakeCalls_Added", Object.entries(held.calls ?? {}));
+    }
+};
+
+/**
+ * The badge numbers, which live in this plugin's settings rather than under a key of its own.
+ *
+ * What is shared is how far each badge is moved, not the number it shows. The two devices are
+ * the same account, so the real count underneath is the same on both and the same distance
+ * lands on the same number - and a request that really arrives moves both.
+ */
+const fakeNotifications: Adapter = {
+    plugin: "CustomPluginFakeNotifications",
+    shelfKey: "fakeNotifications",
+    label: "Badge numbers",
+
+    async read() {
+        const held: any = (window as any).Vencord?.Settings?.plugins?.CustomPluginFakeNotifications;
+        if (!held) return null;
+
+        return {
+            friends: typeof held.friends === "number" ? held.friends : null,
+            requests: typeof held.requests === "number" ? held.requests : null
+        };
+    },
+
+    async write(held) {
+        const mine: any = (window as any).Vencord?.Settings?.plugins?.CustomPluginFakeNotifications;
+        if (!mine) return;
+
+        mine.friends = typeof held.friends === "number" ? held.friends : null;
+        mine.requests = typeof held.requests === "number" ? held.requests : null;
+    }
+};
+
+export const ADAPTERS: Adapter[] = [
+    hideMessages, inspectMessages, fakeMessages, hideDMs, hideFriends, hideServers, fakeCalls, fakeNotifications
+];
 
 /**
  * Lay what this client has over what the shelf holds, for one plugin.

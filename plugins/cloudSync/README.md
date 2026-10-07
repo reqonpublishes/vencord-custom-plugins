@@ -35,6 +35,10 @@ password, so treat the link like one.
 | **Share rewritten messages** | Everything Inspect Messages is holding: new text, timestamps and edited markers |
 | **Share messages you added** | Everything Fake Messages is holding, in every conversation |
 | **Share which conversations are hidden** | Everything Hide DMs is holding |
+| **Share hidden friends, pretend blocks and pretend requests** | Everything Hide Friends is holding |
+| **Share which servers are hidden** | Everything Hide Servers is holding |
+| **Share calls you added** | Everything Fake Calls is holding |
+| **Share the badge numbers** | How far Fake Notifications has moved each badge |
 
 Switch any of them off and that part is left alone in both directions.
 

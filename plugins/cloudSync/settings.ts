@@ -35,6 +35,26 @@ export const settings = definePluginSettings({
         description: "Share which conversations are hidden",
         default: true
     },
+    hideFriends: {
+        type: OptionType.BOOLEAN,
+        description: "Share hidden friends, pretend blocks and pretend requests",
+        default: true
+    },
+    hideServers: {
+        type: OptionType.BOOLEAN,
+        description: "Share which servers are hidden",
+        default: true
+    },
+    fakeCalls: {
+        type: OptionType.BOOLEAN,
+        description: "Share calls you added",
+        default: true
+    },
+    fakeNotifications: {
+        type: OptionType.BOOLEAN,
+        description: "Share the badge numbers",
+        default: true
+    },
     sync: {
         type: OptionType.COMPONENT,
         description: "Send what this computer has, or replace it with what is on the link",

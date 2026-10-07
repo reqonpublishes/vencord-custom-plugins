@@ -1,0 +1,39 @@
+.vc-chs-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.vc-chs-row {
+    align-items: center;
+    background: var(--background-secondary);
+    border-radius: 6px;
+    display: flex;
+    gap: 10px;
+    justify-content: space-between;
+    padding: 7px 10px;
+}
+
+.vc-chs-name {
+    color: var(--text-normal);
+    font-size: 14px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vc-chs-all {
+    align-self: flex-start;
+    margin-top: 4px;
+}
+
+.vc-chs-empty {
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+.vc-chs-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}

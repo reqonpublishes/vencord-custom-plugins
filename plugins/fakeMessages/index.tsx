@@ -13,7 +13,7 @@ import { FluxDispatcher, Menu, SelectedChannelStore } from "@webpack/common";
 
 import { openAddMessage } from "./AddMessageModal";
 import { settings } from "./settings";
-import { clearChannel, countIn, interceptor, isFake, load, removeMessage } from "./store";
+import { clearChannel, countIn, interceptor, isFake, load, removeMessage, showIn, takeAllOffScreen } from "./store";
 
 const AddIcon = ({ height = 20, width = 20, className }: { height?: number; width?: number; className?: string; }) => (
     <svg viewBox="0 0 24 24" height={height} width={width} className={className}>
@@ -129,27 +129,16 @@ export default definePlugin({
             interceptorRegistered = true;
             FluxDispatcher.addInterceptor(interceptor);
         }
+
+        // The channel on screen was loaded before this started, so nothing has spliced
+        // anything into it. Everywhere else gets them as its pages arrive.
+        const here = SelectedChannelStore.getChannelId();
+        if (here) showIn(here);
     },
 
     stop() {
-        // The interceptor stays, and answers with nothing once the store is empty of this
-        // channel. Taking the messages off the screen is what stopping should look like.
-        const here = SelectedChannelStore.getChannelId();
-        if (here) clearChannelFromView(here);
+        // Off the screen, still on the list - stopping should leave the conversation as
+        // Discord has it, and starting again should bring them back.
+        takeAllOffScreen();
     }
 });
-
-/**
- * Take the invented messages out of the channel on screen, without forgetting them.
- *
- * Stopping the plugin should leave the conversation as Discord has it, and starting it again
- * should bring them back - so nothing is deleted here, only taken off the screen.
- */
-function clearChannelFromView(channelId: string) {
-    if (!countIn(channelId)) return;
-
-    FluxDispatcher.dispatch({
-        type: "LOAD_MESSAGES",
-        channelId
-    } as any);
-}

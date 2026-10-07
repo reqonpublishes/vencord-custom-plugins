@@ -139,6 +139,26 @@ export function showChat(channelId: string, forget = true): boolean {
     return true;
 }
 
+/** Every conversation in the list at once, bar the one on screen */
+export function hideAll(except?: string | null): number {
+    let ids: string[] = [];
+    try {
+        ids = (ChannelStore as any).getSortedPrivateChannels?.().map((channel: any) => channel.id) ?? [];
+    } catch (e) {
+        logger.error("Could not read the DM list", e);
+    }
+
+    let n = 0;
+    for (const id of ids) {
+        // Not the one you are in: hiding the conversation on screen is a thing to do on
+        // purpose, one at a time, rather than as a side effect of clearing the list.
+        if (id === except || hidden.has(id)) continue;
+        if (hideChat(id)) n++;
+    }
+
+    return n;
+}
+
 /**
  * Put every hidden conversation back in the list.
  *
