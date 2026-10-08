@@ -82,7 +82,19 @@ export const pluginOf = (name: string): any => PM()?.plugins?.[name];
 /** Installed at all - somebody may have copied in only some of the folders */
 export const installed = () => ENTRIES.filter(entry => !!pluginOf(entry.plugin));
 
+/** Installed and enabled in Vencord - the ones this page can actually switch */
+export const usable = () => installed().filter(entry => isEnabled(entry.plugin));
+
 export const isOn = (name: string) => !!pluginOf(name)?.started;
+
+/**
+ * Whether Vencord itself has the plugin switched on, on its own Plugins page.
+ *
+ * That page decides whether a plugin exists at all as far as this one is concerned. One that
+ * is disabled there is shown greyed out and left alone: this page pauses and resumes plugins,
+ * it does not install them.
+ */
+export const isEnabled = (name: string) => !!Settings.plugins[name]?.enabled;
 
 /**
  * Whether turning this on has to wait for Discord to restart.
@@ -132,8 +144,7 @@ function remember(name: string, off: boolean) {
 export function setOn(name: string, on: boolean): "done" | "restart" | "failed" {
     const manager = PM();
     const plugin = pluginOf(name);
-    const saved = Settings.plugins[name];
-    if (!manager || !plugin || !saved) return "failed";
+    if (!manager || !plugin || !isEnabled(name)) return "failed";
 
     try {
         if (!on) {
@@ -146,14 +157,14 @@ export function setOn(name: string, on: boolean): "done" | "restart" | "failed" 
         remember(name, false);
         if (plugin.started) return "done";
 
-        // Only a plugin Vencord itself has switched off gets as far as needing a restart.
+        // Only one enabled in Vencord since Discord last loaded gets as far as needing a
+        // restart: what it changes inside Discord has not gone in yet.
         const { restartNeeded, failures } = manager.startDependenciesRecursive(plugin);
         if (failures?.length) {
             logger.error(`Could not start what ${name} depends on`, failures);
             return "failed";
         }
 
-        saved.enabled = true;
         if (restartNeeded || needsRestart(name)) return "restart";
 
         return manager.startPlugin(plugin) ? "done" : "failed";
@@ -195,7 +206,7 @@ function batched(run: () => void) {
 }
 
 /** The plugins that change what Discord shows and are doing so right now */
-export const applying = () => installed().filter(entry => isView(entry) && isOn(entry.plugin)).map(entry => entry.plugin);
+export const applying = () => usable().filter(entry => isView(entry) && isOn(entry.plugin)).map(entry => entry.plugin);
 
 /**
  * See the real Discord, or go back to yours.
@@ -215,7 +226,7 @@ export function flipAll(remembered: string[]): { on: boolean; changed: number; r
         return { on: false, changed, remember: live, restart: false };
     }
 
-    const views = installed().filter(isView).map(entry => entry.plugin);
+    const views = usable().filter(isView).map(entry => entry.plugin);
     const back = remembered.filter(name => views.includes(name));
 
     let changed = 0;

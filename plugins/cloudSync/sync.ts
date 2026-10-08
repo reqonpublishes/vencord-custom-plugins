@@ -7,19 +7,21 @@
 import { Logger } from "@utils/Logger";
 
 import { Adapter, ADAPTERS, overlay } from "./adapters";
-import { settings } from "./settings";
+import { isPluginEnabled, settings } from "./settings";
 import { fetchShelf, looksLikeLink, sendShelf, Shelf } from "./shelf";
 
 const logger = new Logger("CloudSync");
 
-/** Only the plugins you asked to share, and only the ones actually installed. */
+/**
+ * Only the plugins you asked to share, and only the ones enabled in Vencord.
+ *
+ * A plugin switched off on Vencord's Plugins page is left out in both directions: nothing of
+ * its is sent, and nothing is written for it, so what the cloud holds for it stays as the
+ * other device left it. One that is only paused from Additional Settings still counts - it
+ * is still yours, just not being applied.
+ */
 function chosen(): Adapter[] {
-    const PM: any = (window as any).Vencord?.Plugins;
-
-    return ADAPTERS.filter(adapter => {
-        if (settings.store[adapter.shelfKey] === false) return false;
-        return !PM?.plugins || adapter.plugin in PM.plugins;
-    });
+    return ADAPTERS.filter(adapter => settings.store[adapter.shelfKey] !== false && isPluginEnabled(adapter.plugin));
 }
 
 function link(): string {

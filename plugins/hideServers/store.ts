@@ -72,6 +72,48 @@ export function forgetSaved() {
 
 // ---------------------------------------------------------------- the list on screen
 
+/** Put on the row of every hidden server. One plain rule hides whatever carries it */
+const GONE = "vc-chs-gone";
+
+let observer: MutationObserver | null = null;
+let watched: Element | null = null;
+let recheck: ReturnType<typeof setInterval> | null = null;
+let queued = false;
+
+/** How many repaints a second is still Discord redrawing its bar rather than a loop */
+const MOST_REPAINTS = 40;
+let repaints = 0;
+let windowBegan = 0;
+/** Set once the marking has been given up on for this session */
+let tripped = false;
+
+const itemFor = (id: string | number) => document.querySelector(`[data-list-item-id="guildsnav___${id}"]`);
+
+/** The rows that should be off the bar right now */
+function wanted(): Set<Element> {
+    const rows = new Set<Element>();
+    if (!running || !hidden.size) return rows;
+
+    for (const id of hidden.keys()) {
+        // A server on the bar, and the same server inside an open folder.
+        const row = itemFor(id)?.closest('[class*="listItem"]');
+        if (row) rows.add(row);
+    }
+
+    // A folder with nothing left showing in it is an empty box on the bar, so it goes too.
+    try {
+        for (const folder of (SortedGuildStore as any).getGuildFolders?.() ?? []) {
+            const ids: string[] = folder?.guildIds ?? [];
+            if (folder?.folderId == null || !ids.length || !ids.every(id => hidden.has(id))) continue;
+
+            const group = itemFor(folder.folderId)?.closest('[class*="folderGroup"]');
+            if (group) rows.add(group);
+        }
+    } catch { /* the bar is still right without it, bar an empty folder */ }
+
+    return rows;
+}
+
 /**
  * Take the hidden servers off the bar.
  *
@@ -81,35 +123,100 @@ export function forgetSaved() {
  * only be undoable by restarting. Hiding the row leaves the server exactly as it is: still
  * joined, still receiving, still there the moment you show it again.
  *
- * One rule per server, matched on the id Discord puts on the row itself, so it holds through
- * the list being redrawn, reordered or scrolled without anything having to watch for that.
+ * The rows are found and marked rather than matched by a rule that reaches up from the
+ * server's id. That rule needs :has, which makes the browser reconsider it whenever anything
+ * under the bar changes - cheap for one server, and the dearest thing on the page for
+ * thirty. A class on the row costs nothing to match and nothing while the bar sits still.
  */
 function paint() {
+    if (tripped) return paintByRule();
+
+    const rows = wanted();
+
+    for (const row of document.querySelectorAll("." + GONE)) {
+        if (!rows.has(row)) row.classList.remove(GONE);
+    }
+    for (const row of rows) {
+        if (!row.classList.contains(GONE)) row.classList.add(GONE);
+    }
+
+    watch();
+}
+
+/**
+ * The slower way of doing the same thing, kept for the day marking the rows goes wrong.
+ *
+ * One rule that reaches up from each hidden server's id to its row. It needs nothing kept in
+ * step with the page, so it cannot get into an argument with whatever else is changing the
+ * bar - which is the one way the marking above could.
+ */
+function paintByRule() {
     if (!styleEl) return;
 
-    if (!running || !hidden.size) {
-        styleEl.textContent = "";
+    const rules = [`.${GONE}`];
+    if (running) {
+        for (const id of hidden.keys()) rules.push(`[class*="listItem"]:has([data-list-item-id="guildsnav___${id}"])`);
+
+        try {
+            for (const folder of (SortedGuildStore as any).getGuildFolders?.() ?? []) {
+                const ids: string[] = folder?.guildIds ?? [];
+                if (folder?.folderId == null || !ids.length || !ids.every(id => hidden.has(id))) continue;
+
+                rules.push(`[class*="folderGroup"]:has([data-list-item-id="guildsnav___${folder.folderId}"])`);
+            }
+        } catch { /* the bar is still right without it, bar an empty folder */ }
+    }
+
+    styleEl.textContent = rules.join(",\n") + " { display: none !important; }";
+}
+
+/** Mark again, once, after whatever is changing the bar has finished changing it */
+function repaintSoon() {
+    if (queued || tripped) return;
+
+    // Marking a row is itself a change to the bar, so this is told about its own work. It
+    // settles at once when nothing else is involved. If something else keeps undoing it, the
+    // two would go round for ever and take the window with them - so a run of repaints far
+    // past anything a real redraw causes ends the watching, and the rule takes over.
+    const now = performance.now();
+    if (now - windowBegan > 1000) {
+        windowBegan = now;
+        repaints = 0;
+    }
+    if (++repaints > MOST_REPAINTS) {
+        tripped = true;
+        observer?.disconnect();
+        observer = null;
+        watched = null;
+        paintByRule();
         return;
     }
 
-    const rows: string[] = [];
-    for (const id of hidden.keys()) {
-        // One rule covers a server on the bar and the same server inside an open folder.
-        // :has is the dear part of a selector, so it is asked for once per server, not twice.
-        rows.push(`[class*="listItem"]:has([data-list-item-id="guildsnav___${id}"])`);
-    }
+    queued = true;
+    queueMicrotask(() => {
+        queued = false;
+        if (running) paint();
+    });
+}
 
-    // A folder with nothing left showing in it is an empty box on the bar, so it goes too.
-    try {
-        for (const folder of (SortedGuildStore as any).getGuildFolders?.() ?? []) {
-            const ids: string[] = folder?.guildIds ?? [];
-            if (folder?.folderId == null || !ids.length || !ids.every(id => hidden.has(id))) continue;
+/**
+ * Keep the marks on as Discord redraws the bar.
+ *
+ * A folder opening adds rows that were not there to mark, and React writing a row's classes
+ * again takes ours off with them. Both are changes inside the bar, so the bar is the only
+ * thing watched, and only while something is hidden.
+ */
+function watch() {
+    const nav = running && hidden.size && !tripped ? document.querySelector('[data-list-id="guildsnav"]') : null;
+    if (nav === watched && (!nav || observer)) return;
 
-            rows.push(`[class*="folderGroup"]:has([data-list-item-id="guildsnav___${folder.folderId}"])`);
-        }
-    } catch { /* the bar is still right without it, bar an empty folder */ }
+    observer?.disconnect();
+    observer = null;
+    watched = nav;
+    if (!nav) return;
 
-    styleEl.textContent = rows.join(",\n") + " { display: none !important; }";
+    observer = new MutationObserver(repaintSoon);
+    observer.observe(nav, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
 }
 
 export function start() {
@@ -117,13 +224,29 @@ export function start() {
 
     styleEl = document.createElement("style");
     styleEl.id = "vc-chs-hidden";
+    styleEl.textContent = `.${GONE} { display: none !important; }`;
     document.head.append(styleEl);
 
     paint();
+
+    // The bar does not exist yet when Discord is still loading, and is built again if the
+    // whole interface is. Looked for now and then, which costs nothing once it is found.
+    recheck = setInterval(() => {
+        if (hidden.size && !watched?.isConnected) paint();
+    }, 2000);
 }
 
 export function stop() {
     running = false;
+
+    if (recheck) clearInterval(recheck);
+    recheck = null;
+
+    observer?.disconnect();
+    observer = null;
+    watched = null;
+
+    for (const row of document.querySelectorAll("." + GONE)) row.classList.remove(GONE);
     styleEl?.remove();
     styleEl = null;
 }

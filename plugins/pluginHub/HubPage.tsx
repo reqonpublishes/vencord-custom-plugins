@@ -13,29 +13,32 @@ import { Logger } from "@utils/Logger";
 import { React, showToast } from "@webpack/common";
 
 import { settings } from ".";
-import { applying, Entry, flipAll, installed, isOn, isView, needsRestart, pluginOf, SECTIONS, setOn, summaryOf } from "./hub";
+import { applying, Entry, flipAll, installed, isEnabled, isOn, isView, needsRestart, pluginOf, SECTIONS, setOn, summaryOf, usable } from "./hub";
 import { CloudDownIcon, CloudUpIcon, EyeIcon, EyeOffIcon, GearIcon, RefreshIcon } from "./icons";
 import { cl, IconButton } from "./ui";
 
 const logger = new Logger("PluginHub");
 
 /** Enabled in Vencord but waiting on a restart before it can do anything */
-const isWaiting = (plugin: string) => !isOn(plugin) && !!Settings.plugins[plugin]?.enabled && needsRestart(plugin);
+const isWaiting = (plugin: string) => !isOn(plugin) && isEnabled(plugin) && needsRestart(plugin);
 
 function PluginRow({ entry, onChange }: { entry: Entry; onChange(): void; }) {
     const { plugin, label, icon: Icon } = entry;
-    const on = isOn(plugin);
+    const enabled = isEnabled(plugin);
+    const on = enabled && isOn(plugin);
     const waiting = isWaiting(plugin);
 
     return (
-        <div className={cl("item", on ? "" : "item-off")}>
+        <div className={cl("item", on ? "" : "item-off", enabled ? "" : "item-disabled")}>
             <div className={cl("tile")}>
                 <Icon height={20} width={20} />
             </div>
             <div className={cl("item-text")}>
                 <div className={cl("item-name")}>{label}</div>
                 <div className={cl("item-detail")}>
-                    {waiting ? "Turns on when Discord restarts" : on ? summaryOf(entry) : entry.off}
+                    {!enabled
+                        ? "Disabled. Enable it in Vencord's Plugins page to use it here"
+                        : waiting ? "Turns on when Discord restarts" : on ? summaryOf(entry) : entry.off}
                 </div>
             </div>
             <Button
@@ -50,6 +53,7 @@ function PluginRow({ entry, onChange }: { entry: Entry; onChange(): void; }) {
             </Button>
             <Switch
                 checked={on || waiting}
+                disabled={!enabled}
                 onChange={next => {
                     const result = setOn(plugin, next);
 
@@ -69,7 +73,7 @@ function SyncRow() {
     const [busy, setBusy] = React.useState<"" | "up" | "down">("");
     const { link } = Settings.plugins.CloudSync ?? {};
 
-    if (!sync?.started) return null;
+    if (!sync?.started || !isEnabled("CloudSync")) return null;
 
     const run = async (which: "up" | "down") => {
         setBusy(which);
@@ -119,7 +123,7 @@ function HubPage() {
     const update = () => redraw(n => n + 1);
 
     const all = installed();
-    const views = all.filter(isView);
+    const views = usable().filter(isView);
     const live = applying().length;
     const waiting = views.some(entry => isWaiting(entry.plugin));
 
@@ -132,18 +136,23 @@ function HubPage() {
                     <div className={cl("item")}>
                         <div className={cl("item-text")}>
                             <div className={cl("item-name")}>
-                                {live ? `${live} of ${views.length} are changing what you see` : "You are seeing the real Discord"}
+                                {!views.length
+                                    ? "None of these plugins are enabled"
+                                    : live ? `${live} of ${views.length} are changing what you see` : "You are seeing the real Discord"}
                             </div>
                             <div className={cl("item-detail")}>
-                                {live
-                                    ? "Show Real turns them all off so you see your real friends, messages, calls and servers. Nothing is forgotten."
-                                    : "Everything you hid or faked is kept, and comes back when you turn it on again."}
+                                {!views.length
+                                    ? "Enable the ones you want in Vencord's Plugins page, then switch them here."
+                                    : live
+                                        ? "Show Real turns them all off so you see your real friends, messages, calls and servers. Nothing is forgotten."
+                                        : "Everything you hid or faked is kept, and comes back when you turn it on again."}
                             </div>
                         </div>
                         <IconButton
                             icon={live ? EyeIcon : EyeOffIcon}
                             size="medium"
                             variant={live ? "primary" : "secondary"}
+                            disabled={!views.length}
                             onClick={() => {
                                 const result = flipAll(settings.store.paused ?? []);
                                 settings.store.paused = result.remember;
