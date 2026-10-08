@@ -18,6 +18,7 @@ Custom plugins for [Vencord](https://vencord.dev).
 | **[Hide&nbsp;Servers](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/hideServers)** | Take a server off your server list, or all of them at once. You stay in every one. |
 | **[Fake&nbsp;Calls](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/fakeCalls)** | Add a call to any DM: who rang, when, how long it lasted, and whether you picked up. |
 | **[Fake&nbsp;Notifications](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/fakeNotifications)** | Choose what the badges say: friend requests and message requests. |
+| **[Plugin&nbsp;Hub](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/pluginHub)** | Adds **Additional Settings** under Vencord: every plugin here in one place with an on/off switch, and one button to see the real Discord. |
 | **[Quick&nbsp;Restart](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/quickRestart)** | Restart Discord in milliseconds instead of seconds, without losing your connection. |
 | **[Cloud&nbsp;Sync](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/cloudSync)** | Sync everything these plugins hold between this computer and your phone. One link joins them: **Sync to Cloud** uploads, **Sync from Cloud** downloads. |
 

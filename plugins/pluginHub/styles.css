@@ -1,0 +1,47 @@
+.vc-hub-page {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.vc-hub-hero {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    padding: 14px;
+    border: 1px solid color-mix(in srgb, var(--brand-500, #5865f2) 45%, transparent);
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--brand-500, #5865f2) 12%, transparent);
+}
+
+.vc-hub-hero-real {
+    border-color: rgb(128 128 128 / 16%);
+    background: rgb(128 128 128 / 8%);
+}
+
+.vc-hub-hero-title {
+    color: var(--text-default, var(--text-normal));
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 20px;
+}
+
+.vc-hub-hero .vc-hub-row-detail,
+.vc-hub-list .vc-hub-row-detail {
+    white-space: normal;
+}
+
+.vc-hub-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.vc-hub-tile-off {
+    background: rgb(128 128 128 / 20%);
+    color: var(--text-muted);
+}
+
+.vc-hub-row-off .vc-hub-row-name {
+    color: var(--text-muted);
+}

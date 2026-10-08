@@ -17,6 +17,9 @@ import { About } from "./ui";
 
 export type Which = "friends" | "requests";
 
+/** Off means every badge reads true, whatever has been set */
+let active = false;
+
 /**
  * How far a badge is moved, or nothing when it has been left alone.
  *
@@ -106,6 +109,10 @@ export default definePlugin({
     ],
 
     shown(which: Which, real: number) {
+        // The patch is part of Discord's code for as long as the window lives, so stopping
+        // the plugin cannot take it out. It answers with the truth instead.
+        if (!active) return real;
+
         const shift = shiftFor(which);
         if (shift === null) return real;
 
@@ -113,11 +120,18 @@ export default definePlugin({
         return Math.max(0, (Number.isFinite(count) ? count : 0) + shift);
     },
 
+    /** Whether Discord loaded with the patches in, which is the only time they can go in */
+    patchesLive() {
+        return typeof (RelationshipStore as any)?.vcRealPendingCount === "function";
+    },
+
     start() {
+        active = true;
         nudge();
     },
 
     stop() {
+        active = false;
         nudge();
     }
 });
