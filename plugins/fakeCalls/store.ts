@@ -6,7 +6,7 @@
 
 import { del, get, set } from "@api/DataStore";
 import { Logger } from "@utils/Logger";
-import { Flux, FluxDispatcher, UserStore } from "@webpack/common";
+import { Flux, FluxDispatcher, MessageCache, MessageStore, UserStore } from "@webpack/common";
 
 import { settings } from "./settings";
 
@@ -138,6 +138,7 @@ export function addCall(call: Omit<FakeCall, "id">): FakeCall {
 
     save();
     showNow(one);
+    settle(one.channelId);
 
     return one;
 }
@@ -230,6 +231,53 @@ function rawCall(one: FakeCall) {
     };
 }
 
+/** Whether two ids are in the order the conversation is, oldest first */
+function inOrder(a: string, b: string) {
+    try {
+        return BigInt(a) <= BigInt(b);
+    } catch {
+        // not a number, so not something that can be placed: leave it where it is
+        return true;
+    }
+}
+
+/**
+ * Put a conversation back in date order after something was added to it.
+ *
+ * Discord takes a message that has just arrived to be the newest and puts it at the bottom,
+ * whatever its date. That is right for a real one. One made to look a week old belongs a
+ * week up - and left at the bottom it reads as sent today, under a date that says otherwise.
+ * So once it is in, the loaded messages are put back in the order their ids give, which is
+ * the order of their dates.
+ *
+ * Nothing is fetched, and nothing moves at all when it was already the newest.
+ */
+function settle(channelId: string) {
+    try {
+        const cache: any = MessageCache.getOrCreate(channelId);
+        const list: any[] = cache?._array;
+        if (!Array.isArray(list) || list.length < 2) return;
+
+        let ordered = true;
+        for (let i = 1; i < list.length; i++) {
+            if (!inOrder(list[i - 1].id, list[i].id)) {
+                ordered = false;
+                break;
+            }
+        }
+        if (ordered) return;
+
+        const next = cache.mutate((copy: any) => {
+            copy._array = [...copy._array].sort((a: any, b: any) => (a.id === b.id ? 0 : inOrder(a.id, b.id) ? -1 : 1));
+        }, true);
+
+        MessageCache.commit(next);
+        MessageStore.emitChange();
+    } catch (e) {
+        logger.error("Could not put the conversation back in order", e);
+    }
+}
+
 function showNow(one: FakeCall) {
     try {
         FluxDispatcher.dispatch({
@@ -280,6 +328,8 @@ export function showIn(channelId: string) {
     batched(() => {
         for (const one of added.get(channelId) ?? []) showNow(one);
     });
+
+    settle(channelId);
 }
 
 // ---------------------------------------------------------------- message loads

@@ -6,7 +6,7 @@
 
 import { del, get, set } from "@api/DataStore";
 import { Logger } from "@utils/Logger";
-import { ChannelStore, Flux, FluxDispatcher, UserStore } from "@webpack/common";
+import { ChannelStore, Flux, FluxDispatcher, SelectedChannelStore, UserStore } from "@webpack/common";
 
 import { settings } from "./settings";
 
@@ -182,6 +182,8 @@ export function hideChat(channelId: string): boolean {
 
 /** Hand the conversation back, as it was. */
 export function showChat(channelId: string, forget = true): boolean {
+    waiting.delete(channelId);
+
     const record = kept.get(channelId);
 
     if (forget) {
@@ -248,6 +250,54 @@ export function showAll(forget = true) {
 export function reapply() {
     batched(() => {
         for (const channelId of hidden.keys()) {
+            if (!ChannelStore.getChannel(channelId)) continue;
+
+            if (inUse(channelId)) {
+                waiting.add(channelId);
+                continue;
+            }
+
+            hideChat(channelId);
+        }
+    });
+}
+
+/** Hidden conversations left on screen for now because you are in them */
+const waiting = new Set<string>();
+
+export const isWaiting = (channelId?: string | null) => !!channelId && waiting.has(channelId);
+
+/**
+ * Whether you are in a conversation right now - looking at it, or on a call in it.
+ *
+ * Hiding a conversation closes it, and closing the one you are standing in pulls the screen
+ * out from under you; closing the one a call is running in does the same to the call. When
+ * hides are being put back all at once - the plugin switching on, Discord reconnecting,
+ * Screen Share Protection starting as you begin a call - that is not what was asked for. So
+ * that one is left until you have moved on.
+ */
+function inUse(channelId: string) {
+    try {
+        return channelId === SelectedChannelStore.getChannelId()
+            || channelId === (SelectedChannelStore as any).getVoiceChannelId?.();
+    } catch {
+        return false;
+    }
+}
+
+/** Hide the ones that were left, now that you may have left them */
+export function hideWaiting() {
+    if (!waiting.size) return;
+
+    batched(() => {
+        for (const channelId of [...waiting]) {
+            if (!hidden.has(channelId)) {
+                waiting.delete(channelId);
+                continue;
+            }
+            if (inUse(channelId)) continue;
+
+            waiting.delete(channelId);
             if (ChannelStore.getChannel(channelId)) hideChat(channelId);
         }
     });

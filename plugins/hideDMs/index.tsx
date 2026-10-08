@@ -15,7 +15,7 @@ import { ChannelStore, FluxDispatcher, Menu } from "@webpack/common";
 import { EyeIcon, EyeOffIcon } from "./icons";
 import { place } from "./menu";
 import { settings } from "./settings";
-import { count, hideChat, hidJustNow, invalidate, isHidden, isLoaded, load, reapply, showAll, showChat } from "./store";
+import { count, hideChat, hideWaiting, hidJustNow, invalidate, isHidden, isLoaded, isWaiting, load, reapply, showAll, showChat } from "./store";
 import { About } from "./ui";
 
 /**
@@ -66,12 +66,23 @@ const userCtx: NavContextMenuPatchCallback = (children, { channel, user }: { cha
  * list. Without this it would be put away again a moment later and look broken.
  */
 const reopen = (action: any) => {
+    // Moving to another conversation is what frees the one that was being waited on. After
+    // this dispatch rather than inside it: hiding is a dispatch of its own.
+    setTimeout(hideWaiting, 0);
+
+    // Still on screen only because you were in it. Selecting it again is not asking for it
+    // to be unhidden.
+    if (isWaiting(action?.channelId)) return;
+
     // Not in the moment after a hide: closing the conversation on screen makes Discord
     // select another, and once that was this one coming straight back.
     if (hidJustNow()) return;
 
     if (isHidden(action?.channelId)) showChat(action.channelId);
 };
+
+/** A call ending frees the conversation it was in, the same way leaving it does */
+const afterCall = () => void setTimeout(hideWaiting, 0);
 
 /** Discord rebuilds its conversations on every reconnect, so what was hidden is said again */
 const afterConnect = () => reapply();
@@ -134,12 +145,14 @@ export default definePlugin({
         reapply();
 
         FluxDispatcher.subscribe("CHANNEL_SELECT", reopen);
+        FluxDispatcher.subscribe("VOICE_CHANNEL_SELECT", afterCall);
         FluxDispatcher.subscribe("CONNECTION_OPEN", afterConnect);
     },
 
     stop() {
         alive = false;
         FluxDispatcher.unsubscribe("CHANNEL_SELECT", reopen);
+        FluxDispatcher.unsubscribe("VOICE_CHANNEL_SELECT", afterCall);
         FluxDispatcher.unsubscribe("CONNECTION_OPEN", afterConnect);
 
         // Back on screen, still on the list. Switching the plugin off should give the
