@@ -15,7 +15,7 @@ import { FluxDispatcher, Menu, SelectedChannelStore } from "@webpack/common";
 import { openAddMessage } from "./AddMessageModal";
 import { ChatAddIcon, TrashIcon } from "./icons";
 import { settings } from "./settings";
-import { clearChannel, countIn, interceptor, invalidate, isFake, isLoaded, load, removeMessage, showIn, takeAllOffScreen } from "./store";
+import { clearChannel, countIn, interceptor, invalidate, isFake, isLoaded, load, removeMessage, setRunning, showIn, takeAllOffScreen } from "./store";
 import { About } from "./ui";
 
 let interceptorRegistered = false;
@@ -128,6 +128,7 @@ export default definePlugin({
         // Only the first start reads from disk. After that the list is already in memory,
         // and not waiting is what lets switching back on happen at once.
         if (!isLoaded()) await load();
+        setRunning(true);
 
         // Added once and left: Vencord has no way to take an interceptor back off, so a
         // second start would stack another copy and every page would be processed twice.
@@ -145,6 +146,7 @@ export default definePlugin({
     stop() {
         // Off the screen, still on the list - stopping should leave the conversation as
         // Discord has it, and starting again should bring them back.
+        setRunning(false);
         takeAllOffScreen();
     }
 });

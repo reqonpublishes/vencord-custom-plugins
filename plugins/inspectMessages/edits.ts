@@ -8,7 +8,7 @@ import { del, get, set } from "@api/DataStore";
 import { updateMessage } from "@api/MessageUpdater";
 import { Message } from "@vencord/discord-types";
 import { findCssClassesLazy } from "@webpack";
-import { MessageStore, moment, UserStore } from "@webpack/common";
+import { ChannelStore, MessageStore, moment, UserStore } from "@webpack/common";
 
 import { settings } from "./settings";
 
@@ -469,5 +469,174 @@ export function restoreVisuals() {
 export function reapplyChannel(channelId: string) {
     for (const [id, entry] of edits) {
         if (entry.channelId === channelId) render(id, entry);
+    }
+}
+
+// ---------------------------------------------------------------- search
+
+/** What each open search asked for, by the id Discord gives the search (a channel, a server or "DMS") */
+const asked = new Map<string, any>();
+
+/** The filters this can answer for. A search using any other is left exactly as the server answered it */
+const UNDERSTOOD = new Set([
+    "content", "author_id", "channel_id", "min_id", "max_id", "sort_by", "sort_order", "offset", "cursor", "limit", "include_nsfw"
+]);
+
+const listOf = (value: any): string[] => value == null ? [] : (Array.isArray(value) ? value : [value]).map(String);
+
+/**
+ * Whether a message would have been found by a search, had the server known about it.
+ *
+ * Discord matches words rather than a run of letters, so every word asked for has to be in
+ * the text somewhere. Close enough to the real thing that a message turns up when you would
+ * expect it to, without pretending to be the search engine.
+ */
+function wouldMatch(query: any, message: { id: string; channelId: string; authorId: string; content: string; }): boolean {
+    if (!query) return false;
+
+    for (const key of Object.keys(query)) {
+        if (!UNDERSTOOD.has(key)) return false;
+    }
+
+    const words = String(query.content ?? "").toLowerCase().split(/\s+/).filter(Boolean);
+    const text = message.content.toLowerCase();
+    if (!words.every(word => text.includes(word))) return false;
+
+    const authors = listOf(query.author_id);
+    if (authors.length && !authors.includes(message.authorId)) return false;
+
+    const channels = listOf(query.channel_id);
+    if (channels.length && !channels.includes(message.channelId)) return false;
+
+    try {
+        const id = BigInt(message.id);
+        if (query.min_id != null && id < BigInt(query.min_id)) return false;
+        if (query.max_id != null && id > BigInt(query.max_id)) return false;
+    } catch {
+        return false;
+    }
+
+    return true;
+}
+
+/** Whether a channel is one of the places a search is looking in */
+function inScope(searchId: string, channelId: string): boolean {
+    if (searchId === channelId) return true;
+
+    const channel: any = ChannelStore.getChannel(channelId);
+    if (!channel) return false;
+
+    return searchId === "DMS" ? !channel.guild_id : channel.guild_id === searchId;
+}
+
+/** Remember what a search asked for. Cheap, and done whether or not anything is edited yet */
+export function noteSearch(action: any) {
+    asked.set(String(action.id), action.query);
+}
+
+/** A loaded message, put back into the shape the server sends, with our changes on it */
+function rawFrom(id: string, entry: StoredEdit): any | null {
+    const message: any = MessageStore.getMessage(entry.channelId, id);
+    const author = message?.author;
+    if (!message || !author) return null;
+
+    // An embed is rebuilt by the client into a shape it cannot be handed back in, so a
+    // message carrying one is left for the server to find.
+    if (message.embeds?.length) return null;
+
+    const raw = {
+        id,
+        type: message.type ?? 0,
+        channel_id: entry.channelId,
+        content: message.content ?? "",
+        timestamp: toDate(message.timestamp).toISOString(),
+        edited_timestamp: message.editedTimestamp ? toDate(message.editedTimestamp).toISOString() : null,
+        author: {
+            id: author.id,
+            username: author.username,
+            global_name: author.globalName ?? null,
+            discriminator: author.discriminator ?? "0",
+            avatar: author.avatar ?? null,
+            bot: !!author.bot,
+            public_flags: author.publicFlags ?? 0
+        },
+        attachments: message.attachments ?? [],
+        embeds: [],
+        mentions: [],
+        mention_roles: [],
+        mention_everyone: false,
+        pinned: !!message.pinned,
+        tts: false,
+        flags: message.flags ?? 0,
+        components: [],
+        hit: true
+    };
+
+    patchRawMessage(raw);
+    return raw;
+}
+
+/**
+ * Make a search agree with what the messages now say.
+ *
+ * Three things, because the server searched the real text. A result that was rewritten is
+ * shown as rewritten. One that only matched the words it used to have is taken out, since
+ * it no longer says them. And one that says them now, and did not before, is put in - where
+ * the message is loaded, so there is something to build the result from.
+ */
+export function patchSearch(action: any) {
+    if (!Array.isArray(action?.data)) return;
+
+    for (const result of action.data) {
+        if (!Array.isArray(result?.messages)) continue;
+
+        const searchId = String(result.id ?? "");
+        const query = asked.get(searchId);
+        const found = new Set<string>();
+        let dropped = 0;
+
+        result.messages = result.messages.filter((group: any[]) => {
+            if (!Array.isArray(group)) return true;
+
+            for (const one of group) {
+                if (one?.id) found.add(String(one.id));
+                patchRawMessage(one);
+            }
+
+            const hit = group.find(one => one?.hit) ?? group[0];
+            const entry = hit && edits.get(hit.id);
+            if (!entry || entry.content === undefined || !query?.content) return true;
+
+            const still = wouldMatch({ content: query.content }, { id: hit.id, channelId: hit.channel_id, authorId: hit.author?.id ?? "", content: entry.content });
+            if (!still) dropped++;
+
+            return still;
+        });
+
+        // Only the first page: which page a rewritten message belongs on would need the
+        // dates of pages not fetched yet, and the top of the results is where it is looked for.
+        let put = 0;
+        if (query?.content && !(query.offset > 0) && result.cursor?.type !== "score") {
+            const extra: any[] = [];
+
+            for (const [id, entry] of edits) {
+                if (entry.content === undefined || found.has(id) || !inScope(searchId, entry.channelId)) continue;
+
+                const message: any = MessageStore.getMessage(entry.channelId, id);
+                if (!message) continue;
+                if (!wouldMatch(query, { id, channelId: entry.channelId, authorId: message.author?.id ?? "", content: entry.content })) continue;
+
+                const raw = rawFrom(id, entry);
+                if (raw) extra.push([raw]);
+            }
+
+            if (extra.length) {
+                put = extra.length;
+                const idOf = (group: any[]) => BigInt((group.find(m => m?.hit) ?? group[0]).id);
+                result.messages = [...result.messages, ...extra].sort((a, b) => (idOf(a) < idOf(b) ? 1 : -1));
+            }
+        }
+
+        if (typeof result.totalResults === "number") result.totalResults = Math.max(0, result.totalResults - dropped + put);
     }
 }

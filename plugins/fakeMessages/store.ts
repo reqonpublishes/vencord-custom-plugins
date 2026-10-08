@@ -288,6 +288,10 @@ function hideNow(channelId: string, messageId: string) {
  * screen came from the list as it was; if the list is about to change, the screen has to stop
  * showing the old one first or the two disagree until the channel is opened again.
  */
+/** Whether the plugin is on. The interceptor outlives a stop, so it has to ask */
+let running = false;
+export const setRunning = (on: boolean) => void (running = on);
+
 export function takeAllOffScreen() {
     batched(() => {
         for (const [channelId, list] of added) {
@@ -313,6 +317,15 @@ export function showIn(channelId: string) {
  * so they are spliced into the page as it arrives, in id order, as if it had.
  */
 export function interceptor(action: any) {
+    if (action?.type === "SEARCH_RESULTS_QUERY_UPDATE") {
+        asked.set(String(action.id), action.query);
+        return false;
+    }
+    if (action?.type === "SEARCH_MESSAGES_SUCCESS") {
+        addToSearch(action);
+        return false;
+    }
+
     if (action?.type !== "LOAD_MESSAGES_SUCCESS") return false;
     if (action[SYNTHETIC]) return false;
 
@@ -348,4 +361,143 @@ export function interceptor(action: any) {
     }
 
     return false;
+}
+
+// ---------------------------------------------------------------- search
+
+/** What each open search asked for, by the id Discord gives the search (a channel, a server or "DMS") */
+const asked = new Map<string, any>();
+
+/** The filters this can answer for. A search using any other is left exactly as the server answered it */
+const UNDERSTOOD = new Set([
+    "content", "author_id", "channel_id", "min_id", "max_id", "sort_by", "sort_order", "offset", "cursor", "limit", "include_nsfw"
+]);
+
+const listOf = (value: any): string[] => value == null ? [] : (Array.isArray(value) ? value : [value]).map(String);
+
+/**
+ * Whether a message would have been found by a search, had the server known about it.
+ *
+ * Discord matches words rather than a run of letters, so every word asked for has to be in
+ * the text somewhere. Close enough to the real thing that a message turns up when you would
+ * expect it to, without pretending to be the search engine.
+ */
+function wouldMatch(query: any, message: { id: string; channelId: string; authorId: string; content: string; }): boolean {
+    if (!query) return false;
+
+    for (const key of Object.keys(query)) {
+        if (!UNDERSTOOD.has(key)) return false;
+    }
+
+    const words = String(query.content ?? "").toLowerCase().split(/\s+/).filter(Boolean);
+    const text = message.content.toLowerCase();
+    if (!words.every(word => text.includes(word))) return false;
+
+    const authors = listOf(query.author_id);
+    if (authors.length && !authors.includes(message.authorId)) return false;
+
+    const channels = listOf(query.channel_id);
+    if (channels.length && !channels.includes(message.channelId)) return false;
+
+    try {
+        const id = BigInt(message.id);
+        if (query.min_id != null && id < BigInt(query.min_id)) return false;
+        if (query.max_id != null && id > BigInt(query.max_id)) return false;
+    } catch {
+        return false;
+    }
+
+    return true;
+}
+
+/** Whether a channel is one of the places a search is looking in */
+function inScope(searchId: string, channelId: string): boolean {
+    if (searchId === channelId) return true;
+
+    const channel: any = ChannelStore.getChannel(channelId);
+    if (!channel) return false;
+
+    return searchId === "DMS" ? !channel.guild_id : channel.guild_id === searchId;
+}
+
+/** How far down each search has been read, so a later page does not repeat an earlier one */
+const readDownTo = new Map<string, bigint>();
+
+/**
+ * Put the invented messages a search should have found in among the ones it did.
+ *
+ * The server has never heard of them, so they are matched here against what was asked for
+ * and slotted into the results by date, which is the order results come in. A page of
+ * results only reaches so far back, and an invented message older than that belongs to a
+ * later page - so each page takes the ones that fall inside it, and remembers where it
+ * stopped for the page after.
+ */
+function addToSearch(action: any) {
+    if (!running || !added.size || !Array.isArray(action?.data)) return;
+
+    try {
+        for (const result of action.data) {
+            const searchId = String(result?.id ?? "");
+            const query = asked.get(searchId);
+            if (!query || !Array.isArray(result.messages)) continue;
+
+            // Only by date, newest first, is an order this can slot something into.
+            const byDate = (query.sort_by ?? "timestamp") === "timestamp" && (query.sort_order ?? "desc") === "desc";
+
+            const found = new Set<string>();
+            let newest: bigint | null = null;
+            let oldest: bigint | null = null;
+            for (const group of result.messages) {
+                for (const one of group ?? []) {
+                    if (!one?.id) continue;
+                    found.add(String(one.id));
+
+                    const id = BigInt(one.id);
+                    if (newest === null || id > newest) newest = id;
+                    if (oldest === null || id < oldest) oldest = id;
+                }
+            }
+
+            // A page that starts at or above where the last one stopped is a search starting
+            // over, not the next page of the same one.
+            const stopped = readDownTo.get(searchId);
+            const first = stopped === undefined || newest === null || newest >= stopped;
+            const more = result.cursor != null && oldest !== null;
+
+            const mine: FakeMessage[] = [];
+            for (const [channelId, list] of added) {
+                if (!inScope(searchId, channelId)) continue;
+
+                for (const one of list) {
+                    if (found.has(one.id) || !wouldMatch(query, one)) continue;
+
+                    const id = BigInt(one.id);
+                    if (byDate) {
+                        if (!first && stopped !== undefined && id >= stopped) continue;
+                        if (more && id < oldest!) continue;
+                    } else if (!first) {
+                        continue;
+                    }
+
+                    mine.push(one);
+                }
+            }
+
+            if (more) readDownTo.set(searchId, oldest!);
+            else readDownTo.delete(searchId);
+
+            if (!mine.length) continue;
+
+            const groups = [...result.messages, ...mine.map(one => [{ ...rawMessage(one), hit: true }])];
+            if (byDate) {
+                const idOf = (group: any[]) => BigInt((group.find(m => m?.hit) ?? group[0]).id);
+                groups.sort((a, b) => (idOf(a) < idOf(b) ? 1 : -1));
+            }
+
+            result.messages = groups;
+            if (typeof result.totalResults === "number") result.totalResults += mine.length;
+        }
+    } catch (e) {
+        logger.error("Could not add the invented messages to a search", e);
+    }
 }

@@ -569,9 +569,62 @@ export function forgetSaved() {
  * Only whole-channel hides touch the payload. Individual hides deliberately leave it
  * alone: the messages have to reach the store for Discord's paging anchor to advance.
  */
+/** Whether a message is hidden by any of the three ways one can be */
+function hiddenAnywhere(channelId: string, id: string) {
+    const cutoff = hiddenChannels.get(channelId);
+    if (cutoff !== undefined && cmpId(id, cutoff) <= 0) return true;
+
+    return isHidden(channelId, id);
+}
+
+/**
+ * Keep hidden messages out of search results.
+ *
+ * A search is answered by the server, which has never heard that anything is hidden, so a
+ * hidden message would otherwise be one search away. The result is taken out, and so is any
+ * hidden message shown around a result for context.
+ */
+function hideFromSearch(action: any) {
+    if (!Array.isArray(action?.data)) return;
+    if (!hiddenChannels.size && !hiddenMessages.size && !hiddenRanges.size) return;
+
+    try {
+        for (const result of action.data) {
+            if (!Array.isArray(result?.messages)) continue;
+
+            let dropped = 0;
+            const kept: any[][] = [];
+
+            for (const group of result.messages) {
+                if (!Array.isArray(group)) {
+                    kept.push(group);
+                    continue;
+                }
+
+                const hit = group.find(one => one?.hit) ?? group[0];
+                if (hit && hiddenAnywhere(hit.channel_id, hit.id)) {
+                    dropped++;
+                    continue;
+                }
+
+                kept.push(group.filter(one => !one || one === hit || !hiddenAnywhere(one.channel_id, one.id)));
+            }
+
+            result.messages = kept;
+            if (typeof result.totalResults === "number") result.totalResults = Math.max(0, result.totalResults - dropped);
+        }
+    } catch (e) {
+        logger.error("Failed to filter a search", e);
+    }
+}
+
 export function interceptor(action: any) {
     // runs for every dispatched action, so the common case bails on cheap checks
     if (!enabled) return false;
+    if (action?.type === "SEARCH_MESSAGES_SUCCESS") {
+        hideFromSearch(action);
+        return false;
+    }
     if (action?.type !== "LOAD_MESSAGES_SUCCESS") return false;
     // one of ours, emptying a channel on purpose - filtering it again achieves nothing
     // and would undo the `hasMoreBefore` it was dispatched with

@@ -9,11 +9,12 @@ import "./styles.css";
 
 import { findGroupChildrenByChildId, NavContextMenuPatchCallback } from "@api/ContextMenu";
 import { migratePluginSettings } from "@api/Settings";
+import { Logger } from "@utils/Logger";
 import definePlugin from "@utils/types";
 import { Message } from "@vencord/discord-types";
 import { ChannelStore, FluxDispatcher, Menu, SelectedChannelStore } from "@webpack/common";
 
-import { hasEdits, loadEdits, patchRawMessage, patchRawMessages, reapplyChannel, restoreVisuals, startStyles, stopStyles } from "./edits";
+import { hasEdits, loadEdits, noteSearch, patchRawMessage, patchRawMessages, patchSearch, reapplyChannel, restoreVisuals, startStyles, stopStyles } from "./edits";
 import { InspectIcon as InspectGlyph } from "./icons";
 import { openInspectModal } from "./InspectModal";
 import { settings } from "./settings";
@@ -23,6 +24,8 @@ import { About } from "./ui";
 const InspectIcon: GatedIcon = InspectGlyph;
 
 const ShiftInspectIcon = shiftGated(InspectIcon);
+
+const logger = new Logger("InspectMessages");
 
 let enabled = false;
 let interceptorRegistered = false;
@@ -35,9 +38,19 @@ let interceptorRegistered = false;
  * through. This runs for every dispatched action, so the no-edits case costs two checks.
  */
 function interceptor(action: any) {
+    // Noted even with nothing edited yet: the edit may come before the results do.
+    if (action?.type === "SEARCH_RESULTS_QUERY_UPDATE") noteSearch(action);
+
     if (!enabled || !hasEdits()) return false;
 
     switch (action.type) {
+        case "SEARCH_MESSAGES_SUCCESS":
+            try {
+                patchSearch(action);
+            } catch (e) {
+                logger.error("Could not apply edits to a search", e);
+            }
+            break;
         case "LOAD_MESSAGES_SUCCESS":
             patchRawMessages(action.messages);
             break;
