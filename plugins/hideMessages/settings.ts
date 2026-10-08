@@ -7,49 +7,54 @@
 import { definePluginSettings } from "@api/Settings";
 import { OptionType } from "@utils/types";
 
-import { ClearAllButton } from "./ClearAllButton";
+import { HiddenPanel } from "./HiddenPanel";
 import { forgetSaved } from "./store";
 
 export const settings = definePluginSettings({
     button: {
         type: OptionType.SELECT,
-        description: "Hover button on messages",
+        displayName: "Hover button",
+        description: "When the Hide button appears in the bar over a message",
         options: [
-            { label: "Show only while Shift is held", value: "shift", default: true },
-            { label: "Always show", value: "always" },
-            { label: "Never show", value: "never" }
+            { label: "Only while Shift is held", value: "shift", default: true },
+            { label: "Always", value: "always" },
+            { label: "Never", value: "never" }
         ]
     },
     messageMenu: {
         type: OptionType.BOOLEAN,
-        description: "Add \"Hide Message\" to the right-click menu on a message",
+        displayName: "Show on messages",
+        description: "Adds Hide Message to the menu when you right-click a message",
         default: true
     },
     channelMenu: {
         type: OptionType.BOOLEAN,
-        description: "Add \"Hide Messages\" when you right-click a DM or channel in the sidebar",
+        displayName: "Show on conversations",
+        description: "Adds Hide Messages to the menu when you right-click a DM or channel",
         default: true
     },
     userMenu: {
         type: OptionType.BOOLEAN,
-        description: "Add \"Hide Messages\" when you right-click a person, including in your friends list",
+        displayName: "Show on people",
+        description: "Adds Hide Messages to the menu when you right-click a person, including in your friends list",
         default: true
     },
     profileMenu: {
         type: OptionType.BOOLEAN,
-        description: "Add \"Hide Messages\" to the ... menu on someone's profile",
+        displayName: "Show on profiles",
+        description: "Adds Hide Messages to the ... menu on a profile",
         default: true
     },
     persist: {
         type: OptionType.BOOLEAN,
-        description: "Remember hidden messages after Discord restarts",
+        displayName: "Keep after restart",
+        description: "Hidden messages stay hidden when Discord restarts",
         default: true,
-        // switching it off shouldn't leave the old list sitting on disk
+        // switching it off should not leave the old list sitting on disk
         onChange: (value: boolean) => void (value || forgetSaved())
     },
     clearAll: {
         type: OptionType.COMPONENT,
-        description: "Bring every hidden message back",
-        component: ClearAllButton
+        component: HiddenPanel
     }
 });

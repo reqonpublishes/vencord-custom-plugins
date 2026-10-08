@@ -10,8 +10,8 @@ Hide messages, or a whole chat's history, from your own Discord.
 
 **One message** — hover it and click the eye button, or right-click it → **Hide Message**.
 
-**A range** — right-click the first message → **Select From Here**, then right-click the
-last one → **Hide To Here**.
+**A range** — right-click the first message → **Hide From Here...**, then right-click the
+last one → **Hide Up To Here**.
 
 > [!TIP]
 > A range is remembered by its two ends, not by a list of messages. It keeps hiding
@@ -26,8 +26,8 @@ The history goes blank, but the conversation carries on as normal.
 > chat you hid last week isn't still swallowing messages today. Hide it again whenever you
 > want to clear it back down.
 
-**Undoing it** — the same menu now says **View Messages**. There's also a *Bring every
-hidden message back* button in the plugin's settings.
+**Undoing it** — the same menu now says **Unhide Messages**. There's also an **Unhide All**
+button in the plugin's settings.
 
 > [!TIP]
 > The buttons only show while you hold **Shift**, so Discord looks untouched the rest of
@@ -39,5 +39,5 @@ hidden message back* button in the plugin's settings.
 | --- | --- | --- |
 | Hover button on messages | Only while Shift is held | When the toolbar button appears |
 | Right-click menu entries | On | Which menus get an entry — message, channel, user, profile |
-| Remember hidden messages after Discord restarts | On | Keeps your hides between restarts |
-| Bring every hidden message back | — | Unhides everything, everywhere |
+| Keep after restart | On | Keeps your hides between restarts |
+| Unhide All | — | Unhides everything, everywhere |

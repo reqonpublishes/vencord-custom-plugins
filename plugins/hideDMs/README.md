@@ -11,11 +11,11 @@ Take a conversation out of your DM list, for you only.
 **Hiding one** — right-click a conversation in the sidebar → **Hide DM**. It leaves the
 list exactly as if you had closed it.
 
-**Hiding all of them** — the plugin's settings page has **Hide all DMs**. The conversation
+**Hiding all of them** — the plugin's settings page has **Hide All**. The conversation
 you are in is left alone.
 
-**Bringing one back** — open **Settings → Vencord → Plugins → CustomPluginHideDMs**. Every
-hidden conversation is listed there with a **Show** button, and **Show all** brings back
+**Bringing one back** — open **Settings → Vencord → Plugins → HideDMs**. Every
+hidden conversation is listed there with an **Unhide** button, and **Unhide All** brings back
 the lot.
 
 > [!TIP]
@@ -38,7 +38,7 @@ the way back has to live somewhere that does not depend on finding it.
 | --- | --- |
 | **Add "Hide DM" when you right-click a conversation** | The entry in the sidebar |
 | **Add "Hide DM" when you right-click a person** | The entry on people, including your friends list |
-| **Keep conversations hidden after Discord restarts** | Off means they come back next time you open Discord |
+| **Keep after restart** | Off means they come back next time you open Discord |
 | **Conversations you have hidden** | The list, and the way back |
 
 ## Is this safe?

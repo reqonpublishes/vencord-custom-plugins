@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+import "./shared.css";
 import "./styles.css";
 
 import { findGroupChildrenByChildId, NavContextMenuPatchCallback } from "@api/ContextMenu";
@@ -12,6 +13,7 @@ import definePlugin from "@utils/types";
 import { Channel, Message, User } from "@vencord/discord-types";
 import { ChannelStore, FluxDispatcher, Menu, SelectedChannelStore } from "@webpack/common";
 
+import { CloseIcon, EyeIcon, EyeOffIcon, FlagIcon } from "./icons";
 import { settings } from "./settings";
 import { GatedIcon, isShiftHeldForMenu, shiftGated, startShiftTracking, stopShiftTracking } from "./shiftGate";
 import {
@@ -26,28 +28,10 @@ import {
     startStore,
     stopStore
 } from "./store";
+import { About } from "./ui";
 
-const HideIcon: GatedIcon = ({ height = 20, width = 20, className, innerRef }) => (
-    <svg ref={innerRef} viewBox="0 0 24 24" height={height} width={width} className={className}>
-        <path
-            fill="currentColor"
-            d="M2.7 3.4 21.3 22l1.4-1.4-3.3-3.3A12.5 12.5 0 0 0 23 12s-4-7-11-7a10.7 10.7 0 0 0-4.7 1.1L4.1 2 2.7 3.4Zm6.1 6.1 5.7 5.7a4 4 0 0 1-5.7-5.7Z"
-        />
-        <path
-            fill="currentColor"
-            d="M12 19c-7 0-11-7-11-7a13.4 13.4 0 0 1 3.6-4.2l2.9 2.9a4 4 0 0 0 5.8 5.8l2.4 2.4A11 11 0 0 1 12 19Z"
-        />
-    </svg>
-);
-
-const ShowIcon: GatedIcon = ({ height = 20, width = 20, className, innerRef }) => (
-    <svg ref={innerRef} viewBox="0 0 24 24" height={height} width={width} className={className}>
-        <path
-            fill="currentColor"
-            d="M12 5C5 5 1 12 1 12s4 7 11 7 11-7 11-7-4-7-11-7Zm0 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10Zm0-2a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"
-        />
-    </svg>
-);
+const HideIcon: GatedIcon = EyeOffIcon;
+const ShowIcon: GatedIcon = EyeIcon;
 
 const ShiftHideIcon = shiftGated(HideIcon);
 
@@ -85,9 +69,9 @@ const messageCtx: NavContextMenuPatchCallback = (children, { message }: { messag
         <Menu.MenuItem
             id="vc-chm-range"
             key="vc-chm-range"
-            label={armed ? "Hide To Here" : "Select From Here"}
-            icon={HideIcon}
-            leadingAccessory={{ type: "icon", icon: HideIcon }}
+            label={armed ? "Hide Up To Here" : "Hide From Here..."}
+            icon={armed ? HideIcon : FlagIcon}
+            leadingAccessory={{ type: "icon", icon: armed ? HideIcon : FlagIcon }}
             action={() => {
                 if (!armed) {
                     anchor = { channelId, messageId: message.id };
@@ -106,8 +90,8 @@ const messageCtx: NavContextMenuPatchCallback = (children, { message }: { messag
                 id="vc-chm-range-cancel"
                 key="vc-chm-range-cancel"
                 label="Cancel Selection"
-                icon={ShowIcon}
-                leadingAccessory={{ type: "icon", icon: ShowIcon }}
+                icon={CloseIcon}
+                leadingAccessory={{ type: "icon", icon: CloseIcon }}
                 action={() => void (anchor = null)}
             />
         );
@@ -123,7 +107,7 @@ function channelEntry(channelId: string) {
         <Menu.MenuItem
             id="vc-chm-channel"
             key="vc-chm-channel"
-            label={hidden ? "View Messages" : "Hide Messages"}
+            label={hidden ? "Unhide Messages" : "Hide Messages"}
             icon={Icon}
             leadingAccessory={{ type: "icon", icon: Icon }}
             action={() => hidden ? showChannel(channelId) : hideChannel(channelId)}
@@ -184,15 +168,27 @@ const profileCtx: NavContextMenuPatchCallback = (children, { user }: { user?: Us
     children.push(channelEntry(channelId));
 };
 
-migratePluginSettings("CustomPluginHideMessages", "CustomHideMessages", "HideMessages");
+migratePluginSettings("HideMessages", "CustomPluginHideMessages", "CustomHideMessages");
 
 export default definePlugin({
-    name: "CustomPluginHideMessages",
-    description: "Hide a message, a range of them, or a whole channel's history, in your own client only. Hold Shift to reveal the buttons. Nothing is deleted and nobody else is affected.",
-    tags: ["Chat", "Appearance"],
-    authors: [{ name: "reqon", id: 0n }],
+    name: "HideMessages",
+    description: "Hide a message, a range of them, or a whole conversation's history. Hold Shift to reveal the buttons. Nothing is deleted and nobody else is affected.",
+    tags: ["Chat", "Appearance", "Privacy"],
+    authors: [{ name: "reqon", id: 497562304498368513n }],
 
     settings,
+
+    settingsAboutComponent: () => (
+        <About
+            icon={EyeOffIcon}
+            title="Hide messages from your own view"
+            steps={[
+                <>Hold <kbd>Shift</kbd> and hover a message, or right-click it, and choose <strong>Hide Message</strong>.</>,
+                <><strong>Hide From Here...</strong> then <strong>Hide Up To Here</strong> hides everything between two messages.</>,
+                <>Right-click a DM, channel or person and choose <strong>Hide Messages</strong> to hide the whole history.</>
+            ]}
+        />
+    ),
 
     contextMenus: {
         "message": messageCtx,

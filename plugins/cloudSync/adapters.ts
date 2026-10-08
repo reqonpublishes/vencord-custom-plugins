@@ -69,7 +69,7 @@ function groupHidden(flat: string[]): Record<string, string[]> {
 }
 
 const hideMessages: Adapter = {
-    plugin: "CustomPluginHideMessages",
+    plugin: "HideMessages",
     shelfKey: "hideMessages",
     label: "Hide Messages",
 
@@ -100,7 +100,7 @@ const hideMessages: Adapter = {
 };
 
 const inspectMessages: Adapter = {
-    plugin: "CustomPluginInspectMessages",
+    plugin: "InspectMessages",
     shelfKey: "inspectMessages",
     label: "Inspect Messages",
 
@@ -119,9 +119,9 @@ const inspectMessages: Adapter = {
 };
 
 const fakeMessages: Adapter = {
-    plugin: "CustomPluginFakeMessages",
+    plugin: "FakeMessages",
     shelfKey: "fakeMessages",
-    label: "Added messages",
+    label: "Fake Messages",
 
     async read() {
         const stored = await get<[string, any[]][] | Record<string, any[]>>(FAKES_KEY);
@@ -137,9 +137,9 @@ const fakeMessages: Adapter = {
 };
 
 const hideDMs: Adapter = {
-    plugin: "CustomPluginHideDMs",
+    plugin: "HideDMs",
     shelfKey: "hideDMs",
-    label: "Hidden DMs",
+    label: "Hide DMs",
 
     async read() {
         const stored = await get<[string, string][] | Record<string, string>>(DMS_KEY);
@@ -157,9 +157,9 @@ const hideDMs: Adapter = {
 const FRIEND_KEYS = ["hidden", "hiddenWas", "blocked", "blockedWas", "pending", "incoming", "dismissed", "friended"];
 
 const hideFriends: Adapter = {
-    plugin: "CustomPluginHideFriends",
+    plugin: "HideFriends",
     shelfKey: "hideFriends",
-    label: "Hidden friends",
+    label: "Hide Friends",
 
     async read() {
         const stored = await get<Record<string, any>>("HideFriends_State");
@@ -178,9 +178,9 @@ const hideFriends: Adapter = {
 };
 
 const hideServers: Adapter = {
-    plugin: "CustomPluginHideServers",
+    plugin: "HideServers",
     shelfKey: "hideServers",
-    label: "Hidden servers",
+    label: "Hide Servers",
 
     async read() {
         const stored = await get<[string, string][] | Record<string, string>>("HideServers_Hidden");
@@ -195,9 +195,9 @@ const hideServers: Adapter = {
 };
 
 const fakeCalls: Adapter = {
-    plugin: "CustomPluginFakeCalls",
+    plugin: "FakeCalls",
     shelfKey: "fakeCalls",
-    label: "Added calls",
+    label: "Fake Calls",
 
     async read() {
         const stored = await get<[string, any[]][] | Record<string, any[]>>("FakeCalls_Added");
@@ -219,12 +219,12 @@ const fakeCalls: Adapter = {
  * lands on the same number - and a request that really arrives moves both.
  */
 const fakeNotifications: Adapter = {
-    plugin: "CustomPluginFakeNotifications",
+    plugin: "FakeNotifications",
     shelfKey: "fakeNotifications",
-    label: "Badge numbers",
+    label: "Fake Notifications",
 
     async read() {
-        const held: any = (window as any).Vencord?.Settings?.plugins?.CustomPluginFakeNotifications;
+        const held: any = (window as any).Vencord?.Settings?.plugins?.FakeNotifications;
         if (!held) return null;
 
         return {
@@ -234,7 +234,7 @@ const fakeNotifications: Adapter = {
     },
 
     async write(held) {
-        const mine: any = (window as any).Vencord?.Settings?.plugins?.CustomPluginFakeNotifications;
+        const mine: any = (window as any).Vencord?.Settings?.plugins?.FakeNotifications;
         if (!mine) return;
 
         mine.friends = typeof held.friends === "number" ? held.friends : null;

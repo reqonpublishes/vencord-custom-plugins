@@ -4,33 +4,18 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import "./styles.css";
+import "./shared.css";
 
 import { NavContextMenuPatchCallback } from "@api/ContextMenu";
+import { migratePluginSettings } from "@api/Settings";
 import definePlugin from "@utils/types";
 import { Channel, User } from "@vencord/discord-types";
 import { ChannelStore, FluxDispatcher, Menu } from "@webpack/common";
 
+import { EyeIcon, EyeOffIcon } from "./icons";
 import { settings } from "./settings";
 import { hideChat, hidJustNow, isHidden, load, reapply, showAll, showChat } from "./store";
-
-const HideIcon = ({ height = 20, width = 20, className }: { height?: number; width?: number; className?: string; }) => (
-    <svg viewBox="0 0 24 24" height={height} width={width} className={className}>
-        <path
-            fill="currentColor"
-            d="M2.7 3.4 21.3 22l1.4-1.4-3.3-3.3A12.5 12.5 0 0 0 23 12s-4-7-11-7a10.7 10.7 0 0 0-4.7 1.1L4.1 2 2.7 3.4Zm6.1 6.1 5.7 5.7a4 4 0 0 1-5.7-5.7Z"
-        />
-    </svg>
-);
-
-const ShowIcon = ({ height = 20, width = 20, className }: { height?: number; width?: number; className?: string; }) => (
-    <svg viewBox="0 0 24 24" height={height} width={width} className={className}>
-        <path
-            fill="currentColor"
-            d="M12 5C5 5 1 12 1 12s4 7 11 7 11-7 11-7-4-7-11-7Zm0 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10Zm0-2a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"
-        />
-    </svg>
-);
+import { About } from "./ui";
 
 /**
  * Work out which conversation a menu is about.
@@ -44,13 +29,13 @@ function resolveChannelId(channel?: Channel, user?: User) {
 
 function entry(channelId: string) {
     const away = isHidden(channelId);
-    const Icon = away ? ShowIcon : HideIcon;
+    const Icon = away ? EyeIcon : EyeOffIcon;
 
     return (
         <Menu.MenuItem
             id="vc-chd-dm"
             key="vc-chd-dm"
-            label={away ? "Show DM" : "Hide DM"}
+            label={away ? "Unhide DM" : "Hide DM"}
             icon={Icon}
             leadingAccessory={{ type: "icon", icon: Icon }}
             action={() => away ? showChat(channelId) : hideChat(channelId)}
@@ -90,13 +75,27 @@ const reopen = (action: any) => {
 /** Discord rebuilds its conversations on every reconnect, so what was hidden is said again */
 const afterConnect = () => reapply();
 
+migratePluginSettings("HideDMs", "CustomPluginHideDMs");
+
 export default definePlugin({
-    name: "CustomPluginHideDMs",
-    description: "Take a conversation out of your DM list, for you only. Nothing is closed on Discord, the other person is told nothing, and the messages are all still there when you bring it back.",
-    tags: ["Chat", "Appearance"],
-    authors: [{ name: "reqon", id: 0n }],
+    name: "HideDMs",
+    description: "Hide conversations from your DM list. Nothing is closed, the other person is not told, and every message is still there when you unhide it.",
+    tags: ["Chat", "Appearance", "Privacy"],
+    authors: [{ name: "reqon", id: 497562304498368513n }],
 
     settings,
+
+    settingsAboutComponent: () => (
+        <About
+            icon={EyeOffIcon}
+            title="Hide conversations from your DM list"
+            steps={[
+                <>Right-click a DM or a person and choose <strong>Hide DM</strong>.</>,
+                <>Opening a hidden DM from search or a profile unhides it.</>,
+                <>Everything you have hidden is listed below, with a way back.</>
+            ]}
+        />
+    ),
 
     contextMenus: {
         "channel-context": channelCtx,

@@ -1,0 +1,232 @@
+/* ---------------------------------------------------------------- settings */
+
+/*
+ * Neutral translucent greys rather than theme variables throughout: several themes set the
+ * input and card backgrounds to pure black, which makes them vanish against a modal. Mid
+ * grey at low alpha lifts on dark themes and sits back on light ones.
+ */
+.vc-chm-btn-icon {
+    flex: 0 0 auto;
+    margin-right: 6px;
+}
+
+.vc-chm-about {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px;
+    border: 1px solid rgb(128 128 128 / 16%);
+    border-radius: 10px;
+    background: rgb(128 128 128 / 8%);
+}
+
+.vc-chm-about-head {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.vc-chm-tile {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--brand-500, #5865f2) 24%, transparent);
+    color: var(--brand-360, #949cf7);
+}
+
+.vc-chm-about-title {
+    color: var(--text-default, var(--text-normal));
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 20px;
+}
+
+.vc-chm-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 0;
+    padding: 0 0 0 18px;
+    color: var(--text-default, var(--text-normal));
+    font-size: 14px;
+    line-height: 20px;
+    list-style: disc;
+}
+
+.vc-chm-steps strong {
+    font-weight: 600;
+}
+
+.vc-chm-steps kbd {
+    padding: 1px 5px;
+    border: 1px solid rgb(128 128 128 / 28%);
+    border-radius: 4px;
+    background: rgb(128 128 128 / 16%);
+    font-size: 12px;
+    font-family: var(--font-primary);
+}
+
+.vc-chm-private {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 16px;
+}
+
+.vc-chm-private svg {
+    flex: 0 0 auto;
+}
+
+.vc-chm-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.vc-chm-panel-head {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.vc-chm-panel-title {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    color: var(--text-default, var(--text-normal));
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 20px;
+}
+
+.vc-chm-pill {
+    padding: 0 7px;
+    border-radius: 99px;
+    background: rgb(128 128 128 / 22%);
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    line-height: 18px;
+}
+
+.vc-chm-actions {
+    display: flex;
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.vc-chm-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 296px;
+    overflow-y: auto;
+}
+
+.vc-chm-row {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 10px;
+    align-items: center;
+    padding: 8px 10px;
+    border: 1px solid rgb(128 128 128 / 12%);
+    border-radius: 8px;
+    background: rgb(128 128 128 / 7%);
+}
+
+.vc-chm-avatar {
+    flex: 0 0 auto;
+    width: 32px;
+    height: 32px;
+    object-fit: cover;
+}
+
+.vc-chm-avatar-round {
+    border-radius: 50%;
+}
+
+.vc-chm-avatar-square {
+    border-radius: 10px;
+}
+
+.vc-chm-avatar-blank {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgb(128 128 128 / 24%);
+    color: var(--text-muted);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.vc-chm-row-text {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.vc-chm-row-name,
+.vc-chm-row-detail {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vc-chm-row-name {
+    color: var(--text-default, var(--text-normal));
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 18px;
+}
+
+.vc-chm-row-detail {
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 16px;
+}
+
+.vc-chm-empty {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    align-items: center;
+    padding: 18px 12px;
+    border: 1px dashed rgb(128 128 128 / 24%);
+    border-radius: 8px;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.vc-chm-empty-title {
+    margin-top: 4px;
+    color: var(--text-default, var(--text-normal));
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 18px;
+}
+
+.vc-chm-empty-text {
+    font-size: 13px;
+    line-height: 18px;
+}
+
+.vc-chm-group-title {
+    margin-top: 6px;
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .02em;
+    line-height: 16px;
+    text-transform: uppercase;
+}

@@ -4,14 +4,13 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { classNameFactory } from "@api/Styles";
 import { FormSwitch } from "@components/FormSwitch";
 import { ModalAction, RenderModalProps } from "@vencord/discord-types";
-import { Modal, openModal, TextArea, UserStore,useState } from "@webpack/common";
+import { ChannelStore, Modal, openModal, TextArea, UserStore, useState } from "@webpack/common";
 
+import { LockIcon, PersonIcon } from "./icons";
 import { addMessage } from "./store";
-
-export const cl = classNameFactory("vc-cfm-");
+import { cl } from "./ui";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
@@ -31,9 +30,9 @@ const splitValue = (value: string) => {
     return at === -1 ? [value, "00:00:00"] : [value.slice(0, at), value.slice(at + 1)];
 };
 
-function Chip({ onClick, children, title }: { onClick(): void; children: string; title?: string; }) {
+function Chip({ onClick, children }: { onClick(): void; children: string; }) {
     return (
-        <button className={cl("chip")} onClick={onClick} title={title}>
+        <button className={cl("chip")} onClick={onClick}>
             {children}
         </button>
     );
@@ -54,11 +53,29 @@ function DateTimeField({ value, onChange }: { value: string; onChange(next: stri
             <input
                 type="time"
                 step={1}
-                className={cl("input")}
+                className={cl("input", "input-time")}
                 value={time}
                 onChange={e => onChange(`${date}T${e.currentTarget.value || time}`)}
             />
         </div>
+    );
+}
+
+/** Somebody the message could be from, as a button with their face on it */
+function Person({ id, on, onPick }: { id: string; on: boolean; onPick(): void; }) {
+    const user: any = UserStore.getUser(id);
+    const me = id === UserStore.getCurrentUser()?.id;
+
+    return (
+        <button className={cl("choice", on ? "choice-on" : "")} onClick={onPick}>
+            {user
+                ? <img src={user.getAvatarURL?.(undefined, 64)} alt="" />
+                : <div className={cl("choice-blank")}><PersonIcon height={16} width={16} /></div>}
+            <div className={cl("choice-text")}>
+                <div className={cl("choice-name")}>{user?.globalName ?? user?.username ?? "Unknown user"}</div>
+                <div className={cl("choice-detail")}>{me ? "You" : user ? "@" + user.username : id}</div>
+            </div>
+        </button>
     );
 }
 
@@ -74,6 +91,9 @@ const OFFSETS = [
     { label: "+1h", ms: HOUR }
 ];
 
+/** Past this many, a row of faces stops being a quick pick and becomes a wall */
+const MOST_PEOPLE = 6;
+
 export interface Seed {
     channelId: string;
     /** who it should look like it came from, when there is somebody obvious */
@@ -84,15 +104,23 @@ export interface Seed {
 
 function AddMessageModal({ rootProps, seed }: { rootProps: RenderModalProps; seed: Seed; }) {
     const me: any = UserStore.getCurrentUser();
+    const channel: any = ChannelStore.getChannel(seed.channelId);
 
-    const [authorId, setAuthorId] = useState(seed.authorId ?? me?.id ?? "");
+    // Everybody it would be natural for a message here to be from: the people in the
+    // conversation, whoever wrote the message this was opened on, and you.
+    const people = [...new Set<string>(
+        [seed.authorId, ...(channel?.recipients ?? []), me?.id].filter(Boolean)
+    )].slice(0, MOST_PEOPLE);
+
+    const [authorId, setAuthorId] = useState(seed.authorId ?? people[0] ?? me?.id ?? "");
+    const [other, setOther] = useState(false);
     const [content, setContent] = useState("");
     const [sentAt, setSentAt] = useState(toInputValue(new Date(seed.sentAt ?? Date.now())));
     const [edited, setEdited] = useState(false);
     const [highlight, setHighlight] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const author: any = authorId ? UserStore.getUser(authorId) : null;
+    const typedUser: any = other && authorId ? UserStore.getUser(authorId) : null;
 
     const nudge = (ms: number) => {
         const date = fromInputValue(sentAt);
@@ -101,9 +129,9 @@ function AddMessageModal({ rootProps, seed }: { rootProps: RenderModalProps; see
 
     const add = () => {
         const when = fromInputValue(sentAt);
-        if (!when) return setError("That is not a date this understands");
-        if (!authorId.trim()) return setError("Say who it came from");
-        if (!content.trim()) return setError("Say what it says");
+        if (!when) return setError("Pick a valid date and time.");
+        if (!authorId.trim()) return setError("Choose who the message is from.");
+        if (!content.trim()) return setError("Type what the message says.");
 
         addMessage({
             channelId: seed.channelId,
@@ -118,7 +146,7 @@ function AddMessageModal({ rootProps, seed }: { rootProps: RenderModalProps; see
     };
 
     const actions: ModalAction[] = [
-        { text: "Add", variant: "primary", onClick: add },
+        { text: "Add Message", variant: "primary", onClick: add },
         { text: "Cancel", variant: "secondary", onClick: rootProps.onClose }
     ];
 
@@ -126,37 +154,63 @@ function AddMessageModal({ rootProps, seed }: { rootProps: RenderModalProps; see
         <Modal
             {...rootProps}
             size="md"
-            title="Add Message"
+            title="Add Fake Message"
             notice={error ? { message: error, type: "critical" } : undefined}
             actions={actions}
         >
             <section className={cl("section")}>
                 <h3 className={cl("label")}>From</h3>
-                <div className={cl("field")}>
-                    <input
-                        type="text"
-                        className={cl("input")}
-                        value={authorId}
-                        placeholder="A user ID"
-                        onChange={e => {
-                            setAuthorId(e.currentTarget.value.trim());
-                            setError(null);
+                <div className={cl("choices")}>
+                    {people.map(id => (
+                        <Person
+                            key={id}
+                            id={id}
+                            on={!other && authorId === id}
+                            onPick={() => {
+                                setOther(false);
+                                setAuthorId(id);
+                                setError(null);
+                            }}
+                        />
+                    ))}
+                    <button
+                        className={cl("choice", other ? "choice-on" : "")}
+                        onClick={() => {
+                            setOther(true);
+                            setAuthorId("");
                         }}
-                    />
+                    >
+                        <div className={cl("choice-blank")}><PersonIcon height={16} width={16} /></div>
+                        <div className={cl("choice-text")}>
+                            <div className={cl("choice-name")}>Someone else</div>
+                            <div className={cl("choice-detail")}>By user ID</div>
+                        </div>
+                    </button>
                 </div>
-                <div className={cl("row")}>
-                    <div className={cl("chips")}>
-                        {me && <Chip onClick={() => setAuthorId(me.id)}>Me</Chip>}
-                        {seed.authorId && seed.authorId !== me?.id && (
-                            <Chip onClick={() => setAuthorId(seed.authorId!)}>Them</Chip>
-                        )}
-                    </div>
-                </div>
-                <div className={cl("who")}>
-                    {author
-                        ? `Will look like it came from ${author.globalName ?? author.username}`
-                        : "Nobody is loaded under that ID yet. The name fills in once Discord has seen them."}
-                </div>
+
+                {other && (
+                    <>
+                        <div className={cl("line")}>
+                            <input
+                                type="text"
+                                inputMode="numeric"
+                                className={cl("input")}
+                                value={authorId}
+                                placeholder="User ID"
+                                autoFocus
+                                onChange={e => {
+                                    setAuthorId(e.currentTarget.value.replace(/[^0-9]/g, ""));
+                                    setError(null);
+                                }}
+                            />
+                        </div>
+                        <div className={cl("hint")}>
+                            {typedUser
+                                ? `From ${typedUser.globalName ?? typedUser.username} (@${typedUser.username})`
+                                : "Right-click a person and choose Copy User ID. The name appears once Discord has loaded them."}
+                        </div>
+                    </>
+                )}
             </section>
 
             <section className={cl("section")}>
@@ -168,7 +222,7 @@ function AddMessageModal({ rootProps, seed }: { rootProps: RenderModalProps; see
                         setError(null);
                     }}
                 />
-                <div className={cl("row")}>
+                <div className={cl("line")}>
                     <div className={cl("chips")}>
                         {OFFSETS.map(({ label, ms }) => (
                             <Chip key={label} onClick={() => nudge(ms)}>{label}</Chip>
@@ -181,16 +235,38 @@ function AddMessageModal({ rootProps, seed }: { rootProps: RenderModalProps; see
             </section>
 
             <section className={cl("section")}>
+                <h3 className={cl("label")}>Message</h3>
+                <TextArea
+                    value={content}
+                    onChange={(next: string) => {
+                        setContent(next);
+                        setError(null);
+                    }}
+                    placeholder="What the message says (markdown works)"
+                    rows={3}
+                    autosize
+                    onKeyDown={(e: React.KeyboardEvent) => {
+                        if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) add();
+                    }}
+                />
+            </section>
+
+            <section className={cl("section", "section-last")}>
                 <h3 className={cl("label")}>Appearance</h3>
                 <div className={cl("card")}>
                     <FormSwitch
+                        className={cl("switch")}
                         title="Highlighted message"
                         description="The message looks as if it had mentioned you"
                         value={highlight}
                         onChange={setHighlight}
                         hideBorder
                     />
+
+                    <div className={cl("divider")} />
+
                     <FormSwitch
+                        className={cl("switch")}
                         title={"Show \"(edited)\" tag"}
                         description="Adds the edited marker to it"
                         value={edited}
@@ -198,19 +274,11 @@ function AddMessageModal({ rootProps, seed }: { rootProps: RenderModalProps; see
                         hideBorder
                     />
                 </div>
-            </section>
 
-            <section className={cl("section", "section-last")}>
-                <h3 className={cl("label")}>Says</h3>
-                <TextArea
-                    value={content}
-                    onChange={(next: string) => {
-                        setContent(next);
-                        setError(null);
-                    }}
-                    placeholder="What the message says"
-                    rows={4}
-                />
+                <div className={cl("footnote")}>
+                    <LockIcon height={14} width={14} />
+                    <span>Only you can see this message. Nothing is sent.</span>
+                </div>
             </section>
         </Modal>
     );

@@ -7,30 +7,32 @@
 import { definePluginSettings } from "@api/Settings";
 import { OptionType } from "@utils/types";
 
-import { ClearAllButton } from "./ClearAllButton";
+import { AddedPanel } from "./AddedPanel";
 import { forgetSaved } from "./store";
 
 export const settings = definePluginSettings({
     messageMenu: {
         type: OptionType.BOOLEAN,
-        description: "Add \"Add Message Here\" to the right-click menu on a message",
+        displayName: "Show on messages",
+        description: "Adds Add Fake Message Here to the menu when you right-click a message",
         default: true
     },
     channelMenu: {
         type: OptionType.BOOLEAN,
-        description: "Add \"Add Message\" when you right-click a DM or channel in the sidebar",
+        displayName: "Show on conversations",
+        description: "Adds Add Fake Message to the menu when you right-click a DM or channel",
         default: true
     },
     persist: {
         type: OptionType.BOOLEAN,
-        description: "Remember added messages after Discord restarts",
+        displayName: "Keep after restart",
+        description: "Fake messages are still there when Discord restarts",
         default: true,
         // switching it off should not leave the old list sitting on disk
         onChange: (value: boolean) => void (value || forgetSaved())
     },
     clearAll: {
         type: OptionType.COMPONENT,
-        description: "Take every added message away",
-        component: ClearAllButton
+        component: AddedPanel
     }
 });

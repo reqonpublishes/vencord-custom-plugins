@@ -4,14 +4,13 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { classNameFactory } from "@api/Styles";
 import { Button } from "@components/Button";
 import { useForceUpdater } from "@utils/react";
 import { SelectedChannelStore } from "@webpack/common";
 
-import { count, hideAll, names, showAll, showChat } from "./store";
-
-const cl = classNameFactory("vc-chd-");
+import { EyeIcon, EyeOffIcon, GroupIcon } from "./icons";
+import { count, hideAll, infoOf, names, showAll, showChat } from "./store";
+import { cl, Empty, IconButton, Panel, Row } from "./ui";
 
 /**
  * The conversations currently hidden, and the way back.
@@ -25,58 +24,73 @@ export function HiddenList() {
     const update = useForceUpdater();
     const held = names();
 
-    const hideEverything = (
-        <Button
-            className={cl("all")}
-            size="small"
-            onClick={() => {
-                hideAll(SelectedChannelStore.getChannelId());
-                update();
-            }}
-        >
-            Hide all DMs
-        </Button>
-    );
-
-    if (!count()) {
-        return (
-            <div className={cl("list")}>
-                {hideEverything}
-                <div className={cl("empty")}>Nothing is hidden.</div>
-            </div>
-        );
-    }
-
     return (
-        <div className={cl("list")}>
-            {hideEverything}
-            {held.map(([channelId, name]) => (
-                <div className={cl("row")} key={channelId}>
-                    <span className={cl("name")}>{name}</span>
-                    <Button
-                        size="small"
-                        variant="secondary"
+        <Panel
+            title="Hidden DMs"
+            count={count()}
+            actions={
+                <>
+                    <IconButton
+                        icon={EyeOffIcon}
                         onClick={() => {
-                            showChat(channelId);
+                            // Not the one on screen: you would be left looking at a
+                            // conversation that is no longer in the list beside it.
+                            hideAll(SelectedChannelStore.getChannelId());
                             update();
                         }}
                     >
-                        Show
-                    </Button>
-                </div>
-            ))}
+                        Hide All
+                    </IconButton>
+                    <IconButton
+                        icon={EyeIcon}
+                        variant="secondary"
+                        disabled={!count()}
+                        onClick={() => {
+                            showAll();
+                            update();
+                        }}
+                    >
+                        Unhide All
+                    </IconButton>
+                </>
+            }
+        >
+            {!held.length && (
+                <Empty
+                    icon={EyeOffIcon}
+                    title="No hidden DMs"
+                    text="Right-click a conversation and choose Hide DM, or hide them all at once."
+                />
+            )}
 
-            <Button
-                className={cl("all")}
-                size="small"
-                variant="dangerSecondary"
-                onClick={() => {
-                    showAll();
-                    update();
-                }}
-            >
-                Show all {count()}
-            </Button>
-        </div>
+            {!!held.length && (
+                <div className={cl("rows")}>
+                    {held.map(([channelId]) => {
+                        const info = infoOf(channelId);
+
+                        return (
+                            <Row
+                                key={channelId}
+                                image={info.image}
+                                icon={info.group ? GroupIcon : undefined}
+                                name={info.name}
+                                detail={info.detail}
+                            >
+                                <Button
+                                    size="small"
+                                    variant="secondary"
+                                    onClick={() => {
+                                        showChat(channelId);
+                                        update();
+                                    }}
+                                >
+                                    Unhide
+                                </Button>
+                            </Row>
+                        );
+                    })}
+                </div>
+            )}
+        </Panel>
     );
 }

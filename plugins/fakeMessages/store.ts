@@ -10,7 +10,7 @@ import { ChannelStore, FluxDispatcher, UserStore } from "@webpack/common";
 
 import { settings } from "./settings";
 
-const logger = new Logger("CustomPluginFakeMessages");
+const logger = new Logger("FakeMessages");
 
 const KEY = "FakeMessages_Added";
 
@@ -54,6 +54,9 @@ export const isFake = (channelId: string, messageId: string) =>
     !!added.get(channelId)?.some(one => one.id === messageId);
 
 export const countIn = (channelId: string) => added.get(channelId)?.length ?? 0;
+
+/** How many conversations have at least one */
+export const chats = () => added.size;
 
 export const total = () => {
     let n = 0;

@@ -4,20 +4,20 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import "./styles.css";
+import "./shared.css";
 
 import { definePluginSettings, migratePluginSettings } from "@api/Settings";
-import { Button } from "@components/Button";
-import { classNameFactory } from "@utils/css";
 import { Logger } from "@utils/Logger";
 import { relaunch } from "@utils/native";
 import definePlugin, { OptionType } from "@utils/types";
 import { showToast } from "@webpack/common";
 
-const cl = classNameFactory("vc-qr-");
-const logger = new Logger("CustomPluginQuickRestart");
+import { BoltIcon, PowerIcon, PuzzleIcon, RefreshIcon } from "./icons";
+import { About, IconButton, Panel } from "./ui";
 
-const SELF = "CustomPluginQuickRestart";
+const logger = new Logger("QuickRestart");
+
+const SELF = "QuickRestart";
 
 // ---------------------------------------------------------------- the restarts
 
@@ -230,29 +230,36 @@ function onKeyDown(e: KeyboardEvent) {
 
 function RestartButtons() {
     return (
-        <div className={cl("buttons")}>
-            <Button size="small" onClick={() => runQuick(false)}>
-                Restart plugins
-            </Button>
-            <Button variant="secondary" size="small" onClick={reload}>
-                Reload window
-            </Button>
-            <Button variant="secondary" size="small" onClick={relaunch}>
-                Restart Discord
-            </Button>
-        </div>
+        <Panel
+            title="Restart now"
+            actions={
+                <>
+                    <IconButton icon={PuzzleIcon} onClick={() => runQuick(false)}>
+                        Restart Plugins
+                    </IconButton>
+                    <IconButton icon={RefreshIcon} variant="secondary" onClick={reload}>
+                        Reload Window
+                    </IconButton>
+                    <IconButton icon={PowerIcon} variant="secondary" onClick={relaunch}>
+                        Restart Discord
+                    </IconButton>
+                </>
+            }
+        />
     );
 }
 
 const settings = definePluginSettings({
     hotkey: {
         type: OptionType.STRING,
-        description: "Main shortcut, written as modifiers and a key joined by +",
+        displayName: "Restart shortcut",
+        description: "Modifiers and a key joined by +, like ctrl+r",
         default: "ctrl+r"
     },
     action: {
         type: OptionType.SELECT,
-        description: "What the main shortcut does",
+        displayName: "What it does",
+        description: "What the restart shortcut does when you press it",
         options: [
             { label: "Restart plugins, reloading only if it has to", value: "smart", default: true },
             { label: "Restart plugins, never reload", value: "quick" },
@@ -262,25 +269,38 @@ const settings = definePluginSettings({
     },
     reloadHotkey: {
         type: OptionType.STRING,
-        description: "Second shortcut, always a full window reload",
+        displayName: "Reload shortcut",
+        description: "A second shortcut that always reloads the whole window",
         default: "ctrl+shift+r"
     },
     buttons: {
         type: OptionType.COMPONENT,
-        description: "Restart right now",
         component: RestartButtons
     }
 });
 
-migratePluginSettings("CustomPluginQuickRestart", "CustomQuickRestart", "QuickRestart");
+migratePluginSettings("QuickRestart", "CustomPluginQuickRestart", "CustomQuickRestart");
 
 export default definePlugin({
     name: SELF,
     description: "A restart that takes milliseconds instead of seconds. Ctrl+R restarts every running plugin in place, keeping your connection and your half-typed message, and falls back to a real reload on the rare change that needs one. Ctrl+Shift+R always reloads.",
     tags: ["Utility"],
-    authors: [{ name: "reqon", id: 0n }],
+    authors: [{ name: "reqon", id: 497562304498368513n }],
 
     settings,
+
+    settingsAboutComponent: () => (
+        <About
+            icon={BoltIcon}
+            title="Restart in milliseconds"
+            note={false}
+            steps={[
+                <><kbd>Ctrl</kbd>+<kbd>R</kbd> restarts every running plugin in place. You stay connected and keep what you were typing.</>,
+                <>If a change really needs a reload, it reloads by itself.</>,
+                <><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd> always reloads the whole window.</>
+            ]}
+        />
+    ),
 
     start() {
         window.addEventListener("keydown", onKeyDown, true);

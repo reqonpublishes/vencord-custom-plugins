@@ -163,7 +163,7 @@ echo.
 echo   All done.
 echo.
 echo   Start Discord, open Settings ^> Vencord ^> Plugins, search for
-echo   CustomPlugin, and switch on all three.
+echo   the ones you want - HideMessages, FakeMessages, CloudSync and the rest.
 echo.
 pause
 exit /b 0

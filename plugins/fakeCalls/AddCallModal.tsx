@@ -4,14 +4,13 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { classNameFactory } from "@api/Styles";
 import { FormSwitch } from "@components/FormSwitch";
 import { ModalAction, RenderModalProps } from "@vencord/discord-types";
 import { ChannelStore, Modal, openModal, UserStore, useState } from "@webpack/common";
 
+import { GroupIcon, LockIcon, PersonIcon } from "./icons";
 import { addCall } from "./store";
-
-export const cl = classNameFactory("vc-cfc-");
+import { cl } from "./ui";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
@@ -34,6 +33,28 @@ function Chip({ onClick, children, on }: { onClick(): void; children: string; on
     return (
         <button className={cl("chip", on ? "chip-on" : "")} onClick={onClick}>
             {children}
+        </button>
+    );
+}
+
+/** One side of the call, as a button with their face on it */
+function Side({ id, group, on, onPick }: { id?: string; group?: boolean; on: boolean; onPick(): void; }) {
+    const user: any = id ? UserStore.getUser(id) : null;
+    const me = !!id && id === UserStore.getCurrentUser()?.id;
+
+    return (
+        <button className={cl("choice", on ? "choice-on" : "")} onClick={onPick}>
+            {user
+                ? <img src={user.getAvatarURL?.(undefined, 64)} alt="" />
+                : (
+                    <div className={cl("choice-blank")}>
+                        {group ? <GroupIcon height={16} width={16} /> : <PersonIcon height={16} width={16} />}
+                    </div>
+                )}
+            <div className={cl("choice-text")}>
+                <div className={cl("choice-name")}>{me ? "You" : user?.globalName ?? user?.username ?? "Them"}</div>
+                <div className={cl("choice-detail")}>{me ? "You called them" : "They called you"}</div>
+            </div>
         </button>
     );
 }
@@ -69,13 +90,15 @@ function AddCallModal({ rootProps, seed }: { rootProps: RenderModalProps; seed: 
 
     const add = () => {
         const began = fromInputValue(startedAt);
-        if (!began) return setError("That is not a date this understands");
+        if (!began) return setError("Pick a valid date and time.");
 
         const length = Number(minutes);
-        if (!ongoing && (!Number.isFinite(length) || length < 0)) return setError("Say how long it lasted, in minutes");
+        if (!ongoing && (!minutes.trim() || !Number.isFinite(length) || length < 0)) {
+            return setError("Type how long the call lasted, in minutes.");
+        }
 
         const authorId = fromMe ? me?.id : (others[0] ?? me?.id);
-        if (!authorId) return setError("Nobody to have started it");
+        if (!authorId) return setError("There is nobody here to have started the call.");
 
         // Missed is not a flag anywhere: a call is missed when you are not among the people
         // who were on it, so that is the only thing that changes.
@@ -94,7 +117,7 @@ function AddCallModal({ rootProps, seed }: { rootProps: RenderModalProps; seed: 
     };
 
     const actions: ModalAction[] = [
-        { text: "Add", variant: "primary", onClick: add },
+        { text: "Add Call", variant: "primary", onClick: add },
         { text: "Cancel", variant: "secondary", onClick: rootProps.onClose }
     ];
 
@@ -102,15 +125,15 @@ function AddCallModal({ rootProps, seed }: { rootProps: RenderModalProps; seed: 
         <Modal
             {...rootProps}
             size="md"
-            title="Add Call"
+            title="Add Fake Call"
             notice={error ? { message: error, type: "critical" } : undefined}
             actions={actions}
         >
             <section className={cl("section")}>
                 <h3 className={cl("label")}>Started by</h3>
-                <div className={cl("chips")}>
-                    <Chip on={!fromMe} onClick={() => setFromMe(false)}>Them</Chip>
-                    <Chip on={fromMe} onClick={() => setFromMe(true)}>Me</Chip>
+                <div className={cl("choices")}>
+                    <Side id={others[0]} group={others.length > 1} on={!fromMe} onPick={() => setFromMe(false)} />
+                    <Side id={me?.id} on={fromMe} onPick={() => setFromMe(true)} />
                 </div>
             </section>
 
@@ -126,12 +149,13 @@ function AddCallModal({ rootProps, seed }: { rootProps: RenderModalProps; seed: 
                     <input
                         type="time"
                         step={1}
-                        className={cl("input")}
+                        className={cl("input", "input-time")}
                         value={time}
                         onChange={e => setStartedAt(`${date}T${e.currentTarget.value || time}`)}
                     />
                 </div>
-                <div className={cl("row")}>
+                <div className={cl("line")}>
+                    <div />
                     <div className={cl("chips")}>
                         <Chip onClick={() => setStartedAt(toInputValue(new Date()))}>Now</Chip>
                     </div>
@@ -153,10 +177,19 @@ function AddCallModal({ rootProps, seed }: { rootProps: RenderModalProps; seed: 
                             }}
                         />
                     </div>
-                    <div className={cl("row")}>
+                    <div className={cl("line")}>
                         <div className={cl("chips")}>
                             {LENGTHS.map(one => (
-                                <Chip key={one.label} onClick={() => setMinutes(String(one.minutes))}>{one.label}</Chip>
+                                <Chip
+                                    key={one.label}
+                                    on={minutes === String(one.minutes)}
+                                    onClick={() => {
+                                        setMinutes(String(one.minutes));
+                                        setError(null);
+                                    }}
+                                >
+                                    {one.label}
+                                </Chip>
                             ))}
                         </div>
                     </div>
@@ -167,19 +200,29 @@ function AddCallModal({ rootProps, seed }: { rootProps: RenderModalProps; seed: 
                 <h3 className={cl("label")}>How it went</h3>
                 <div className={cl("card")}>
                     <FormSwitch
+                        className={cl("switch")}
                         title="Missed call"
-                        description="You were not on it, so it reads as one you missed"
+                        description="You were not on it, so it reads as a call you missed"
                         value={missed}
                         onChange={setMissed}
                         hideBorder
                     />
+
+                    <div className={cl("divider")} />
+
                     <FormSwitch
+                        className={cl("switch")}
                         title="Still going"
-                        description="No end, so the timer counts up and the call looks live"
+                        description="No end time, so the call looks live and its timer counts up"
                         value={ongoing}
                         onChange={setOngoing}
                         hideBorder
                     />
+                </div>
+
+                <div className={cl("footnote")}>
+                    <LockIcon height={14} width={14} />
+                    <span>Only you can see this call. Nobody is rung.</span>
                 </div>
             </section>
         </Modal>

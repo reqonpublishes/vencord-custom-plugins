@@ -1,17 +1,137 @@
-.vc-sync-panel {
+.vc-sync-link {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
+    padding: 12px;
+    border: 1px solid rgb(128 128 128 / 14%);
+    border-radius: 10px;
+    background: rgb(128 128 128 / 7%);
 }
 
-.vc-sync-row {
+.vc-sync-link-head {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.vc-sync-state {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 6px;
+    align-items: center;
+    padding: 2px 9px;
+    border-radius: 99px;
+    background: rgb(128 128 128 / 20%);
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 18px;
+}
+
+.vc-sync-state-on {
+    background: color-mix(in srgb, var(--green-360, #23a55a) 22%, transparent);
+    color: var(--green-330, #2dc770);
+}
+
+.vc-sync-field {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
 }
 
+.vc-sync-input {
+    flex: 1 1 240px;
+    min-width: 0;
+    padding: 8px 11px;
+    border: 1px solid rgb(128 128 128 / 22%);
+    border-radius: 6px;
+    background: rgb(128 128 128 / 18%);
+    color: var(--text-default, var(--text-normal));
+    font-size: 13px;
+    font-family: var(--font-code, monospace);
+    transition: background-color .15s ease, border-color .15s ease;
+}
+
+.vc-sync-input:hover {
+    background: rgb(128 128 128 / 26%);
+}
+
+.vc-sync-input:focus {
+    border-color: var(--brand-500, var(--brand-experiment));
+    outline: none;
+}
+
+.vc-sync-input-bad,
+.vc-sync-input-bad:focus {
+    border-color: var(--status-danger, #f23f43);
+}
+
+/* the two directions, side by side and the same size so neither reads as the default */
+.vc-sync-ways {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.vc-sync-way {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid rgb(128 128 128 / 18%);
+    border-radius: 10px;
+    background: rgb(128 128 128 / 10%);
+    color: var(--text-default, var(--text-normal));
+    font-family: var(--font-primary);
+    text-align: start;
+    cursor: pointer;
+    transition: background-color .15s ease, border-color .15s ease;
+}
+
+.vc-sync-way:disabled {
+    opacity: .5;
+    cursor: not-allowed;
+}
+
+.vc-sync-way:hover:not(:disabled) {
+    border-color: var(--brand-500, #5865f2);
+    background: color-mix(in srgb, var(--brand-500, #5865f2) 16%, transparent);
+}
+
+.vc-sync-way-text {
+    min-width: 0;
+}
+
+.vc-sync-way-name {
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 20px;
+}
+
+.vc-sync-way-detail {
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 16px;
+}
+
 .vc-sync-said {
+    display: flex;
+    gap: 6px;
+    align-items: center;
     color: var(--text-muted);
     font-size: 13px;
-    line-height: 1.4;
+    line-height: 18px;
+}
+
+.vc-sync-said svg {
+    flex: 0 0 auto;
+}
+
+.vc-sync-said-bad {
+    color: var(--text-danger, #f23f43);
+}
+
+.vc-sync-said-good {
+    color: var(--green-330, #2dc770);
 }

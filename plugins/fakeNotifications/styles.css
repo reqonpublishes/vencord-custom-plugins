@@ -1,38 +1,29 @@
-.vc-cfn-panel {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.vc-cfn-row {
-    align-items: center;
-    background: var(--background-secondary);
+.vc-cfn-number {
+    flex: 0 0 auto;
+    width: 96px;
+    padding: 8px 11px;
+    border: 1px solid rgb(128 128 128 / 22%);
     border-radius: 6px;
-    display: flex;
-    gap: 12px;
-    justify-content: space-between;
-    padding: 9px 12px;
-}
-
-.vc-cfn-label {
-    color: var(--text-normal);
-    font-size: 14px;
-    font-weight: 600;
-}
-
-.vc-cfn-where {
-    color: var(--text-muted);
-    font-size: 12px;
-    margin-top: 2px;
-}
-
-.vc-cfn-input {
-    background: var(--input-background);
-    border: none;
-    border-radius: 4px;
-    color: var(--text-normal);
+    background: rgb(128 128 128 / 18%);
+    color: var(--text-default, var(--text-normal));
     font-size: 15px;
-    padding: 8px 10px;
+    font-weight: 500;
+    font-family: var(--font-primary);
+    font-variant-numeric: tabular-nums;
     text-align: right;
-    width: 110px;
+    transition: background-color .15s ease, border-color .15s ease;
+}
+
+.vc-cfn-number:hover {
+    background: rgb(128 128 128 / 26%);
+}
+
+.vc-cfn-number:focus {
+    border-color: var(--brand-500, var(--brand-experiment));
+    outline: none;
+}
+
+.vc-cfn-number::placeholder {
+    color: var(--text-muted);
+    opacity: .7;
 }

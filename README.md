@@ -14,12 +14,12 @@ Custom plugins for [Vencord](https://vencord.dev).
 | **[Inspect&nbsp;Messages](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/inspectMessages)** | Change what a message says and when it was sent, on your screen only. |
 | **[Fake&nbsp;Messages](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/fakeMessages)** | Put a message in a conversation that nobody sent. Choose who it came from, what it says and when. |
 | **[Hide&nbsp;DMs](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/hideDMs)** | Take a conversation out of your DM list. Nothing is closed on Discord and the messages are all still there. |
-| **[Hide&nbsp;Friends](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/hideFriends)** | Show a friend as not added, or everybody at once. Also block someone here only, or pretend a request was sent or received. |
+| **[Hide&nbsp;Friends](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/hideFriends)** | Hide friends from your friends list, one at a time or all at once. Can also fake a block, a friend request or a friendship. |
 | **[Hide&nbsp;Servers](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/hideServers)** | Take a server off your server list, or all of them at once. You stay in every one. |
 | **[Fake&nbsp;Calls](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/fakeCalls)** | Add a call to any DM: who rang, when, how long it lasted, and whether you picked up. |
 | **[Fake&nbsp;Notifications](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/fakeNotifications)** | Choose what the badges say: friend requests and message requests. |
 | **[Quick&nbsp;Restart](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/quickRestart)** | Restart Discord in milliseconds instead of seconds, without losing your connection. |
-| **[Sync](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/cloudSync)** | Keep everything these plugins hold the same here and on your phone. One link joins them, and nothing moves until you press a button. |
+| **[Cloud&nbsp;Sync](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/cloudSync)** | Sync everything these plugins hold between this computer and your phone. One link joins them: **Sync to Cloud** uploads, **Sync from Cloud** downloads. |
 
 Click a plugin for how to use it and what its settings do.
 
@@ -31,7 +31,7 @@ and click the download button — the **⤓** at the top right of the file.
 **2.** Double-click the downloaded file.
 
 **3.** Follow the prompts. When it finishes, open Discord →
-**Settings → Vencord → Plugins** → search `CustomPlugin` → switch them all on.
+**Settings → Vencord → Plugins** → switch on the ones you want. They are listed under the names in the table above, without the spaces (`HideDMs`, `FakeCalls`, `CloudSync`...).
 
 That's it.
 

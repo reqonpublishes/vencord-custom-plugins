@@ -23,7 +23,6 @@ export const settings = definePluginSettings({
     },
     counts: {
         type: OptionType.COMPONENT,
-        description: "What each badge should say. Leave a box empty to show the real number",
         component: CountsPanel
     }
 });

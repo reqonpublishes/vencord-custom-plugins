@@ -1,16 +1,16 @@
-# Sync
+# Cloud Sync
 
-Keep what you have hidden, rewritten and added the same on your phone and this computer.
+Sync what you have hidden, changed and faked between your phone and this computer.
 
 > [!NOTE]
-> Nothing moves on its own. **Send** puts this computer's copy on the link; **Fetch**
-> replaces this computer's copy with what is there. Both are buttons you press.
+> Nothing syncs on its own. **Sync to Cloud** uploads this computer's copy; **Sync from
+> Cloud** replaces this computer's copy with what is there. Both are buttons you press.
 
 ## Setting it up
 
-**1.** Open **Settings → Vencord → Plugins → CustomPluginSync**.
+**1.** Open **Settings → Vencord → Plugins → CloudSync**.
 
-**2.** Click **Make a link**. You get an address nobody else will guess.
+**2.** Click **Make a Link**. You get an address nobody else will guess.
 
 **3.** Put that same link on your phone, in **Settings → Veil → Sync**.
 
@@ -19,26 +19,26 @@ password, so treat the link like one.
 
 ## Using it
 
-**Send to cloud** — takes what this computer has and puts it on the link.
+**Sync to Cloud** — takes what this computer has and puts it on the link.
 
-**Fetch from cloud** — takes what is on the link and makes this computer match it.
+**Sync from Cloud** — takes what is on the link and makes this computer match it.
 
 > [!TIP]
-> Hide something on your phone, press Send there, then press Fetch here. The plugins
+> Hide something on your phone, press Sync to Cloud there, then Sync from Cloud here. The plugins
 > restart themselves afterwards, so the change is on screen straight away.
 
 ## What gets shared
 
 | Setting | What it covers |
 | --- | --- |
-| **Share hidden messages and hidden chats** | Everything Hide Messages is holding: single messages, ranges, and whole chats hidden up to a moment |
-| **Share rewritten messages** | Everything Inspect Messages is holding: new text, timestamps and edited markers |
-| **Share messages you added** | Everything Fake Messages is holding, in every conversation |
-| **Share which conversations are hidden** | Everything Hide DMs is holding |
-| **Share hidden friends, pretend blocks and pretend requests** | Everything Hide Friends is holding |
-| **Share which servers are hidden** | Everything Hide Servers is holding |
-| **Share calls you added** | Everything Fake Calls is holding |
-| **Share the badge numbers** | How far Fake Notifications has moved each badge |
+| **Hide Messages** | Everything Hide Messages is holding: single messages, ranges, and whole chats hidden up to a moment |
+| **Inspect Messages** | Everything Inspect Messages is holding: new text, timestamps and edited markers |
+| **Fake Messages** | Everything Fake Messages is holding, in every conversation |
+| **Hide DMs** | Everything Hide DMs is holding |
+| **Hide Friends** | Everything Hide Friends is holding |
+| **Hide Servers** | Everything Hide Servers is holding |
+| **Fake Calls** | Everything Fake Calls is holding |
+| **Fake Notifications** | How far Fake Notifications has moved each badge |
 
 Switch any of them off and that part is left alone in both directions.
 
@@ -55,4 +55,4 @@ leaves your computer is the data you asked to share, to the link you chose.
 > [!IMPORTANT]
 > Anyone holding your link can read and write what is on it. It is generated rather than
 > chosen for exactly that reason. If you ever paste it somewhere public, press
-> **New link** and put the new one on both devices.
+> **New Link** and put the new one on both devices.

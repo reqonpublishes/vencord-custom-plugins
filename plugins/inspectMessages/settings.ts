@@ -7,34 +7,36 @@
 import { definePluginSettings } from "@api/Settings";
 import { OptionType } from "@utils/types";
 
-import { ClearAllButton } from "./ClearAllButton";
+import { EditedPanel } from "./EditedPanel";
 import { forgetSaved } from "./edits";
 
 export const settings = definePluginSettings({
     button: {
         type: OptionType.SELECT,
-        description: "Hover button on messages",
+        displayName: "Hover button",
+        description: "When the Inspect button appears in the bar over a message",
         options: [
-            { label: "Show only while Shift is held", value: "shift", default: true },
-            { label: "Always show", value: "always" },
-            { label: "Never show", value: "never" }
+            { label: "Only while Shift is held", value: "shift", default: true },
+            { label: "Always", value: "always" },
+            { label: "Never", value: "never" }
         ]
     },
     messageMenu: {
         type: OptionType.BOOLEAN,
-        description: "Add \"Inspect Message\" to the right-click menu on a message",
+        displayName: "Show on messages",
+        description: "Adds Inspect Message to the menu when you right-click a message",
         default: true
     },
     persist: {
         type: OptionType.BOOLEAN,
-        description: "Remember edits after Discord restarts",
+        displayName: "Keep after restart",
+        description: "Changed messages stay changed when Discord restarts",
         default: true,
-        // switching it off shouldn't leave the old list sitting on disk
+        // switching it off should not leave the old list sitting on disk
         onChange: (value: boolean) => void (value || forgetSaved())
     },
     clearAll: {
         type: OptionType.COMPONENT,
-        description: "Undo every edit and start fresh",
-        component: ClearAllButton
+        component: EditedPanel
     }
 });

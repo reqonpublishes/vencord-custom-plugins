@@ -4,14 +4,13 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { classNameFactory } from "@api/Styles";
 import { Button } from "@components/Button";
 import { useForceUpdater } from "@utils/react";
 import { SelectedGuildStore } from "@webpack/common";
 
-import { count, hideAll, names, showAll, showServer } from "./store";
-
-const cl = classNameFactory("vc-chs-");
+import { EyeIcon, EyeOffIcon } from "./icons";
+import { count, hideAll, infoOf, names, showAll, showServer } from "./store";
+import { cl, Empty, IconButton, Panel, Row } from "./ui";
 
 /**
  * The servers currently hidden, and the way back.
@@ -24,49 +23,66 @@ export function HiddenList() {
     const held = names();
 
     return (
-        <div className={cl("list")}>
-            <div className={cl("buttons")}>
-                <Button
-                    size="small"
-                    onClick={() => {
-                        // Not the one you are in. Hiding the server on screen leaves you
-                        // standing in something that is no longer on the bar to leave by.
-                        hideAll(SelectedGuildStore.getGuildId());
-                        update();
-                    }}
-                >
-                    Hide all servers
-                </Button>
-                <Button
-                    size="small"
-                    variant="dangerSecondary"
-                    disabled={!count()}
-                    onClick={() => {
-                        showAll();
-                        update();
-                    }}
-                >
-                    Show all{count() ? ` ${count()}` : ""}
-                </Button>
-            </div>
-
-            {!held.length && <div className={cl("empty")}>Nothing is hidden.</div>}
-
-            {held.map(([guildId, name]) => (
-                <div className={cl("row")} key={guildId}>
-                    <span className={cl("name")}>{name}</span>
-                    <Button
-                        size="small"
-                        variant="secondary"
+        <Panel
+            title="Hidden servers"
+            count={count()}
+            actions={
+                <>
+                    <IconButton
+                        icon={EyeOffIcon}
                         onClick={() => {
-                            showServer(guildId);
+                            // Not the one you are in. Hiding the server on screen leaves you
+                            // standing in something that is no longer on the bar to leave by.
+                            hideAll(SelectedGuildStore.getGuildId());
                             update();
                         }}
                     >
-                        Show
-                    </Button>
+                        Hide All
+                    </IconButton>
+                    <IconButton
+                        icon={EyeIcon}
+                        variant="secondary"
+                        disabled={!count()}
+                        onClick={() => {
+                            showAll();
+                            update();
+                        }}
+                    >
+                        Unhide All
+                    </IconButton>
+                </>
+            }
+        >
+            {!held.length && (
+                <Empty
+                    icon={EyeOffIcon}
+                    title="No hidden servers"
+                    text="Right-click a server and choose Hide Server, or hide them all at once."
+                />
+            )}
+
+            {!!held.length && (
+                <div className={cl("rows")}>
+                    {held.map(([guildId]) => {
+                        const info = infoOf(guildId);
+
+                        return (
+                            <Row key={guildId} round={false} image={info.image} name={info.name} detail={info.detail}>
+                                <Button
+                                    size="small"
+                                    variant="secondary"
+                                    onClick={() => {
+                                        showServer(guildId);
+                                        update();
+                                    }}
+                                >
+                                    Unhide
+                                </Button>
+                            </Row>
+                        );
+                    })}
                 </div>
-            ))}
-        </div>
+            )}
+        </Panel>
     );
 }

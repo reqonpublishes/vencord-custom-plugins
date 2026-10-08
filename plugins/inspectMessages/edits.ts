@@ -81,6 +81,7 @@ export function forgetSaved() {
 }
 
 export const hasEdits = () => edits.size > 0;
+export const countEdits = () => edits.size;
 export const isEdited = (id: string) => edits.has(id);
 export const getOriginal = (id: string) => edits.get(id)?.original;
 

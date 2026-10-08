@@ -10,12 +10,12 @@ Take a server off your server list — or all of them at once — in your own Di
 
 **Hiding one** — right-click a server → **Hide Server**.
 
-**Hiding all of them** — **Settings → Vencord → Plugins → CustomPluginHideServers** →
-**Hide all servers**. The one you are standing in is left alone, so you are never stranded
+**Hiding all of them** — **Settings → Vencord → Plugins → HideServers** →
+**Hide All**. The one you are standing in is left alone, so you are never stranded
 in a server that is no longer on the bar to leave by.
 
-**Bringing them back** — the same settings page lists every hidden server with a **Show**
-button, and **Show all** brings back the lot.
+**Bringing them back** — the same settings page lists every hidden server with an **Unhide**
+button, and **Unhide All** brings back the lot.
 
 ## Why it hides the row rather than removing the server
 
@@ -29,8 +29,8 @@ the row leaves the server exactly as it is, and showing it again is instant.
 | Setting | What it does |
 | --- | --- |
 | **Add "Hide Server" when you right-click a server** | The entry on a server |
-| **Keep servers hidden after Discord restarts** | Off means they are back next time you open Discord |
-| **Servers you have hidden** | The list, **Hide all servers**, and the way back |
+| **Keep after restart** | Off means they are back next time you open Discord |
+| **Servers you have hidden** | The list, **Hide All**, and the way back |
 
 ## Is this safe?
 

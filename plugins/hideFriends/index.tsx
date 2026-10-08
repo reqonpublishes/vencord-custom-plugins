@@ -4,23 +4,29 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import "./styles.css";
+import "./shared.css";
 
 import { NavContextMenuPatchCallback } from "@api/ContextMenu";
+import { migratePluginSettings } from "@api/Settings";
 import { Logger } from "@utils/Logger";
 import definePlugin from "@utils/types";
 import { User } from "@vencord/discord-types";
 import { findByPropsLazy } from "@webpack";
 import { FluxDispatcher, Menu, RelationshipStore, UserStore } from "@webpack/common";
 
+import {
+    BlockIcon, EyeIcon, EyeOffIcon, IconComponent, PersonAddIcon, PersonIcon, PersonOffIcon, PersonRemoveIcon,
+    SendIcon, UndoIcon
+} from "./icons";
 import { settings } from "./settings";
 import {
     addFakeFriend, BLOCKED, blockUser, clearRequest, dismissRequest, FRIEND, hideFriend, isBlocked,
     isFriended, isHidden, isIncoming, isPending, load, PENDING_INCOMING, reapply, receiveRequest,
     removeFakeFriend, restoreEverything, sendRequest, showFriend, unblockUser
 } from "./store";
+import { About } from "./ui";
 
-const logger = new Logger("CustomPluginHideFriends");
+const logger = new Logger("HideFriends");
 
 const Actions = findByPropsLazy("addRelationship", "removeRelationship");
 
@@ -33,53 +39,75 @@ const typeOf = (id: string): number => {
     }
 };
 
+/** One entry, with its icon on both sides of the label the way Discord draws its own */
+const item = (id: string, label: string, Icon: IconComponent, action: () => void, danger = false) => (
+    <Menu.MenuItem
+        id={"vc-chf-" + id}
+        key={id}
+        label={label}
+        color={danger ? "danger" : undefined}
+        icon={Icon}
+        leadingAccessory={{ type: "icon", icon: Icon }}
+        action={action}
+    />
+);
+
 const userCtx: NavContextMenuPatchCallback = (children, { user }: { user?: User; }) => {
     if (!user || !settings.store.userMenu) return;
 
     const { id } = user;
     if (id === UserStore.getCurrentUser()?.id) return;
 
-    const items: any[] = [];
     const type = typeOf(id);
 
-    // Each entry is offered only where it would do something, so the menu reads as what can
-    // be done to this person rather than as a list to be worked out.
+    // Hiding is the thing this is for, so it sits in the menu itself. Each entry is offered
+    // only where it would do something, so the menu reads as what can be done to this
+    // person rather than as a list to be worked out.
     if (isHidden(id)) {
-        items.push(<Menu.MenuItem id="vc-chf-show" key="show" label="Show Friend" action={() => showFriend(id)} />);
+        children.push(item("show", "Unhide Friend", EyeIcon, () => showFriend(id)));
     } else if (type === FRIEND && !isFriended(id)) {
-        items.push(<Menu.MenuItem id="vc-chf-hide" key="hide" label="Hide Friend" action={() => hideFriend(id)} />);
+        children.push(item("hide", "Hide Friend", EyeOffIcon, () => hideFriend(id)));
     }
 
+    const fakes: any[] = [];
+
     if (isBlocked(id)) {
-        items.push(<Menu.MenuItem id="vc-chf-unblock" key="unblock" label="Unblock Here" action={() => unblockUser(id)} />);
+        fakes.push(item("unblock", "Remove Fake Block", UndoIcon, () => unblockUser(id)));
     } else if (type !== BLOCKED) {
-        items.push(<Menu.MenuItem id="vc-chf-block" key="block" label="Block Here Only" action={() => blockUser(id)} />);
+        fakes.push(item("block", "Fake Block", BlockIcon, () => blockUser(id)));
     }
 
     if (isIncoming(id) || isPending(id)) {
-        items.push(<Menu.MenuItem id="vc-chf-clear" key="clear" label="Remove Pretend Request" action={() => clearRequest(id)} />);
+        fakes.push(item("clear", "Remove Fake Request", UndoIcon, () => clearRequest(id)));
     } else if (type !== FRIEND || isHidden(id)) {
-        items.push(
-            <Menu.MenuItem id="vc-chf-receive" key="receive" label="Pretend They Sent a Request" action={() => receiveRequest(id)} />,
-            <Menu.MenuItem id="vc-chf-send" key="send" label="Pretend You Sent a Request" action={() => sendRequest(id)} />
+        fakes.push(
+            item("receive", "Fake Incoming Request", PersonAddIcon, () => receiveRequest(id)),
+            item("send", "Fake Outgoing Request", SendIcon, () => sendRequest(id))
         );
     }
 
     if (isFriended(id)) {
-        items.push(<Menu.MenuItem id="vc-chf-unfriend" key="unfriend" label="Remove Pretend Friend" action={() => removeFakeFriend(id)} />);
+        fakes.push(item("unfriend", "Remove Fake Friend", PersonRemoveIcon, () => removeFakeFriend(id)));
     }
 
     if (type === PENDING_INCOMING && !isIncoming(id)) {
-        items.push(<Menu.MenuItem id="vc-chf-dismiss" key="dismiss" label="Hide Their Request" action={() => dismissRequest(id)} />);
+        fakes.push(item("dismiss", "Hide Their Friend Request", PersonOffIcon, () => dismissRequest(id)));
     }
 
-    if (!items.length) return;
+    if (!fakes.length) return;
 
-    // One entry that opens, rather than five beside each other: these are all the same kind
-    // of thing, and five more rows on every person is a menu nobody can find anything in.
+    // The rest open from one entry rather than sitting beside each other: they are all the
+    // same kind of thing, and five more rows on every person is a menu nobody can find
+    // anything in.
     children.push(
-        <Menu.MenuItem id="vc-chf-menu" key="vc-chf-menu" label="Only For Me">
-            {items}
+        <Menu.MenuItem
+            id="vc-chf-menu"
+            key="vc-chf-menu"
+            label="Fake Relationship"
+            icon={PersonIcon}
+            leadingAccessory={{ type: "icon", icon: PersonIcon }}
+        >
+            {fakes}
         </Menu.MenuItem>
     );
 };
@@ -176,13 +204,27 @@ const afterConnect = () => {
     setTimeout(reapply, 0);
 };
 
+migratePluginSettings("HideFriends", "CustomPluginHideFriends");
+
 export default definePlugin({
-    name: "CustomPluginHideFriends",
-    description: "Show a friend as not added, or everybody at once, in your own client only. Also block someone here only, or pretend a request was sent or received. The real friendship is never touched and nobody is told.",
-    tags: ["Friends", "Appearance"],
-    authors: [{ name: "reqon", id: 0n }],
+    name: "HideFriends",
+    description: "Hide friends from your friends list, one at a time or all at once. Can also fake a block, a friend request or a friendship. The real friendship is never touched and nobody is told.",
+    tags: ["Friends", "Appearance", "Privacy"],
+    authors: [{ name: "reqon", id: 497562304498368513n }],
 
     settings,
+
+    settingsAboutComponent: () => (
+        <About
+            icon={PersonOffIcon}
+            title="Hide friends, or fake a relationship"
+            steps={[
+                <>Right-click a friend and choose <strong>Hide Friend</strong>. They read as not added until you unhide them.</>,
+                <><strong>Fake Relationship</strong> in the same menu can fake a block, an incoming or outgoing friend request, or a friendship.</>,
+                <>Accept, Decline and Unblock on anything fake are answered here and never reach Discord.</>
+            ]}
+        />
+    ),
 
     contextMenus: {
         "user-context": userCtx

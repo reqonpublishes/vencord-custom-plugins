@@ -4,34 +4,19 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import "./styles.css";
+import "./shared.css";
 
 import { NavContextMenuPatchCallback } from "@api/ContextMenu";
+import { migratePluginSettings } from "@api/Settings";
 import definePlugin from "@utils/types";
 import { Channel, Message } from "@vencord/discord-types";
 import { FluxDispatcher, Menu, SelectedChannelStore } from "@webpack/common";
 
 import { openAddMessage } from "./AddMessageModal";
+import { ChatAddIcon, TrashIcon } from "./icons";
 import { settings } from "./settings";
 import { clearChannel, countIn, interceptor, isFake, load, removeMessage, showIn, takeAllOffScreen } from "./store";
-
-const AddIcon = ({ height = 20, width = 20, className }: { height?: number; width?: number; className?: string; }) => (
-    <svg viewBox="0 0 24 24" height={height} width={width} className={className}>
-        <path
-            fill="currentColor"
-            d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm1 11v4h-2v-4H7v-2h4V7h2v4h4v2h-4Z"
-        />
-    </svg>
-);
-
-const RemoveIcon = ({ height = 20, width = 20, className }: { height?: number; width?: number; className?: string; }) => (
-    <svg viewBox="0 0 24 24" height={height} width={width} className={className}>
-        <path
-            fill="currentColor"
-            d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm5 11H7v-2h10v2Z"
-        />
-    </svg>
-);
+import { About } from "./ui";
 
 let interceptorRegistered = false;
 
@@ -47,9 +32,10 @@ const messageCtx: NavContextMenuPatchCallback = (children, { message }: { messag
             <Menu.MenuItem
                 id="vc-cfm-remove"
                 key="vc-cfm-remove"
-                label="Remove Added Message"
-                icon={RemoveIcon}
-                leadingAccessory={{ type: "icon", icon: RemoveIcon }}
+                label="Remove Fake Message"
+                color="danger"
+                icon={TrashIcon}
+                leadingAccessory={{ type: "icon", icon: TrashIcon }}
                 action={() => removeMessage(channelId, message.id)}
             />
         );
@@ -60,9 +46,9 @@ const messageCtx: NavContextMenuPatchCallback = (children, { message }: { messag
         <Menu.MenuItem
             id="vc-cfm-add"
             key="vc-cfm-add"
-            label="Add Message Here"
-            icon={AddIcon}
-            leadingAccessory={{ type: "icon", icon: AddIcon }}
+            label="Add Fake Message Here"
+            icon={ChatAddIcon}
+            leadingAccessory={{ type: "icon", icon: ChatAddIcon }}
             // Seeded from the message underneath: the same person, a moment later. Most
             // invented messages are a reply to something, so that is the cheaper default.
             action={() => openAddMessage({
@@ -82,9 +68,9 @@ const channelCtx: NavContextMenuPatchCallback = (children, props: { channel?: Ch
         <Menu.MenuItem
             id="vc-cfm-channel-add"
             key="vc-cfm-channel-add"
-            label="Add Message"
-            icon={AddIcon}
-            leadingAccessory={{ type: "icon", icon: AddIcon }}
+            label="Add Fake Message"
+            icon={ChatAddIcon}
+            leadingAccessory={{ type: "icon", icon: ChatAddIcon }}
             action={() => openAddMessage({ channelId })}
         />
     );
@@ -96,21 +82,36 @@ const channelCtx: NavContextMenuPatchCallback = (children, props: { channel?: Ch
         <Menu.MenuItem
             id="vc-cfm-channel-clear"
             key="vc-cfm-channel-clear"
-            label={held === 1 ? "Remove 1 Added Message" : `Remove ${held} Added Messages`}
-            icon={RemoveIcon}
-            leadingAccessory={{ type: "icon", icon: RemoveIcon }}
+            label={held === 1 ? "Remove 1 Fake Message" : `Remove ${held} Fake Messages`}
+            color="danger"
+            icon={TrashIcon}
+            leadingAccessory={{ type: "icon", icon: TrashIcon }}
             action={() => clearChannel(channelId)}
         />
     );
 };
 
+migratePluginSettings("FakeMessages", "CustomPluginFakeMessages");
+
 export default definePlugin({
-    name: "CustomPluginFakeMessages",
-    description: "Put a message in a conversation that nobody sent. Choose who it came from, what it says and when, in your own client only. Nothing is sent to Discord and nobody else sees it.",
+    name: "FakeMessages",
+    description: "Add a message to any conversation that nobody sent. Choose who it is from, what it says and when. Nothing is sent to Discord and nobody else sees it.",
     tags: ["Chat", "Utility"],
-    authors: [{ name: "reqon", id: 0n }],
+    authors: [{ name: "reqon", id: 497562304498368513n }],
 
     settings,
+
+    settingsAboutComponent: () => (
+        <About
+            icon={ChatAddIcon}
+            title="Add messages nobody sent"
+            steps={[
+                <>Right-click a message and choose <strong>Add Fake Message Here</strong> to put one right after it.</>,
+                <>Or right-click a DM or channel and choose <strong>Add Fake Message</strong>.</>,
+                <>Right-click a fake message and choose <strong>Remove Fake Message</strong> to take it back.</>
+            ]}
+        />
+    ),
 
     contextMenus: {
         "message": messageCtx,

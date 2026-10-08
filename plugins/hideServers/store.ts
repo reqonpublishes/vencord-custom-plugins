@@ -5,7 +5,7 @@
  */
 
 import { del, get, set } from "@api/DataStore";
-import { GuildStore, SortedGuildStore } from "@webpack/common";
+import { GuildStore, IconUtils, SortedGuildStore } from "@webpack/common";
 
 import { settings } from "./settings";
 
@@ -94,6 +94,19 @@ export function stop() {
 
 export function nameOf(guildId: string): string {
     return (GuildStore.getGuild(guildId) as any)?.name ?? hidden.get(guildId) ?? guildId;
+}
+
+/** A hidden server as the settings list draws it */
+export function infoOf(guildId: string): { name: string; image: string | null; detail: string; } {
+    const guild: any = GuildStore.getGuild(guildId);
+    if (!guild) return { name: hidden.get(guildId) || guildId, image: null, detail: "Not loaded on this device" };
+
+    let image: string | null = null;
+    try {
+        image = guild.icon ? IconUtils.getGuildIconURL({ id: guild.id, icon: guild.icon, size: 64 }) ?? null : null;
+    } catch { /* no icon is fine: the row falls back to the first letter */ }
+
+    return { name: guild.name, image, detail: "Still joined · hidden from the server list" };
 }
 
 export function hideServer(guildId: string): boolean {

@@ -19,7 +19,7 @@
 
 import { PluginNative } from "@utils/types";
 
-const Native = VencordNative.pluginHelpers.CustomPluginSync as PluginNative<typeof import("./native")>;
+const Native = VencordNative.pluginHelpers.CloudSync as PluginNative<typeof import("./native")>;
 
 export const DEFAULT_BASE = "https://veil.veil-worker.workers.dev/sync/";
 

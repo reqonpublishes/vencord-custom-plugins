@@ -10,7 +10,7 @@ import { ChannelStore, FluxDispatcher, UserStore } from "@webpack/common";
 
 import { settings } from "./settings";
 
-const logger = new Logger("CustomPluginHideDMs");
+const logger = new Logger("HideDMs");
 
 const KEY = "HideDMs_Hidden";
 
@@ -86,6 +86,28 @@ export function nameOf(channelId: string): string {
         .filter(Boolean);
 
     return people.length ? people.join(", ") : channelId;
+}
+
+/** A hidden conversation as the settings list draws it: a face, a name and a quieter line */
+export function infoOf(channelId: string): { name: string; image: string | null; detail: string; group: boolean; } {
+    const channel: any = ChannelStore.getChannel(channelId) ?? kept.get(channelId);
+    const name = hidden.get(channelId) || nameOf(channelId);
+    const ids: string[] = channel?.recipients ?? [];
+
+    if (channel?.type === 3) {
+        const people = ids.length + 1;
+        return { name: nameOf(channelId), image: null, detail: `Group · ${people} ${people === 1 ? "member" : "members"}`, group: true };
+    }
+
+    const user: any = ids[0] ? UserStore.getUser(ids[0]) : null;
+    if (!user) return { name, image: null, detail: "Direct message", group: false };
+
+    return {
+        name: user.globalName ?? user.username ?? name,
+        image: user.getAvatarURL?.(undefined, 64) ?? null,
+        detail: "@" + user.username,
+        group: false
+    };
 }
 
 /**

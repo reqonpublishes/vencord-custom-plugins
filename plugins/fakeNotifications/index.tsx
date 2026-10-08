@@ -4,12 +4,16 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+import "./shared.css";
 import "./styles.css";
 
+import { migratePluginSettings } from "@api/Settings";
 import definePlugin from "@utils/types";
 import { MessageRequestStore, RelationshipStore } from "@webpack/common";
 
+import { BellIcon } from "./icons";
 import { settings } from "./settings";
+import { About } from "./ui";
 
 export type Which = "friends" | "requests";
 
@@ -56,13 +60,26 @@ export function setShown(which: Which, wanted: number | null) {
     nudge();
 }
 
+migratePluginSettings("FakeNotifications", "CustomPluginFakeNotifications");
+
 export default definePlugin({
-    name: "CustomPluginFakeNotifications",
-    description: "Choose what the badges say: how many friend requests and message requests are waiting. In your own client only. Nothing is read, answered or sent.",
+    name: "FakeNotifications",
+    description: "Set the numbers on your friend request and message request badges. Nothing is read, answered or sent, and the real requests are all still there.",
     tags: ["Notifications", "Appearance"],
-    authors: [{ name: "reqon", id: 0n }],
+    authors: [{ name: "reqon", id: 497562304498368513n }],
 
     settings,
+
+    settingsAboutComponent: () => (
+        <About
+            icon={BellIcon}
+            title="Set the numbers on your badges"
+            steps={[
+                <>Type the number each badge should show. Leave a box empty for the real one.</>,
+                <>The badge keeps counting: a new request still adds one to whatever you set.</>
+            ]}
+        />
+    ),
 
     // Patched inside the functions themselves rather than wrapped from outside. Something
     // that keeps hold of the function and calls it later walks straight past a wrapper - that

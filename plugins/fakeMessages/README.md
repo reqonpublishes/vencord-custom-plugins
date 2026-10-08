@@ -8,11 +8,11 @@ Put a message in a conversation that nobody sent.
 
 ## Using it
 
-**In a chat** — right-click any message → **Add Message Here**. The box opens already
+**In a chat** — right-click any message → **Add Fake Message Here**. The box opens already
 filled in with that person, a minute after what they said, because a message you invent is
 usually an answer to something.
 
-**From the sidebar** — right-click a DM or channel → **Add Message**. Same box, starting
+**From the sidebar** — right-click a DM or channel → **Add Fake Message**. Same box, starting
 from you and from now.
 
 Then choose:
@@ -25,8 +25,8 @@ Then choose:
 | **Show "(edited)" tag** | Adds the edited marker |
 | **Says** | What the message says |
 
-**Taking one back** — right-click it → **Remove Added Message**. To clear a whole
-conversation, right-click it in the sidebar → **Remove ... Added Messages**.
+**Taking one back** — right-click it → **Remove Fake Message**. To clear a whole
+conversation, right-click it in the sidebar → **Remove ... Fake Messages**.
 
 > [!TIP]
 > The time you pick is the position it takes. Discord orders a channel by when a message
@@ -37,10 +37,10 @@ conversation, right-click it in the sidebar → **Remove ... Added Messages**.
 
 | Setting | What it does |
 | --- | --- |
-| **Add "Add Message Here" to the right-click menu on a message** | The entry on a message |
-| **Add "Add Message" when you right-click a DM or channel** | The entry in the sidebar |
-| **Remember added messages after Discord restarts** | Off means they last until you close Discord |
-| **Take every added message away** | Removes all of them, everywhere |
+| **Show on messages** | **Add Fake Message Here** when you right-click a message |
+| **Show on conversations** | **Add Fake Message** when you right-click a DM or channel |
+| **Keep after restart** | Off means they last until you close Discord |
+| **Your fake messages** | How many there are, and **Remove All** |
 
 ## Is this safe?
 

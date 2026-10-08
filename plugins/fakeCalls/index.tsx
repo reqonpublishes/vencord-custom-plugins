@@ -4,25 +4,19 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import "./styles.css";
+import "./shared.css";
 
 import { NavContextMenuPatchCallback } from "@api/ContextMenu";
+import { migratePluginSettings } from "@api/Settings";
 import definePlugin from "@utils/types";
 import { Channel, Message, User } from "@vencord/discord-types";
 import { ChannelStore, FluxDispatcher, Menu, SelectedChannelStore } from "@webpack/common";
 
 import { openAddCall } from "./AddCallModal";
+import { PhoneAddIcon, TrashIcon } from "./icons";
 import { settings } from "./settings";
 import { clearChannel, countIn, interceptor, isFake, load, removeCall, showIn, takeAllOffScreen } from "./store";
-
-const CallIcon = ({ height = 20, width = 20, className }: { height?: number; width?: number; className?: string; }) => (
-    <svg viewBox="0 0 24 24" height={height} width={width} className={className}>
-        <path
-            fill="currentColor"
-            d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25 11.4 11.4 0 0 0 3.6.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1L6.6 10.8Z"
-        />
-    </svg>
-);
+import { About } from "./ui";
 
 let interceptorRegistered = false;
 
@@ -42,9 +36,10 @@ const messageCtx: NavContextMenuPatchCallback = (children, { message }: { messag
             <Menu.MenuItem
                 id="vc-cfc-remove"
                 key="vc-cfc-remove"
-                label="Remove Added Call"
-                icon={CallIcon}
-                leadingAccessory={{ type: "icon", icon: CallIcon }}
+                label="Remove Fake Call"
+                color="danger"
+                icon={TrashIcon}
+                leadingAccessory={{ type: "icon", icon: TrashIcon }}
                 action={() => removeCall(channelId, message.id)}
             />
         );
@@ -57,9 +52,9 @@ const messageCtx: NavContextMenuPatchCallback = (children, { message }: { messag
         <Menu.MenuItem
             id="vc-cfc-add"
             key="vc-cfc-add"
-            label="Add Call Here"
-            icon={CallIcon}
-            leadingAccessory={{ type: "icon", icon: CallIcon }}
+            label="Add Fake Call Here"
+            icon={PhoneAddIcon}
+            leadingAccessory={{ type: "icon", icon: PhoneAddIcon }}
             action={() => openAddCall({
                 channelId,
                 startedAt: new Date(message.timestamp as any).getTime() + 60_000
@@ -75,9 +70,9 @@ function entries(children: any[], channelId: string) {
         <Menu.MenuItem
             id="vc-cfc-channel-add"
             key="vc-cfc-channel-add"
-            label="Add Call"
-            icon={CallIcon}
-            leadingAccessory={{ type: "icon", icon: CallIcon }}
+            label="Add Fake Call"
+            icon={PhoneAddIcon}
+            leadingAccessory={{ type: "icon", icon: PhoneAddIcon }}
             action={() => openAddCall({ channelId })}
         />
     );
@@ -89,9 +84,10 @@ function entries(children: any[], channelId: string) {
         <Menu.MenuItem
             id="vc-cfc-channel-clear"
             key="vc-cfc-channel-clear"
-            label={held === 1 ? "Remove 1 Added Call" : `Remove ${held} Added Calls`}
-            icon={CallIcon}
-            leadingAccessory={{ type: "icon", icon: CallIcon }}
+            label={held === 1 ? "Remove 1 Fake Call" : `Remove ${held} Fake Calls`}
+            color="danger"
+            icon={TrashIcon}
+            leadingAccessory={{ type: "icon", icon: TrashIcon }}
             action={() => clearChannel(channelId)}
         />
     );
@@ -109,13 +105,27 @@ const userCtx: NavContextMenuPatchCallback = (children, { channel, user }: { cha
     if (channelId) entries(children, channelId);
 };
 
+migratePluginSettings("FakeCalls", "CustomPluginFakeCalls");
+
 export default definePlugin({
-    name: "CustomPluginFakeCalls",
-    description: "Add a call to any DM: who rang, when, how long it lasted, and whether you picked up. In your own client only. Nothing is sent to Discord and nobody else sees it.",
+    name: "FakeCalls",
+    description: "Add a call to any DM: who started it, when, how long it lasted, and whether you picked up. Nothing is sent to Discord and nobody is rung.",
     tags: ["Chat", "Utility"],
-    authors: [{ name: "reqon", id: 0n }],
+    authors: [{ name: "reqon", id: 497562304498368513n }],
 
     settings,
+
+    settingsAboutComponent: () => (
+        <About
+            icon={PhoneAddIcon}
+            title="Add calls that never happened"
+            steps={[
+                <>Right-click a message in a DM and choose <strong>Add Fake Call Here</strong> to put one right after it.</>,
+                <>Or right-click a DM or a person and choose <strong>Add Fake Call</strong>.</>,
+                <>Right-click a fake call and choose <strong>Remove Fake Call</strong> to take it back.</>
+            ]}
+        />
+    ),
 
     contextMenus: {
         "message": messageCtx,

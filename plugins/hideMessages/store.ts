@@ -52,7 +52,7 @@ const SCROLLER = '[data-list-id^="chat-messages"]';
 const SYNTHETIC = "__vcHideMessages";
 
 const KEY = "HideMessages_Hidden";
-const logger = new Logger("CustomPluginHideMessages");
+const logger = new Logger("HideMessages");
 
 type Range = [from: string, to: string];
 
@@ -156,6 +156,17 @@ export const hasHidesIn = (channelId: string) =>
     hiddenChannels.has(channelId)
     || !!hiddenMessages.get(channelId)?.size
     || !!hiddenRanges.get(channelId)?.length;
+
+/** What is hidden right now, for the settings page */
+export function stats() {
+    let messages = 0;
+    for (const set of hiddenMessages.values()) messages += set.size;
+
+    let ranges = 0;
+    for (const list of hiddenRanges.values()) ranges += list.length;
+
+    return { messages, ranges, channels: hiddenChannels.size };
+}
 
 // ---------------------------------------------------------------- state helpers
 

@@ -8,8 +8,8 @@ Add a call to any DM: who rang, when, how long it lasted, and whether you picked
 
 ## Using it
 
-**In a DM** — right-click any message → **Add Call Here**, or right-click the conversation
-or the person → **Add Call**.
+**In a DM** — right-click any message → **Add Fake Call Here**, or right-click the conversation
+or the person → **Add Fake Call**.
 
 Then choose:
 
@@ -21,8 +21,8 @@ Then choose:
 | **Missed call** | You were not on it, so it reads as one you missed |
 | **Still going** | No end, so the timer counts up and the call looks live |
 
-**Taking one back** — right-click the call → **Remove Added Call**. To clear a whole
-conversation, right-click it → **Remove ... Added Calls**.
+**Taking one back** — right-click the call → **Remove Fake Call**. To clear a whole
+conversation, right-click it → **Remove ... Fake Calls**.
 
 > [!TIP]
 > There is no "duration" to set and none is stored. Discord works the length out from when
@@ -33,10 +33,10 @@ conversation, right-click it → **Remove ... Added Calls**.
 
 | Setting | What it does |
 | --- | --- |
-| **Add "Add Call Here" to the right-click menu on a message in a DM** | The entry on a message |
-| **Add "Add Call" when you right-click a DM or a person** | The entry in the sidebar and on people |
-| **Remember added calls after Discord restarts** | Off means they last until you close Discord |
-| **Take every added call away** | Removes all of them, everywhere |
+| **Show on messages** | **Add Fake Call Here** when you right-click a message in a DM |
+| **Show on conversations** | **Add Fake Call** when you right-click a DM or a person |
+| **Keep after restart** | Off means they last until you close Discord |
+| **Your fake calls** | How many there are, and **Remove All** |
 
 ## Is this safe?
 

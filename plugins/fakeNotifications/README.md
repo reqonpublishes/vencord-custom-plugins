@@ -8,10 +8,10 @@ Choose what the badges say: how many friend requests and message requests are wa
 
 ## Using it
 
-Open **Settings → Vencord → Plugins → CustomPluginFakeNotifications**.
+Open **Settings → Vencord → Plugins → FakeNotifications**.
 
 Each badge has a box. Type the number you want to see; the real one sits behind it in grey.
-Empty the box and the badge goes back to the truth. **Put the real numbers back** clears
+Empty the box and the badge goes back to the truth. **Reset** clears
 both.
 
 > [!IMPORTANT]

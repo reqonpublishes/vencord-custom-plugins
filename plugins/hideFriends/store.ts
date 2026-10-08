@@ -10,7 +10,7 @@ import { FluxDispatcher, RelationshipStore, UserStore } from "@webpack/common";
 
 import { settings } from "./settings";
 
-const logger = new Logger("CustomPluginHideFriends");
+const logger = new Logger("HideFriends");
 
 const KEY = "HideFriends_State";
 
@@ -95,6 +95,18 @@ export const listed = () => ({
 export function nameOf(id: string): string {
     const user: any = UserStore.getUser(id);
     return user?.globalName ?? user?.username ?? held.hidden[id] ?? held.blocked[id] ?? id;
+}
+
+/** Somebody on one of the lists as the settings page draws them */
+export function infoOf(id: string, stored?: string): { name: string; image: string | null; detail: string; } {
+    const user: any = UserStore.getUser(id);
+    if (!user) return { name: stored || id, image: null, detail: "Not loaded on this device" };
+
+    return {
+        name: user.globalName ?? user.username,
+        image: user.getAvatarURL?.(undefined, 64) ?? null,
+        detail: "@" + user.username
+    };
 }
 
 // ---------------------------------------------------------------- persistence

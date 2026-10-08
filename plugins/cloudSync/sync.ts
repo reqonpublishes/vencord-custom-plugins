@@ -10,7 +10,7 @@ import { Adapter, ADAPTERS, overlay } from "./adapters";
 import { settings } from "./settings";
 import { fetchShelf, looksLikeLink, sendShelf, Shelf } from "./shelf";
 
-const logger = new Logger("CustomPluginSync");
+const logger = new Logger("CloudSync");
 
 /** Only the plugins you asked to share, and only the ones actually installed. */
 function chosen(): Adapter[] {

@@ -25,8 +25,8 @@ jump to **Now** or back to the **Original** time.
 > [!TIP]
 > `Ctrl+Enter` applies without reaching for the mouse.
 
-**Apply** commits it, **Revert** puts that one message back, and *Clear all inspected
-messages* in the settings undoes the lot.
+**Apply** commits it, **Revert** puts that one message back, and **Revert All** in the
+settings undoes the lot.
 
 > [!TIP]
 > Highlighting uses Discord's own mention styling rather than a hand-picked orange, so a
@@ -41,5 +41,5 @@ message first.
 | --- | --- | --- |
 | Hover button on messages | Only while Shift is held | When the toolbar button appears |
 | Add "Inspect Message" to the right-click menu | On | Adds the context menu entry |
-| Remember edits after Discord restarts | On | Keeps your edits between restarts |
-| Clear all inspected messages | — | Undoes every edit and starts fresh |
+| Keep after restart | On | Keeps your edits between restarts |
+| Revert All | — | Undoes every edit and starts fresh |

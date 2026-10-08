@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+import "./shared.css";
 import "./styles.css";
 
 import { findGroupChildrenByChildId, NavContextMenuPatchCallback } from "@api/ContextMenu";
@@ -13,22 +14,13 @@ import { Message } from "@vencord/discord-types";
 import { ChannelStore, FluxDispatcher, Menu, SelectedChannelStore } from "@webpack/common";
 
 import { hasEdits, loadEdits, patchRawMessage, patchRawMessages, reapplyChannel, restoreVisuals, startStyles, stopStyles } from "./edits";
+import { InspectIcon as InspectGlyph } from "./icons";
 import { openInspectModal } from "./InspectModal";
 import { settings } from "./settings";
 import { GatedIcon, isShiftHeldForMenu, shiftGated, startShiftTracking, stopShiftTracking } from "./shiftGate";
+import { About } from "./ui";
 
-const InspectIcon: GatedIcon = ({ height = 20, width = 20, className, innerRef }) => (
-    <svg ref={innerRef} viewBox="0 0 24 24" height={height} width={width} className={className}>
-        <path
-            fill="currentColor"
-            d="M5 3h3v2H6a1 1 0 0 0-1 1v2H3V5a2 2 0 0 1 2-2Zm14 0a2 2 0 0 1 2 2v3h-2V6a1 1 0 0 0-1-1h-2V3h3ZM5 16v2a1 1 0 0 0 1 1h2v2H5a2 2 0 0 1-2-2v-3h2Z"
-        />
-        <path
-            fill="currentColor"
-            d="M9.7 7.2a1 1 0 0 0-1.3 1.2l3.4 10.2a1 1 0 0 0 1.8.1l1.7-3.4 3.4-1.7a1 1 0 0 0-.1-1.8L9.7 7.2Z"
-        />
-    </svg>
-);
+const InspectIcon: GatedIcon = InspectGlyph;
 
 const ShiftInspectIcon = shiftGated(InspectIcon);
 
@@ -88,16 +80,28 @@ const messageCtx: NavContextMenuPatchCallback = (children, { message }: { messag
     else children.push(item);
 };
 
-migratePluginSettings("CustomPluginInspectMessages", "CustomPluginQuickInspect", "CustomQuickInspect", "QuickInspect");
+migratePluginSettings("InspectMessages", "CustomPluginInspectMessages", "CustomPluginQuickInspect", "CustomQuickInspect", "QuickInspect");
 
 export default definePlugin({
-    name: "CustomPluginInspectMessages",
-    description: "Rewrite any message's text, timestamp and edited marker, in your own client only. Hold Shift to reveal the buttons. Nothing is sent to Discord and nobody else sees it.",
+    name: "InspectMessages",
+    description: "Change what any message says, when it was sent and whether it shows as edited. Hold Shift to reveal the buttons. Nothing is sent to Discord and nobody else sees it.",
     tags: ["Chat", "Utility"],
-    authors: [{ name: "reqon", id: 0n }],
+    authors: [{ name: "reqon", id: 497562304498368513n }],
     dependencies: ["MessageUpdaterAPI"],
 
     settings,
+
+    settingsAboutComponent: () => (
+        <About
+            icon={InspectGlyph}
+            title="Change how a message looks to you"
+            steps={[
+                <>Hold <kbd>Shift</kbd> and hover a message, or right-click it, and choose <strong>Inspect Message</strong>.</>,
+                <>Change the text, the time it was sent, the edited tag or the mention highlight.</>,
+                <>Open it again and press <strong>Revert</strong> to put the real message back.</>
+            ]}
+        />
+    ),
 
     contextMenus: {
         "message": messageCtx

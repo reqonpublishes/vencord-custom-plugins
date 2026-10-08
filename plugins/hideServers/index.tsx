@@ -4,49 +4,58 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import "./styles.css";
+import "./shared.css";
 
 import { NavContextMenuPatchCallback } from "@api/ContextMenu";
+import { migratePluginSettings } from "@api/Settings";
 import definePlugin from "@utils/types";
 import { Guild } from "@vencord/discord-types";
 import { Menu } from "@webpack/common";
 
+import { EyeIcon, EyeOffIcon } from "./icons";
 import { settings } from "./settings";
 import { hideServer, isHidden, load, showServer, start, stop } from "./store";
-
-const HideIcon = ({ height = 20, width = 20, className }: { height?: number; width?: number; className?: string; }) => (
-    <svg viewBox="0 0 24 24" height={height} width={width} className={className}>
-        <path
-            fill="currentColor"
-            d="M2.7 3.4 21.3 22l1.4-1.4-3.3-3.3A12.5 12.5 0 0 0 23 12s-4-7-11-7a10.7 10.7 0 0 0-4.7 1.1L4.1 2 2.7 3.4Zm6.1 6.1 5.7 5.7a4 4 0 0 1-5.7-5.7Z"
-        />
-    </svg>
-);
+import { About } from "./ui";
 
 const guildCtx: NavContextMenuPatchCallback = (children, { guild }: { guild?: Guild; }) => {
     if (!guild?.id || !settings.store.guildMenu) return;
 
     const away = isHidden(guild.id);
+    const Icon = away ? EyeIcon : EyeOffIcon;
 
     children.push(
         <Menu.MenuItem
             id="vc-chs-server"
             key="vc-chs-server"
-            label={away ? "Show Server" : "Hide Server"}
-            icon={HideIcon}
-            leadingAccessory={{ type: "icon", icon: HideIcon }}
+            label={away ? "Unhide Server" : "Hide Server"}
+            icon={Icon}
+            leadingAccessory={{ type: "icon", icon: Icon }}
             action={() => away ? showServer(guild.id) : hideServer(guild.id)}
         />
     );
 };
 
+migratePluginSettings("HideServers", "CustomPluginHideServers");
+
 export default definePlugin({
-    name: "CustomPluginHideServers",
-    description: "Take a server off your server list, or all of them at once, in your own client only. You stay in the server, nothing is left, and nobody is told.",
-    tags: ["Servers", "Appearance"],
-    authors: [{ name: "reqon", id: 0n }],
+    name: "HideServers",
+    description: "Hide servers from your server list. You stay in every one of them, nothing is left, and nobody is told.",
+    tags: ["Servers", "Appearance", "Privacy"],
+    authors: [{ name: "reqon", id: 497562304498368513n }],
 
     settings,
+
+    settingsAboutComponent: () => (
+        <About
+            icon={EyeOffIcon}
+            title="Hide servers from your server list"
+            steps={[
+                <>Right-click a server and choose <strong>Hide Server</strong>.</>,
+                <>You stay a member and still get everything from it. It is only not drawn on the bar.</>,
+                <>Everything you have hidden is listed below, with a way back.</>
+            ]}
+        />
+    ),
 
     contextMenus: {
         "guild-context": guildCtx
