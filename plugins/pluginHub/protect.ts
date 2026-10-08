@@ -1,0 +1,112 @@
+/*
+ * Vencord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
+import { Settings } from "@api/Settings";
+import { Logger } from "@utils/Logger";
+import { findStoreLazy } from "@webpack";
+
+import { force, isOn, isView, usable } from "./hub";
+
+const logger = new Logger("PluginHub");
+
+const ApplicationStreamingStore: any = findStoreLazy("ApplicationStreamingStore");
+const StreamerModeStore: any = findStoreLazy("StreamerModeStore");
+
+/** The plugins this switched on for a share, so only those are switched back off after it */
+let raised: string[] | null = null;
+
+const listeners = new Set<() => void>();
+
+/** Told whenever protection starts or stops, so the settings page can say so */
+export function onProtectionChange(listener: () => void) {
+    listeners.add(listener);
+    return () => void listeners.delete(listener);
+}
+
+/** Whether everything is being held on right now because the screen is being shown */
+export const isProtecting = () => raised !== null;
+
+/**
+ * Whether somebody else can see this screen.
+ *
+ * Two things say so. Sharing your screen or a window through Discord is one. The other is
+ * Streamer Mode, which Discord switches on by itself when it sees OBS or another recorder
+ * running - so recording outside Discord is caught the same way Discord catches it.
+ */
+function beingWatched(): boolean {
+    try {
+        if (ApplicationStreamingStore.getCurrentUserActiveStream?.()) return true;
+    } catch { /* not on this build: the other check still stands */ }
+
+    try {
+        if (Settings.plugins.PluginHub?.streamerMode !== false && StreamerModeStore.enabled) return true;
+    } catch { /* same */ }
+
+    return false;
+}
+
+/**
+ * Hold every plugin on while the screen is shown, and let go when it stops.
+ *
+ * The plugins you had switched off are the ones that matter: off means the real friends list
+ * and the real messages are on screen, which is exactly what should not be on a stream. They
+ * are started for the length of the share and stopped again after it, and which ones you had
+ * off is not rewritten - so ending the share, or Discord restarting in the middle of one,
+ * leaves everything as you set it.
+ *
+ * Nothing is shown when it happens. A notice saying what was just hidden would be on the
+ * stream too.
+ */
+export function check() {
+    const want = Settings.plugins.PluginHub?.shareProtection !== false && beingWatched();
+    if (want === isProtecting()) return;
+
+    try {
+        if (want) {
+            raised = usable().filter(entry => isView(entry) && !isOn(entry.plugin)).map(entry => entry.plugin);
+            for (const name of raised) force(name, true);
+        } else {
+            const mine = raised ?? [];
+            raised = null;
+
+            // Only the ones still meant to be off. Anything switched on by hand during the
+            // share was a decision, and is left alone.
+            const off: string[] = Settings.plugins.PluginHub?.off ?? [];
+            for (const name of mine) if (off.includes(name)) force(name, false);
+        }
+    } catch (e) {
+        logger.error("Screen share protection could not switch the plugins", e);
+    }
+
+    for (const listener of listeners) listener();
+}
+
+export function startProtection() {
+    try {
+        ApplicationStreamingStore.addChangeListener(check);
+        StreamerModeStore.addChangeListener(check);
+    } catch (e) {
+        logger.error("Could not watch for screen sharing", e);
+    }
+
+    check();
+}
+
+export function stopProtection() {
+    try {
+        ApplicationStreamingStore.removeChangeListener(check);
+        StreamerModeStore.removeChangeListener(check);
+    } catch { /* never attached */ }
+
+    // let go of whatever is being held, as if the share had ended
+    if (raised) {
+        const mine = raised;
+        raised = null;
+
+        const off: string[] = Settings.plugins.PluginHub?.off ?? [];
+        for (const name of mine) if (off.includes(name)) force(name, false);
+    }
+}

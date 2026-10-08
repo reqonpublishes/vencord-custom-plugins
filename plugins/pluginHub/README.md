@@ -23,6 +23,20 @@ Open Discord's settings → **Vencord** → **Additional Settings**.
 | **The cog on a row** | Opens that plugin's settings |
 | **Sync to Cloud / Sync from Cloud** | The two [Cloud Sync](../cloudSync) buttons, once you have a link |
 
+## Screen Share Protection
+
+On by default. While you share your screen, every plugin here is switched on, including the
+ones you had turned off, so your real DMs, friends and messages are not on the stream. When
+you stop sharing, everything goes back to how you had it.
+
+It also counts **Streamer Mode** as sharing. Discord can turn Streamer Mode on by itself when
+it sees OBS or another recorder running (Discord's settings, under Streamer Mode), which is how
+recording outside Discord is caught. That part can be switched off on its own in this plugin's
+settings.
+
+Nothing pops up when it happens, because a notice would be on the stream too. Turn the whole
+thing off with the **Screen Share Protection** switch at the top of Additional Settings.
+
 ## Is this safe?
 
 Yes. It only switches plugins on and off, the same way Vencord's own Plugins page does.

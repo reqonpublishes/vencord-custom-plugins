@@ -175,6 +175,26 @@ export function setOn(name: string, on: boolean): "done" | "restart" | "failed" 
 }
 
 /**
+ * Start or stop a plugin without writing down that it was.
+ *
+ * For holding plugins on for a while and letting go again: what you chose is left exactly as
+ * it was, so nothing has to be remembered to put it back.
+ */
+export function force(name: string, on: boolean): boolean {
+    const manager = PM();
+    const plugin = pluginOf(name);
+    if (!manager || !plugin || !isEnabled(name) || !!plugin.started === on) return false;
+
+    try {
+        if (on && needsRestart(name)) return false;
+        return !!(on ? manager.startPlugin(plugin) : manager.stopPlugin(plugin));
+    } catch (e) {
+        logger.error(`Could not ${on ? "start" : "stop"} ${name}`, e);
+        return false;
+    }
+}
+
+/**
  * Stop everything this page has switched off.
  *
  * Run once Discord has started its plugins: Vencord starts all the enabled ones, which
