@@ -15,6 +15,7 @@ Custom plugins for [Vencord](https://vencord.dev).
 | **[Fake&nbsp;Messages](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/fakeMessages)** | Put a message in a conversation that nobody sent. Choose who it came from, what it says and when. |
 | **[Hide&nbsp;DMs](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/hideDMs)** | Take a conversation out of your DM list. Nothing is closed on Discord and the messages are all still there. |
 | **[Hide&nbsp;Friends](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/hideFriends)** | Hide friends from your friends list, one at a time or all at once. Can also fake a block, a friend request or a friendship. |
+| **[Hide&nbsp;Implicit](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/hideImplicit)** | Hide the Implicit tab on your Friends page. |
 | **[Hide&nbsp;Servers](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/hideServers)** | Take a server off your server list, or all of them at once. You stay in every one. |
 | **[Fake&nbsp;Calls](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/fakeCalls)** | Add a call to any DM: who rang, when, how long it lasted, and whether you picked up. |
 | **[Fake&nbsp;Notifications](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/fakeNotifications)** | Choose what the badges say: friend requests and message requests. |

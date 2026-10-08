@@ -9,7 +9,7 @@ import { Logger } from "@utils/Logger";
 import { Flux } from "@webpack/common";
 
 import {
-    BellIcon, BoltIcon, ChatAddIcon, ChatIcon, CloudIcon, EyeOffIcon, IconComponent, InspectIcon, PersonOffIcon,
+    BellIcon, BoltIcon, ChatAddIcon, ChatIcon, CloudIcon, EyeOffIcon, GroupIcon, IconComponent, InspectIcon, PersonOffIcon,
     PhoneAddIcon, ServerIcon
 } from "./icons";
 
@@ -47,6 +47,7 @@ export const ENTRIES: Entry[] = [
     { plugin: "HideMessages", label: "Hide Messages", icon: EyeOffIcon, section: "hide", about: "Hide messages, ranges or whole conversations", off: "Off. Every message is showing" },
     { plugin: "HideDMs", label: "Hide DMs", icon: ChatIcon, section: "hide", about: "Hide conversations from your DM list", off: "Off. Every DM is showing" },
     { plugin: "HideFriends", label: "Hide Friends", icon: PersonOffIcon, section: "hide", about: "Hide friends, or fake a relationship", off: "Off. Your real friends list is showing" },
+    { plugin: "HideImplicit", label: "Hide Implicit", icon: GroupIcon, section: "hide", about: "Hide the Implicit tab on your Friends page", off: "Off. The Implicit tab is showing" },
     { plugin: "HideServers", label: "Hide Servers", icon: ServerIcon, section: "hide", about: "Hide servers from your server list", off: "Off. Every server is showing" },
     { plugin: "FakeMessages", label: "Fake Messages", icon: ChatAddIcon, section: "fake", about: "Add messages nobody sent", off: "Off. Only real messages are showing" },
     { plugin: "FakeCalls", label: "Fake Calls", icon: PhoneAddIcon, section: "fake", about: "Add calls that never happened", off: "Off. Only real calls are showing" },
