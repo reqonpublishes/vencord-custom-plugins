@@ -15,38 +15,63 @@ import {
 
 const logger = new Logger("PluginHub");
 
+export type Section = "hide" | "fake" | "tools";
+
 export interface Entry {
     /** the plugin's name, as Vencord knows it */
     plugin: string;
     /** the same name, written for reading */
     label: string;
     icon: IconComponent;
-    /** what you see while it is on, and what you see instead while it is off */
-    on: string;
+    section: Section;
+    /** what the plugin is for, shown while it has nothing of its own to report */
+    about: string;
+    /** what you see instead while it is off */
     off: string;
-    /** whether it changes what Discord shows, rather than being a tool */
-    view: boolean;
 }
 
+export const SECTIONS: { id: Section; title: string; }[] = [
+    { id: "hide", title: "Hide" },
+    { id: "fake", title: "Fake" },
+    { id: "tools", title: "Tools" }
+];
+
 /**
- * Every plugin this page looks after.
+ * Every plugin this page looks after, in the order the right-click menus use.
  *
- * The ones marked as a view are the ones that change what Discord shows you - and so the
- * ones the switch at the top is about. Turning one off puts the real thing back on screen
- * and keeps everything it was holding, which is what makes it a switch rather than a reset.
+ * Hide and Fake are the ones that change what Discord shows you - and so the ones the
+ * switch at the top is about. Turning one off puts the real thing back on screen and keeps
+ * everything it was holding, which is what makes it a switch rather than a reset.
  */
 export const ENTRIES: Entry[] = [
-    { plugin: "HideMessages", label: "Hide Messages", icon: EyeOffIcon, on: "Hidden messages are hidden", off: "Every message is showing", view: true },
-    { plugin: "InspectMessages", label: "Inspect Messages", icon: InspectIcon, on: "Changed messages show your version", off: "Messages show as they really are", view: true },
-    { plugin: "FakeMessages", label: "Fake Messages", icon: ChatAddIcon, on: "Fake messages are showing", off: "Only real messages are showing", view: true },
-    { plugin: "FakeCalls", label: "Fake Calls", icon: PhoneAddIcon, on: "Fake calls are showing", off: "Only real calls are showing", view: true },
-    { plugin: "FakeNotifications", label: "Fake Notifications", icon: BellIcon, on: "Badges show your numbers", off: "Badges show the real numbers", view: true },
-    { plugin: "HideDMs", label: "Hide DMs", icon: ChatIcon, on: "Hidden DMs are hidden", off: "Every DM is showing", view: true },
-    { plugin: "HideFriends", label: "Hide Friends", icon: PersonOffIcon, on: "Hidden and fake friends apply", off: "Your real friends list is showing", view: true },
-    { plugin: "HideServers", label: "Hide Servers", icon: ServerIcon, on: "Hidden servers are hidden", off: "Every server is showing", view: true },
-    { plugin: "CloudSync", label: "Cloud Sync", icon: CloudIcon, on: "Ready to sync with your phone", off: "Sync is switched off", view: false },
-    { plugin: "QuickRestart", label: "Quick Restart", icon: BoltIcon, on: "Restart shortcuts are active", off: "Restart shortcuts are off", view: false }
+    { plugin: "HideMessages", label: "Hide Messages", icon: EyeOffIcon, section: "hide", about: "Hide messages, ranges or whole conversations", off: "Off. Every message is showing" },
+    { plugin: "HideDMs", label: "Hide DMs", icon: ChatIcon, section: "hide", about: "Hide conversations from your DM list", off: "Off. Every DM is showing" },
+    { plugin: "HideFriends", label: "Hide Friends", icon: PersonOffIcon, section: "hide", about: "Hide friends, or fake a relationship", off: "Off. Your real friends list is showing" },
+    { plugin: "HideServers", label: "Hide Servers", icon: ServerIcon, section: "hide", about: "Hide servers from your server list", off: "Off. Every server is showing" },
+    { plugin: "FakeMessages", label: "Fake Messages", icon: ChatAddIcon, section: "fake", about: "Add messages nobody sent", off: "Off. Only real messages are showing" },
+    { plugin: "FakeCalls", label: "Fake Calls", icon: PhoneAddIcon, section: "fake", about: "Add calls that never happened", off: "Off. Only real calls are showing" },
+    { plugin: "FakeNotifications", label: "Fake Notifications", icon: BellIcon, section: "fake", about: "Set the numbers on your badges", off: "Off. Badges show the real numbers" },
+    { plugin: "InspectMessages", label: "Inspect Messages", icon: InspectIcon, section: "fake", about: "Change what a message says and when it was sent", off: "Off. Messages read as they really are" },
+    { plugin: "CloudSync", label: "Cloud Sync", icon: CloudIcon, section: "tools", about: "Sync all of this with your phone", off: "Off" },
+    { plugin: "QuickRestart", label: "Quick Restart", icon: BoltIcon, section: "tools", about: "Restart plugins in milliseconds", off: "Off. The restart shortcuts do nothing" }
 ];
+
+/** Whether a plugin changes what Discord shows, rather than being a tool */
+export const isView = (entry: Entry) => entry.section !== "tools";
+
+/**
+ * What a plugin has to say for itself right now - how much it is hiding or faking.
+ *
+ * Asked of the plugin rather than worked out here, so this page does not have to know how
+ * any of them keep their lists.
+ */
+export function summaryOf(entry: Entry): string {
+    try {
+        return pluginOf(entry.plugin)?.hubSummary?.() || entry.about;
+    } catch {
+        return entry.about;
+    }
+}
 
 // Through the global rather than imported: importing the plugin manager from a plugin is a
 // circular dependency, and Vencord's own commons dodge it the same way.
@@ -170,7 +195,7 @@ function batched(run: () => void) {
 }
 
 /** The plugins that change what Discord shows and are doing so right now */
-export const applying = () => installed().filter(entry => entry.view && isOn(entry.plugin)).map(entry => entry.plugin);
+export const applying = () => installed().filter(entry => isView(entry) && isOn(entry.plugin)).map(entry => entry.plugin);
 
 /**
  * See the real Discord, or go back to yours.
@@ -190,7 +215,7 @@ export function flipAll(remembered: string[]): { on: boolean; changed: number; r
         return { on: false, changed, remember: live, restart: false };
     }
 
-    const views = installed().filter(entry => entry.view).map(entry => entry.plugin);
+    const views = installed().filter(isView).map(entry => entry.plugin);
     const back = remembered.filter(name => views.includes(name));
 
     let changed = 0;

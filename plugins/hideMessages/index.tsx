@@ -27,6 +27,7 @@ import {
     onChannelSelect,
     showChannel,
     startStore,
+    stats,
     stopStore
 } from "./store";
 import { About } from "./ui";
@@ -157,6 +158,8 @@ const profileCtx: NavContextMenuPatchCallback = (children, { user }: { user?: Us
 
 migratePluginSettings("HideMessages", "CustomPluginHideMessages", "CustomHideMessages");
 
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
 export default definePlugin({
     name: "HideMessages",
     description: "Hide a message, a range of them, or a whole conversation's history. Hold Shift to reveal the buttons. Nothing is deleted and nobody else is affected.",
@@ -164,6 +167,18 @@ export default definePlugin({
     authors: [{ name: "reqon", id: 497562304498368513n }],
 
     settings,
+
+    /** One line for Additional Settings: what is hidden right now */
+    hubSummary() {
+        const { messages, ranges, channels } = stats();
+        const parts = [
+            messages && plural(messages, "message"),
+            ranges && plural(ranges, "range"),
+            channels && plural(channels, "whole conversation")
+        ].filter(Boolean);
+
+        return parts.length ? parts.join(", ") + " hidden" : "Nothing hidden yet";
+    },
 
     settingsAboutComponent: () => (
         <About

@@ -21,9 +21,30 @@ import {
 import { place } from "./menu";
 import { settings } from "./settings";
 import {
-    addFakeFriend, BLOCKED, blockUser, clearRequest, dismissRequest, FRIEND, hideFriend, invalidate, isBlocked,
-    isFriended, isHidden, isIncoming, isLoaded, isPending, load, PENDING_INCOMING, reapply, receiveRequest,
-    removeFakeFriend, restoreEverything, sendRequest, showFriend, unblockUser
+    addFakeFriend,
+    BLOCKED,
+    blockUser,
+    clearRequest,
+    counts,
+    dismissRequest,
+    FRIEND,
+    hideFriend,
+    invalidate,
+    isBlocked,
+    isFriended,
+    isHidden,
+    isIncoming,
+    isLoaded,
+    isPending,
+    load,
+    PENDING_INCOMING,
+    reapply,
+    receiveRequest,
+    removeFakeFriend,
+    restoreEverything,
+    sendRequest,
+    showFriend,
+    unblockUser
 } from "./store";
 import { About } from "./ui";
 
@@ -210,6 +231,8 @@ let alive = false;
 
 migratePluginSettings("HideFriends", "CustomPluginHideFriends");
 
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
 export default definePlugin({
     name: "HideFriends",
     description: "Hide friends from your friends list, one at a time or all at once. Can also fake a block, a friend request or a friendship. The real friendship is never touched and nobody is told.",
@@ -217,6 +240,19 @@ export default definePlugin({
     authors: [{ name: "reqon", id: 497562304498368513n }],
 
     settings,
+
+    /** One line for Additional Settings: how many people are shown differently */
+    hubSummary() {
+        const n = counts();
+        const fake = n.blocked + n.pending + n.incoming + n.friended;
+        const parts = [
+            n.hidden && `${plural(n.hidden, "friend")} hidden`,
+            fake && `${fake} faked`,
+            n.dismissed && `${plural(n.dismissed, "request")} hidden`
+        ].filter(Boolean);
+
+        return parts.length ? parts.join(", ") : "Nobody hidden or faked yet";
+    },
 
     settingsAboutComponent: () => (
         <About

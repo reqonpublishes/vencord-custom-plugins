@@ -16,7 +16,20 @@ import { openAddCall } from "./AddCallModal";
 import { PhoneAddIcon, TrashIcon } from "./icons";
 import { place } from "./menu";
 import { settings } from "./settings";
-import { clearChannel, countIn, interceptor, invalidate, isFake, isLoaded, load, removeCall, showIn, takeAllOffScreen } from "./store";
+import {
+    chats,
+    clearChannel,
+    countIn,
+    interceptor,
+    invalidate,
+    isFake,
+    isLoaded,
+    load,
+    removeCall,
+    showIn,
+    takeAllOffScreen,
+    total
+} from "./store";
 import { About } from "./ui";
 
 let interceptorRegistered = false;
@@ -111,6 +124,8 @@ let alive = false;
 
 migratePluginSettings("FakeCalls", "CustomPluginFakeCalls");
 
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
 export default definePlugin({
     name: "FakeCalls",
     description: "Add a call to any DM: who started it, when, how long it lasted, and whether you picked up. Nothing is sent to Discord and nobody is rung.",
@@ -118,6 +133,12 @@ export default definePlugin({
     authors: [{ name: "reqon", id: 497562304498368513n }],
 
     settings,
+
+    /** One line for Additional Settings: how many there are */
+    hubSummary() {
+        const n = total();
+        return n ? `${plural(n, "fake call")} in ${plural(chats(), "conversation")}` : "No fake calls yet";
+    },
 
     settingsAboutComponent: () => (
         <About

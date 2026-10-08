@@ -15,7 +15,7 @@ import { ChannelStore, FluxDispatcher, Menu } from "@webpack/common";
 import { EyeIcon, EyeOffIcon } from "./icons";
 import { place } from "./menu";
 import { settings } from "./settings";
-import { hideChat, hidJustNow, invalidate, isHidden, isLoaded, load, reapply, showAll, showChat } from "./store";
+import { count, hideChat, hidJustNow, invalidate, isHidden, isLoaded, load, reapply, showAll, showChat } from "./store";
 import { About } from "./ui";
 
 /**
@@ -81,6 +81,8 @@ let alive = false;
 
 migratePluginSettings("HideDMs", "CustomPluginHideDMs");
 
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
 export default definePlugin({
     name: "HideDMs",
     description: "Hide conversations from your DM list. Nothing is closed, the other person is not told, and every message is still there when you unhide it.",
@@ -88,6 +90,12 @@ export default definePlugin({
     authors: [{ name: "reqon", id: 497562304498368513n }],
 
     settings,
+
+    /** One line for Additional Settings: how many are hidden */
+    hubSummary() {
+        const n = count();
+        return n ? `${plural(n, "DM")} hidden` : "No DMs hidden yet";
+    },
 
     settingsAboutComponent: () => (
         <About

@@ -16,7 +16,21 @@ import { openAddMessage } from "./AddMessageModal";
 import { ChatAddIcon, TrashIcon } from "./icons";
 import { place } from "./menu";
 import { settings } from "./settings";
-import { clearChannel, countIn, interceptor, invalidate, isFake, isLoaded, load, removeMessage, setRunning, showIn, takeAllOffScreen } from "./store";
+import {
+    chats,
+    clearChannel,
+    countIn,
+    interceptor,
+    invalidate,
+    isFake,
+    isLoaded,
+    load,
+    removeMessage,
+    setRunning,
+    showIn,
+    takeAllOffScreen,
+    total
+} from "./store";
 import { About } from "./ui";
 
 let interceptorRegistered = false;
@@ -97,6 +111,8 @@ let alive = false;
 
 migratePluginSettings("FakeMessages", "CustomPluginFakeMessages");
 
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
 export default definePlugin({
     name: "FakeMessages",
     description: "Add a message to any conversation that nobody sent. Choose who it is from, what it says and when. Nothing is sent to Discord and nobody else sees it.",
@@ -104,6 +120,12 @@ export default definePlugin({
     authors: [{ name: "reqon", id: 497562304498368513n }],
 
     settings,
+
+    /** One line for Additional Settings: how many there are */
+    hubSummary() {
+        const n = total();
+        return n ? `${plural(n, "fake message")} in ${plural(chats(), "conversation")}` : "No fake messages yet";
+    },
 
     settingsAboutComponent: () => (
         <About

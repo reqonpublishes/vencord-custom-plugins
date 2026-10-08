@@ -15,7 +15,7 @@ import { Menu } from "@webpack/common";
 import { EyeIcon, EyeOffIcon } from "./icons";
 import { place } from "./menu";
 import { settings } from "./settings";
-import { hideServer, invalidate, isHidden, isLoaded, load, showServer, start, stop } from "./store";
+import { count, hideServer, invalidate, isHidden, isLoaded, load, showServer, start, stop } from "./store";
 import { About } from "./ui";
 
 const guildCtx: NavContextMenuPatchCallback = (children, { guild }: { guild?: Guild; }) => {
@@ -41,6 +41,8 @@ let alive = false;
 
 migratePluginSettings("HideServers", "CustomPluginHideServers");
 
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
 export default definePlugin({
     name: "HideServers",
     description: "Hide servers from your server list. You stay in every one of them, nothing is left, and nobody is told.",
@@ -48,6 +50,12 @@ export default definePlugin({
     authors: [{ name: "reqon", id: 497562304498368513n }],
 
     settings,
+
+    /** One line for Additional Settings: how many are hidden */
+    hubSummary() {
+        const n = count();
+        return n ? `${plural(n, "server")} hidden` : "No servers hidden yet";
+    },
 
     settingsAboutComponent: () => (
         <About

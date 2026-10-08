@@ -13,50 +13,52 @@ import { Logger } from "@utils/Logger";
 import { React, showToast } from "@webpack/common";
 
 import { settings } from ".";
-import { applying, Entry, flipAll, installed, isOn, needsRestart, pluginOf, setOn } from "./hub";
+import { applying, Entry, flipAll, installed, isOn, isView, needsRestart, pluginOf, SECTIONS, setOn, summaryOf } from "./hub";
 import { CloudDownIcon, CloudUpIcon, EyeIcon, EyeOffIcon, GearIcon, RefreshIcon } from "./icons";
 import { cl, IconButton } from "./ui";
 
 const logger = new Logger("PluginHub");
 
+/** Enabled in Vencord but waiting on a restart before it can do anything */
+const isWaiting = (plugin: string) => !isOn(plugin) && !!Settings.plugins[plugin]?.enabled && needsRestart(plugin);
+
 function PluginRow({ entry, onChange }: { entry: Entry; onChange(): void; }) {
     const { plugin, label, icon: Icon } = entry;
     const on = isOn(plugin);
-    const waiting = !on && Settings.plugins[plugin]?.enabled && needsRestart(plugin);
+    const waiting = isWaiting(plugin);
 
     return (
-        <div className={cl("row", on ? "" : "row-off")}>
-            <div className={cl("tile", on ? "" : "tile-off")}>
+        <div className={cl("item", on ? "" : "item-off")}>
+            <div className={cl("tile")}>
                 <Icon height={20} width={20} />
             </div>
-            <div className={cl("row-text")}>
-                <div className={cl("row-name")}>{label}</div>
-                <div className={cl("row-detail")}>
-                    {waiting ? "Turns on when Discord restarts" : on ? entry.on : entry.off}
+            <div className={cl("item-text")}>
+                <div className={cl("item-name")}>{label}</div>
+                <div className={cl("item-detail")}>
+                    {waiting ? "Turns on when Discord restarts" : on ? summaryOf(entry) : entry.off}
                 </div>
             </div>
-            <div className={cl("actions")}>
-                <Button
-                    size="iconOnly"
-                    variant="secondary"
-                    aria-label={`${label} settings`}
-                    title={`${label} settings`}
-                    onClick={() => openPluginModal(pluginOf(plugin))}
-                >
-                    <GearIcon height={18} width={18} />
-                </Button>
-                <Switch
-                    checked={on || !!waiting}
-                    onChange={next => {
-                        const result = setOn(plugin, next);
+            <Button
+                className={cl("cog")}
+                size="iconOnly"
+                variant="none"
+                aria-label={`${label} settings`}
+                title={`${label} settings`}
+                onClick={() => openPluginModal(pluginOf(plugin))}
+            >
+                <GearIcon height={20} width={20} />
+            </Button>
+            <Switch
+                checked={on || waiting}
+                onChange={next => {
+                    const result = setOn(plugin, next);
 
-                        if (result === "failed") showToast(`Could not turn ${label} ${next ? "on" : "off"}`, "failure");
-                        if (result === "restart") showToast(`${label} turns on when Discord restarts`, "message");
+                    if (result === "failed") showToast(`Could not turn ${label} ${next ? "on" : "off"}`, "failure");
+                    if (result === "restart") showToast(`${label} turns on when Discord restarts`, "message");
 
-                        onChange();
-                    }}
-                />
-            </div>
+                    onChange();
+                }}
+            />
         </div>
     );
 }
@@ -91,19 +93,21 @@ function SyncRow() {
     };
 
     return (
-        <div className={cl("row")}>
-            <div className={cl("row-text")}>
-                <div className={cl("row-name")}>Sync with your phone</div>
-                <div className={cl("row-detail")}>
-                    {link ? "To Cloud uploads what is here. From Cloud replaces it." : "Make a sync link in Cloud Sync's settings first"}
+        <div className={cl("item")}>
+            <div className={cl("item-text", "item-indent")}>
+                <div className={cl("item-name")}>Sync now</div>
+                <div className={cl("item-detail")}>
+                    {link
+                        ? "To Cloud uploads what this computer has. From Cloud replaces it."
+                        : "Make a sync link in Cloud Sync's settings first"}
                 </div>
             </div>
             <div className={cl("actions")}>
-                <IconButton icon={CloudUpIcon} disabled={!link || !!busy} onClick={() => run("up")}>
-                    {busy === "up" ? "Syncing..." : "Sync to Cloud"}
+                <IconButton icon={CloudUpIcon} variant="secondary" disabled={!link || !!busy} onClick={() => run("up")}>
+                    {busy === "up" ? "Syncing..." : "To Cloud"}
                 </IconButton>
                 <IconButton icon={CloudDownIcon} variant="secondary" disabled={!link || !!busy} onClick={() => run("down")}>
-                    {busy === "down" ? "Syncing..." : "Sync from Cloud"}
+                    {busy === "down" ? "Syncing..." : "From Cloud"}
                 </IconButton>
             </div>
         </div>
@@ -115,72 +119,73 @@ function HubPage() {
     const update = () => redraw(n => n + 1);
 
     const all = installed();
-    const views = all.filter(entry => entry.view);
-    const tools = all.filter(entry => !entry.view);
+    const views = all.filter(isView);
     const live = applying().length;
-    const waiting = views.some(entry => !isOn(entry.plugin) && Settings.plugins[entry.plugin]?.enabled && needsRestart(entry.plugin));
+    const waiting = views.some(entry => isWaiting(entry.plugin));
 
     return (
         <SettingsTab>
             <div className={cl("page")}>
-                <div className={cl("hero", live ? "" : "hero-real")}>
-                    <div className={cl("tile", live ? "" : "tile-off")}>
-                        {live ? <EyeOffIcon height={20} width={20} /> : <EyeIcon height={20} width={20} />}
+                <section className={cl("section")}>
+                    <h2 className={cl("heading")}>Overview</h2>
+
+                    <div className={cl("item")}>
+                        <div className={cl("item-text")}>
+                            <div className={cl("item-name")}>
+                                {live ? `${live} of ${views.length} are changing what you see` : "You are seeing the real Discord"}
+                            </div>
+                            <div className={cl("item-detail")}>
+                                {live
+                                    ? "Show Real turns them all off so you see your real friends, messages, calls and servers. Nothing is forgotten."
+                                    : "Everything you hid or faked is kept, and comes back when you turn it on again."}
+                            </div>
+                        </div>
+                        <IconButton
+                            icon={live ? EyeIcon : EyeOffIcon}
+                            size="medium"
+                            variant={live ? "primary" : "secondary"}
+                            onClick={() => {
+                                const result = flipAll(settings.store.paused ?? []);
+                                settings.store.paused = result.remember;
+                                update();
+
+                                showToast(
+                                    result.on
+                                        ? `${result.changed} turned back on${result.restart ? ", the rest after a restart" : ""}`
+                                        : `${result.changed} turned off. You are seeing the real Discord`,
+                                    "success"
+                                );
+                            }}
+                        >
+                            {live ? "Show Real" : "Turn Back On"}
+                        </IconButton>
                     </div>
-                    <div className={cl("row-text")}>
-                        <div className={cl("hero-title")}>
-                            {live ? `${live} of ${views.length} plugins are changing what you see` : "You are seeing the real Discord"}
-                        </div>
-                        <div className={cl("row-detail")}>
-                            {live
-                                ? "Turn them off to see your real friends, messages, calls and servers. Nothing is forgotten."
-                                : "Everything you hid or faked is kept, and comes back when you turn it on again."}
-                        </div>
-                    </div>
-                    <IconButton
-                        icon={live ? EyeIcon : EyeOffIcon}
-                        variant={live ? "primary" : "secondary"}
-                        onClick={() => {
-                            const result = flipAll(settings.store.paused ?? []);
-                            settings.store.paused = result.remember;
-                            update();
 
-                            showToast(
-                                result.on
-                                    ? `${result.changed} turned back on${result.restart ? ", the rest after a restart" : ""}`
-                                    : `${result.changed} turned off. You are seeing the real Discord`,
-                                "success"
-                            );
-                        }}
-                    >
-                        {live ? "Show Real" : "Turn Back On"}
-                    </IconButton>
-                </div>
-
-                {waiting && (
-                    <div className={cl("row")}>
-                        <div className={cl("row-text")}>
-                            <div className={cl("row-name")}>A restart is needed</div>
-                            <div className={cl("row-detail")}>One plugin was off when Discord loaded and can only turn on as it loads.</div>
+                    {waiting && (
+                        <div className={cl("item")}>
+                            <div className={cl("item-text")}>
+                                <div className={cl("item-name")}>A restart is needed</div>
+                                <div className={cl("item-detail")}>
+                                    One plugin was disabled in Vencord when Discord loaded, and can only turn on as it loads.
+                                </div>
+                            </div>
+                            <IconButton icon={RefreshIcon} variant="secondary" onClick={() => location.reload()}>Reload Now</IconButton>
                         </div>
-                        <IconButton icon={RefreshIcon} onClick={() => location.reload()}>Reload Now</IconButton>
-                    </div>
-                )}
+                    )}
+                </section>
 
-                <div className={cl("group-title")}>What you see</div>
-                <div className={cl("list")}>
-                    {views.map(entry => <PluginRow key={entry.plugin} entry={entry} onChange={update} />)}
-                </div>
+                {SECTIONS.map(({ id, title }) => {
+                    const rows = all.filter(entry => entry.section === id);
+                    if (!rows.length) return null;
 
-                {!!tools.length && (
-                    <>
-                        <div className={cl("group-title")}>Tools</div>
-                        <div className={cl("list")}>
-                            {tools.map(entry => <PluginRow key={entry.plugin} entry={entry} onChange={update} />)}
-                            <SyncRow />
-                        </div>
-                    </>
-                )}
+                    return (
+                        <section className={cl("section")} key={id}>
+                            <h2 className={cl("heading")}>{title}</h2>
+                            {rows.map(entry => <PluginRow key={entry.plugin} entry={entry} onChange={update} />)}
+                            {id === "tools" && <SyncRow />}
+                        </section>
+                    );
+                })}
             </div>
         </SettingsTab>
     );

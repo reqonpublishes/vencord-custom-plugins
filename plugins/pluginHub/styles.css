@@ -1,47 +1,87 @@
+/*
+ * Laid out the way Discord lays out its own settings: a heading, then plain rows with a
+ * title and a quieter line under it, and a rule between sections. No cards and no colour
+ * of its own - the only accent on the page is the one Discord's switches and buttons bring.
+ */
 .vc-hub-page {
     display: flex;
     flex-direction: column;
-    gap: 10px;
 }
 
-.vc-hub-hero {
+.vc-hub-section {
     display: flex;
-    gap: 12px;
+    flex-direction: column;
+    gap: 20px;
+    padding: 28px 0;
+    border-bottom: 1px solid var(--border-subtle, rgb(128 128 128 / 20%));
+}
+
+.vc-hub-section:first-child {
+    padding-top: 4px;
+}
+
+.vc-hub-section:last-child {
+    border-bottom: none;
+}
+
+.vc-hub-heading {
+    margin: 0 0 4px;
+    color: var(--text-strong, var(--text-default));
+    font-size: 20px;
+    font-weight: 500;
+    font-family: var(--font-display, var(--font-primary));
+    line-height: 24px;
+}
+
+.vc-hub-item {
+    display: flex;
+    gap: 14px;
     align-items: center;
-    padding: 14px;
-    border: 1px solid color-mix(in srgb, var(--brand-500, #5865f2) 45%, transparent);
-    border-radius: 10px;
-    background: color-mix(in srgb, var(--brand-500, #5865f2) 12%, transparent);
 }
 
-.vc-hub-hero-real {
-    border-color: rgb(128 128 128 / 16%);
-    background: rgb(128 128 128 / 8%);
+.vc-hub-item-text {
+    flex: 1 1 auto;
+    min-width: 0;
 }
 
-.vc-hub-hero-title {
-    color: var(--text-default, var(--text-normal));
+/* lines up with the text of the rows above it, which start after an icon */
+.vc-hub-item-indent {
+    padding-left: 54px;
+}
+
+.vc-hub-item-name {
+    color: var(--text-default);
     font-size: 16px;
-    font-weight: 600;
+    font-weight: 500;
     line-height: 20px;
 }
 
-.vc-hub-hero .vc-hub-row-detail,
-.vc-hub-list .vc-hub-row-detail {
-    white-space: normal;
+.vc-hub-item-detail {
+    margin-top: 2px;
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 18px;
 }
 
-.vc-hub-list {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+.vc-hub-item-off .vc-hub-tile {
+    color: var(--icon-muted, var(--text-muted));
 }
 
-.vc-hub-tile-off {
-    background: rgb(128 128 128 / 20%);
+.vc-hub-item-off .vc-hub-item-name {
     color: var(--text-muted);
 }
 
-.vc-hub-row-off .vc-hub-row-name {
-    color: var(--text-muted);
+.vc-hub-cog {
+    flex: 0 0 auto;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border-radius: var(--radius-sm, 8px);
+    background: transparent;
+    color: var(--icon-subtle, var(--text-muted));
+}
+
+.vc-hub-cog:hover {
+    background: var(--background-mod-subtle, rgb(128 128 128 / 12%));
+    color: var(--icon-default, var(--text-default));
 }

@@ -14,7 +14,19 @@ import definePlugin from "@utils/types";
 import { Message } from "@vencord/discord-types";
 import { ChannelStore, FluxDispatcher, Menu, SelectedChannelStore } from "@webpack/common";
 
-import { hasEdits, loadEdits, noteSearch, patchRawMessage, patchRawMessages, patchSearch, reapplyChannel, restoreVisuals, startStyles, stopStyles } from "./edits";
+import {
+    countEdits,
+    hasEdits,
+    loadEdits,
+    noteSearch,
+    patchRawMessage,
+    patchRawMessages,
+    patchSearch,
+    reapplyChannel,
+    restoreVisuals,
+    startStyles,
+    stopStyles
+} from "./edits";
 import { InspectIcon as InspectGlyph } from "./icons";
 import { openInspectModal } from "./InspectModal";
 import { place } from "./menu";
@@ -94,6 +106,8 @@ const messageCtx: NavContextMenuPatchCallback = (children, { message }: { messag
 
 migratePluginSettings("InspectMessages", "CustomPluginInspectMessages", "CustomPluginQuickInspect", "CustomQuickInspect", "QuickInspect");
 
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
 export default definePlugin({
     name: "InspectMessages",
     description: "Change what any message says, when it was sent and whether it shows as edited. Hold Shift to reveal the buttons. Nothing is sent to Discord and nobody else sees it.",
@@ -102,6 +116,12 @@ export default definePlugin({
     dependencies: ["MessageUpdaterAPI"],
 
     settings,
+
+    /** One line for Additional Settings: how many messages read differently */
+    hubSummary() {
+        const n = countEdits();
+        return n ? plural(n, "changed message") : "No changed messages yet";
+    },
 
     settingsAboutComponent: () => (
         <About
