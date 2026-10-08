@@ -13,6 +13,7 @@ import { Channel, User } from "@vencord/discord-types";
 import { ChannelStore, FluxDispatcher, Menu } from "@webpack/common";
 
 import { EyeIcon, EyeOffIcon } from "./icons";
+import { place } from "./menu";
 import { settings } from "./settings";
 import { hideChat, hidJustNow, invalidate, isHidden, isLoaded, load, reapply, showAll, showChat } from "./store";
 import { About } from "./ui";
@@ -47,14 +48,14 @@ const channelCtx: NavContextMenuPatchCallback = (children, { channel }: { channe
     if (!settings.store.channelMenu) return;
 
     const channelId = resolveChannelId(channel);
-    if (channelId) children.push(entry(channelId));
+    if (channelId) place(children, 20, entry(channelId));
 };
 
 const userCtx: NavContextMenuPatchCallback = (children, { channel, user }: { channel?: Channel; user?: User; }) => {
     if (!settings.store.userMenu) return;
 
     const channelId = resolveChannelId(channel, user);
-    if (channelId) children.push(entry(channelId));
+    if (channelId) place(children, 20, entry(channelId));
 };
 
 /**
@@ -74,6 +75,9 @@ const reopen = (action: any) => {
 
 /** Discord rebuilds its conversations on every reconnect, so what was hidden is said again */
 const afterConnect = () => reapply();
+
+/** Whether the plugin is meant to be on. Checked after waiting, in case it was switched off meanwhile */
+let alive = false;
 
 migratePluginSettings("HideDMs", "CustomPluginHideDMs");
 
@@ -109,7 +113,13 @@ export default definePlugin({
     async start() {
         // Only the first start reads from disk. After that the list is already in memory,
         // and not waiting is what lets switching back on happen at once.
-        if (!isLoaded()) await load();
+        alive = true;
+        if (!isLoaded()) {
+            await load();
+
+            // Switched off again while the list was being read, so it stays off.
+            if (!alive) return;
+        }
         reapply();
 
         FluxDispatcher.subscribe("CHANNEL_SELECT", reopen);
@@ -117,6 +127,7 @@ export default definePlugin({
     },
 
     stop() {
+        alive = false;
         FluxDispatcher.unsubscribe("CHANNEL_SELECT", reopen);
         FluxDispatcher.unsubscribe("CONNECTION_OPEN", afterConnect);
 

@@ -18,6 +18,7 @@ import {
     BlockIcon, EyeIcon, EyeOffIcon, IconComponent, PersonAddIcon, PersonIcon, PersonOffIcon, PersonRemoveIcon,
     SendIcon, UndoIcon
 } from "./icons";
+import { place } from "./menu";
 import { settings } from "./settings";
 import {
     addFakeFriend, BLOCKED, blockUser, clearRequest, dismissRequest, FRIEND, hideFriend, invalidate, isBlocked,
@@ -64,9 +65,9 @@ const userCtx: NavContextMenuPatchCallback = (children, { user }: { user?: User;
     // only where it would do something, so the menu reads as what can be done to this
     // person rather than as a list to be worked out.
     if (isHidden(id)) {
-        children.push(item("show", "Unhide Friend", EyeIcon, () => showFriend(id)));
+        place(children, 30, item("show", "Unhide Friend", EyeIcon, () => showFriend(id)));
     } else if (type === FRIEND && !isFriended(id)) {
-        children.push(item("hide", "Hide Friend", EyeOffIcon, () => hideFriend(id)));
+        place(children, 30, item("hide", "Hide Friend", EyeOffIcon, () => hideFriend(id)));
     }
 
     const fakes: any[] = [];
@@ -99,7 +100,7 @@ const userCtx: NavContextMenuPatchCallback = (children, { user }: { user?: User;
     // The rest open from one entry rather than sitting beside each other: they are all the
     // same kind of thing, and five more rows on every person is a menu nobody can find
     // anything in.
-    children.push(
+    place(children, 35,
         <Menu.MenuItem
             id="vc-chf-menu"
             key="vc-chf-menu"
@@ -204,6 +205,9 @@ const afterConnect = () => {
     setTimeout(reapply, 0);
 };
 
+/** Whether the plugin is meant to be on. Checked after waiting, in case it was switched off meanwhile */
+let alive = false;
+
 migratePluginSettings("HideFriends", "CustomPluginHideFriends");
 
 export default definePlugin({
@@ -236,7 +240,13 @@ export default definePlugin({
     async start() {
         // Only the first start reads from disk. After that the list is already in memory,
         // and not waiting is what lets switching back on happen at once.
-        if (!isLoaded()) await load();
+        alive = true;
+        if (!isLoaded()) {
+            await load();
+
+            // Switched off again while the list was being read, so it stays off.
+            if (!alive) return;
+        }
 
         try {
             guard();
@@ -249,6 +259,7 @@ export default definePlugin({
     },
 
     stop() {
+        alive = false;
         FluxDispatcher.unsubscribe("CONNECTION_OPEN", afterConnect);
         unguard();
 

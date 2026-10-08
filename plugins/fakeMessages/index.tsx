@@ -14,6 +14,7 @@ import { FluxDispatcher, Menu, SelectedChannelStore } from "@webpack/common";
 
 import { openAddMessage } from "./AddMessageModal";
 import { ChatAddIcon, TrashIcon } from "./icons";
+import { place } from "./menu";
 import { settings } from "./settings";
 import { clearChannel, countIn, interceptor, invalidate, isFake, isLoaded, load, removeMessage, setRunning, showIn, takeAllOffScreen } from "./store";
 import { About } from "./ui";
@@ -28,7 +29,7 @@ const messageCtx: NavContextMenuPatchCallback = (children, { message }: { messag
     // Taking one back is offered where it is: on the message itself, which is the only place
     // somebody looking at it would think to ask.
     if (isFake(channelId, message.id)) {
-        children.push(
+        place(children, 45,
             <Menu.MenuItem
                 id="vc-cfm-remove"
                 key="vc-cfm-remove"
@@ -42,7 +43,7 @@ const messageCtx: NavContextMenuPatchCallback = (children, { message }: { messag
         return;
     }
 
-    children.push(
+    place(children, 40,
         <Menu.MenuItem
             id="vc-cfm-add"
             key="vc-cfm-add"
@@ -64,7 +65,7 @@ const channelCtx: NavContextMenuPatchCallback = (children, props: { channel?: Ch
     const channelId = props?.channel?.id;
     if (!channelId || !settings.store.channelMenu) return;
 
-    children.push(
+    place(children, 40,
         <Menu.MenuItem
             id="vc-cfm-channel-add"
             key="vc-cfm-channel-add"
@@ -78,7 +79,7 @@ const channelCtx: NavContextMenuPatchCallback = (children, props: { channel?: Ch
     const held = countIn(channelId);
     if (!held) return;
 
-    children.push(
+    place(children, 45,
         <Menu.MenuItem
             id="vc-cfm-channel-clear"
             key="vc-cfm-channel-clear"
@@ -90,6 +91,9 @@ const channelCtx: NavContextMenuPatchCallback = (children, props: { channel?: Ch
         />
     );
 };
+
+/** Whether the plugin is meant to be on. Checked after waiting, in case it was switched off meanwhile */
+let alive = false;
 
 migratePluginSettings("FakeMessages", "CustomPluginFakeMessages");
 
@@ -127,7 +131,13 @@ export default definePlugin({
     async start() {
         // Only the first start reads from disk. After that the list is already in memory,
         // and not waiting is what lets switching back on happen at once.
-        if (!isLoaded()) await load();
+        alive = true;
+        if (!isLoaded()) {
+            await load();
+
+            // Switched off again while the list was being read, so it stays off.
+            if (!alive) return;
+        }
         setRunning(true);
 
         // Added once and left: Vencord has no way to take an interceptor back off, so a
@@ -144,6 +154,7 @@ export default definePlugin({
     },
 
     stop() {
+        alive = false;
         // Off the screen, still on the list - stopping should leave the conversation as
         // Discord has it, and starting again should bring them back.
         setRunning(false);

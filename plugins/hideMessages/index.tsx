@@ -7,13 +7,14 @@
 import "./shared.css";
 import "./styles.css";
 
-import { findGroupChildrenByChildId, NavContextMenuPatchCallback } from "@api/ContextMenu";
+import { NavContextMenuPatchCallback } from "@api/ContextMenu";
 import { migratePluginSettings } from "@api/Settings";
 import definePlugin from "@utils/types";
 import { Channel, Message, User } from "@vencord/discord-types";
 import { ChannelStore, FluxDispatcher, Menu, SelectedChannelStore } from "@webpack/common";
 
 import { CloseIcon, EyeIcon, EyeOffIcon, FlagIcon } from "./icons";
+import { place } from "./menu";
 import { settings } from "./settings";
 import { GatedIcon, isShiftHeldForMenu, shiftGated, startShiftTracking, stopShiftTracking } from "./shiftGate";
 import {
@@ -52,7 +53,7 @@ const messageCtx: NavContextMenuPatchCallback = (children, { message }: { messag
 
     const channelId = message.channel_id;
 
-    children.push(
+    place(children, 10,
         <Menu.MenuItem
             id="vc-chm-message"
             key="vc-chm-message"
@@ -65,7 +66,7 @@ const messageCtx: NavContextMenuPatchCallback = (children, { message }: { messag
 
     const armed = anchor?.channelId === channelId;
 
-    children.push(
+    place(children, 11,
         <Menu.MenuItem
             id="vc-chm-range"
             key="vc-chm-range"
@@ -85,7 +86,7 @@ const messageCtx: NavContextMenuPatchCallback = (children, { message }: { messag
     );
 
     if (armed) {
-        children.push(
+        place(children, 12,
             <Menu.MenuItem
                 id="vc-chm-range-cancel"
                 key="vc-chm-range-cancel"
@@ -128,26 +129,12 @@ function resolveChannelId(channel?: Channel, user?: User) {
         ?? SelectedChannelStore.getChannelId();
 }
 
-/** Drop the entry in next to View Icon / View Avatar, or at the end if neither is there */
-function placeEntry(children: any[], channelId: string) {
-    const item = channelEntry(channelId);
-
-    const group = findGroupChildrenByChildId(["view-icon", "view-avatar"], children);
-    if (!group) {
-        children.push(item);
-        return;
-    }
-
-    const at = group.findIndex(c => c?.props?.id === "view-icon" || c?.props?.id === "view-avatar");
-    group.splice(at + 1, 0, item);
-}
-
 /** Right-clicking a DM or channel in the sidebar */
 const channelCtx: NavContextMenuPatchCallback = (children, { channel }: { channel?: Channel; }) => {
     if (!settings.store.channelMenu) return;
 
     const channelId = resolveChannelId(channel);
-    if (channelId) placeEntry(children, channelId);
+    if (channelId) place(children, 10, channelEntry(channelId));
 };
 
 /** Right-clicking a person, in the friends list or anywhere else */
@@ -155,7 +142,7 @@ const userCtx: NavContextMenuPatchCallback = (children, { channel, user }: { cha
     if (!settings.store.userMenu) return;
 
     const channelId = resolveChannelId(channel, user);
-    if (channelId) placeEntry(children, channelId);
+    if (channelId) place(children, 10, channelEntry(channelId));
 };
 
 /** The ... menu on someone's profile, which hands us a user rather than a channel */
@@ -165,7 +152,7 @@ const profileCtx: NavContextMenuPatchCallback = (children, { user }: { user?: Us
     const channelId = resolveChannelId(undefined, user);
     if (!channelId) return;
 
-    children.push(channelEntry(channelId));
+    place(children, 10, channelEntry(channelId));
 };
 
 migratePluginSettings("HideMessages", "CustomPluginHideMessages", "CustomHideMessages");

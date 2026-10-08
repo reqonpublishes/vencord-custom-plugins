@@ -12,6 +12,7 @@ import SettingsPlugin from "@plugins/_core/settings";
 import { removeFromArray } from "@utils/misc";
 import definePlugin, { OptionType } from "@utils/types";
 
+import { applyOffList } from "./hub";
 import HubPage from "./HubPage";
 import { TuneIcon } from "./icons";
 import { About } from "./ui";
@@ -22,6 +23,12 @@ export const settings = definePluginSettings({
     // Which plugins were on when Show Real was pressed, so Turn Back On brings back those
     // and not every plugin there is.
     paused: {
+        type: OptionType.CUSTOM,
+        default: [] as string[]
+    },
+    // Which plugins are switched off from this page. Vencord still has them as enabled, so
+    // they are stopped again on every start rather than never loaded.
+    off: {
         type: OptionType.CUSTOM,
         default: [] as string[]
     }
@@ -55,6 +62,10 @@ export default definePlugin({
             Component: HubPage,
             Icon: TuneIcon
         });
+
+        // After this turn of the loop, by which time Vencord has started every plugin it is
+        // going to - including the ones that are meant to be off.
+        setTimeout(applyOffList, 0);
     },
 
     stop() {

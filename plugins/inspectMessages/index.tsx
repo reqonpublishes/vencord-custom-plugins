@@ -7,7 +7,7 @@
 import "./shared.css";
 import "./styles.css";
 
-import { findGroupChildrenByChildId, NavContextMenuPatchCallback } from "@api/ContextMenu";
+import { NavContextMenuPatchCallback } from "@api/ContextMenu";
 import { migratePluginSettings } from "@api/Settings";
 import { Logger } from "@utils/Logger";
 import definePlugin from "@utils/types";
@@ -17,6 +17,7 @@ import { ChannelStore, FluxDispatcher, Menu, SelectedChannelStore } from "@webpa
 import { hasEdits, loadEdits, noteSearch, patchRawMessage, patchRawMessages, patchSearch, reapplyChannel, restoreVisuals, startStyles, stopStyles } from "./edits";
 import { InspectIcon as InspectGlyph } from "./icons";
 import { openInspectModal } from "./InspectModal";
+import { place } from "./menu";
 import { settings } from "./settings";
 import { GatedIcon, isShiftHeldForMenu, shiftGated, startShiftTracking, stopShiftTracking } from "./shiftGate";
 import { About } from "./ui";
@@ -28,6 +29,9 @@ const ShiftInspectIcon = shiftGated(InspectIcon);
 const logger = new Logger("InspectMessages");
 
 let enabled = false;
+
+/** Whether the plugin is meant to be on. Checked after waiting, in case it was switched off meanwhile */
+let alive = false;
 let interceptorRegistered = false;
 
 /**
@@ -85,12 +89,7 @@ const messageCtx: NavContextMenuPatchCallback = (children, { message }: { messag
         />
     );
 
-    // sits just above Copy Message ID, at the bottom with the other developer-ish entries
-    const group = findGroupChildrenByChildId("devmode-copy-id", children, true);
-    const at = group?.findIndex(c => c?.props?.id?.startsWith("devmode-copy-id")) ?? -1;
-
-    if (group && at !== -1) group.splice(at, 0, item);
-    else children.push(item);
+    place(children, 15, item);
 };
 
 migratePluginSettings("InspectMessages", "CustomPluginInspectMessages", "CustomPluginQuickInspect", "CustomQuickInspect", "QuickInspect");
@@ -140,7 +139,12 @@ export default definePlugin({
         startShiftTracking();
         startStyles();
 
+        alive = true;
         await loadEdits();
+
+        // Switched off again while the edits were being read, so it stays off.
+        if (!alive) return;
+
         enabled = true;
 
         // Flux has no removeInterceptor, so this is registered once for the session and
@@ -156,6 +160,7 @@ export default definePlugin({
     },
 
     stop() {
+        alive = false;
         enabled = false;
         stopShiftTracking();
         stopStyles();

@@ -14,6 +14,7 @@ import { ChannelStore, FluxDispatcher, Menu, SelectedChannelStore } from "@webpa
 
 import { openAddCall } from "./AddCallModal";
 import { PhoneAddIcon, TrashIcon } from "./icons";
+import { place } from "./menu";
 import { settings } from "./settings";
 import { clearChannel, countIn, interceptor, invalidate, isFake, isLoaded, load, removeCall, showIn, takeAllOffScreen } from "./store";
 import { About } from "./ui";
@@ -32,7 +33,7 @@ const messageCtx: NavContextMenuPatchCallback = (children, { message }: { messag
     const channelId = message.channel_id;
 
     if (isFake(channelId, message.id)) {
-        children.push(
+        place(children, 55,
             <Menu.MenuItem
                 id="vc-cfc-remove"
                 key="vc-cfc-remove"
@@ -48,7 +49,7 @@ const messageCtx: NavContextMenuPatchCallback = (children, { message }: { messag
 
     if (!isPrivate(channelId)) return;
 
-    children.push(
+    place(children, 50,
         <Menu.MenuItem
             id="vc-cfc-add"
             key="vc-cfc-add"
@@ -66,7 +67,7 @@ const messageCtx: NavContextMenuPatchCallback = (children, { message }: { messag
 function entries(children: any[], channelId: string) {
     if (!isPrivate(channelId)) return;
 
-    children.push(
+    place(children, 50,
         <Menu.MenuItem
             id="vc-cfc-channel-add"
             key="vc-cfc-channel-add"
@@ -80,7 +81,7 @@ function entries(children: any[], channelId: string) {
     const held = countIn(channelId);
     if (!held) return;
 
-    children.push(
+    place(children, 55,
         <Menu.MenuItem
             id="vc-cfc-channel-clear"
             key="vc-cfc-channel-clear"
@@ -104,6 +105,9 @@ const userCtx: NavContextMenuPatchCallback = (children, { channel, user }: { cha
     const channelId = channel?.id ?? (user && ChannelStore.getDMFromUserId(user.id));
     if (channelId) entries(children, channelId);
 };
+
+/** Whether the plugin is meant to be on. Checked after waiting, in case it was switched off meanwhile */
+let alive = false;
 
 migratePluginSettings("FakeCalls", "CustomPluginFakeCalls");
 
@@ -140,7 +144,13 @@ export default definePlugin({
     async start() {
         // Only the first start reads from disk. After that the list is already in memory,
         // and not waiting is what lets switching back on happen at once.
-        if (!isLoaded()) await load();
+        alive = true;
+        if (!isLoaded()) {
+            await load();
+
+            // Switched off again while the list was being read, so it stays off.
+            if (!alive) return;
+        }
 
         // Added once and left: there is no taking an interceptor back off, so a second
         // start would stack another copy and every page would be processed twice.
@@ -155,6 +165,7 @@ export default definePlugin({
     },
 
     stop() {
+        alive = false;
         takeAllOffScreen();
     }
 });

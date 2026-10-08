@@ -99,6 +99,16 @@ function paint() {
         rows.push(`[class*="listItem"]:has([data-list-item-id="guildsnav___${id}"])`);
     }
 
+    // A folder with nothing left showing in it is an empty box on the bar, so it goes too.
+    try {
+        for (const folder of (SortedGuildStore as any).getGuildFolders?.() ?? []) {
+            const ids: string[] = folder?.guildIds ?? [];
+            if (folder?.folderId == null || !ids.length || !ids.every(id => hidden.has(id))) continue;
+
+            rows.push(`[class*="folderGroup"]:has([data-list-item-id="guildsnav___${folder.folderId}"])`);
+        }
+    } catch { /* the bar is still right without it, bar an empty folder */ }
+
     styleEl.textContent = rows.join(",\n") + " { display: none !important; }";
 }
 

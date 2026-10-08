@@ -13,6 +13,7 @@ import { Guild } from "@vencord/discord-types";
 import { Menu } from "@webpack/common";
 
 import { EyeIcon, EyeOffIcon } from "./icons";
+import { place } from "./menu";
 import { settings } from "./settings";
 import { hideServer, invalidate, isHidden, isLoaded, load, showServer, start, stop } from "./store";
 import { About } from "./ui";
@@ -23,7 +24,7 @@ const guildCtx: NavContextMenuPatchCallback = (children, { guild }: { guild?: Gu
     const away = isHidden(guild.id);
     const Icon = away ? EyeIcon : EyeOffIcon;
 
-    children.push(
+    place(children, 20,
         <Menu.MenuItem
             id="vc-chs-server"
             key="vc-chs-server"
@@ -34,6 +35,9 @@ const guildCtx: NavContextMenuPatchCallback = (children, { guild }: { guild?: Gu
         />
     );
 };
+
+/** Whether the plugin is meant to be on. Checked after waiting, in case it was switched off meanwhile */
+let alive = false;
 
 migratePluginSettings("HideServers", "CustomPluginHideServers");
 
@@ -67,11 +71,18 @@ export default definePlugin({
     async start() {
         // Only the first start reads from disk. After that the list is already in memory,
         // and not waiting is what lets switching back on happen at once.
-        if (!isLoaded()) await load();
+        alive = true;
+        if (!isLoaded()) {
+            await load();
+
+            // Switched off again while the list was being read, so it stays off.
+            if (!alive) return;
+        }
         start();
     },
 
     stop() {
+        alive = false;
         // The bar goes back to how Discord has it; the list of what was hidden is kept.
         stop();
     }

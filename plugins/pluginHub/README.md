@@ -6,6 +6,10 @@ plugins in one place, each with an on/off switch.
 > [!NOTE]
 > Turning a plugin off does not forget anything. What you hid or faked is kept, and is back
 > the moment you turn it on again.
+>
+> Off here is not off in Vencord. The plugin stays enabled on Vencord's own Plugins page and
+> is only stopped, which is why it can be switched back on without restarting Discord. It
+> stays off across restarts until you turn it on here.
 
 ## Using it
 

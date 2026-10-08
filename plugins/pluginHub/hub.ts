@@ -77,12 +77,32 @@ export function needsRestart(name: string) {
     }
 }
 
+/** The plugins switched off from this page. Kept across restarts, which is the point of it */
+const offList = (): string[] => {
+    const held = Settings.plugins.PluginHub?.off;
+    return Array.isArray(held) ? held : [];
+};
+
+function remember(name: string, off: boolean) {
+    const saved = Settings.plugins.PluginHub;
+    if (!saved) return;
+
+    const rest = offList().filter(other => other !== name);
+    saved.off = off ? [...rest, name] : rest;
+}
+
 /**
- * Turn one plugin on or off, the way Vencord's own switch does.
+ * Turn one plugin on or off, without Vencord being told it is off.
  *
- * Stop and start are the whole of it: each of these plugins puts the real thing back on
- * screen when it stops and keeps what it was holding, so off means "show me the truth" and
- * on means "apply it again", with nothing lost either way.
+ * As far as Vencord is concerned the plugin stays enabled. That matters for the ones that
+ * work from inside Discord's own code: those changes can only go in while Discord loads, so
+ * a plugin Vencord has down as disabled cannot be switched on later without a restart. Left
+ * enabled and merely stopped, everything it needs is already in place and it comes back the
+ * moment it is asked to.
+ *
+ * Stopping is enough to switch it off: each of these plugins puts the real thing back on
+ * screen when it stops and keeps what it was holding. Which ones are off is written down
+ * here, and they are stopped again every time Discord starts.
  */
 export function setOn(name: string, on: boolean): "done" | "restart" | "failed" {
     const manager = PM();
@@ -90,34 +110,56 @@ export function setOn(name: string, on: boolean): "done" | "restart" | "failed" 
     const saved = Settings.plugins[name];
     if (!manager || !plugin || !saved) return "failed";
 
-    if (on === !!plugin.started) {
-        saved.enabled = on;
-        return "done";
-    }
-
     try {
-        if (on) {
-            const { restartNeeded, failures } = manager.startDependenciesRecursive(plugin);
-            if (failures?.length) {
-                logger.error(`Could not start what ${name} depends on`, failures);
-                return "failed";
-            }
+        if (!on) {
+            if (plugin.started && !manager.stopPlugin(plugin)) return "failed";
 
-            if (restartNeeded || needsRestart(name)) {
-                saved.enabled = true;
-                return "restart";
-            }
+            remember(name, true);
+            return "done";
         }
 
-        const worked = on ? manager.startPlugin(plugin) : manager.stopPlugin(plugin);
-        if (!worked) return "failed";
+        remember(name, false);
+        if (plugin.started) return "done";
 
-        saved.enabled = on;
-        return "done";
+        // Only a plugin Vencord itself has switched off gets as far as needing a restart.
+        const { restartNeeded, failures } = manager.startDependenciesRecursive(plugin);
+        if (failures?.length) {
+            logger.error(`Could not start what ${name} depends on`, failures);
+            return "failed";
+        }
+
+        saved.enabled = true;
+        if (restartNeeded || needsRestart(name)) return "restart";
+
+        return manager.startPlugin(plugin) ? "done" : "failed";
     } catch (e) {
         logger.error(`Could not turn ${name} ${on ? "on" : "off"}`, e);
         return "failed";
     }
+}
+
+/**
+ * Stop everything this page has switched off.
+ *
+ * Run once Discord has started its plugins: Vencord starts all the enabled ones, which
+ * includes the ones only this page thinks are off.
+ */
+export function applyOffList() {
+    const manager = PM();
+    if (!manager) return;
+
+    batched(() => {
+        for (const name of offList()) {
+            const plugin = pluginOf(name);
+            if (!plugin?.started) continue;
+
+            try {
+                manager.stopPlugin(plugin);
+            } catch (e) {
+                logger.error(`Could not keep ${name} off`, e);
+            }
+        }
+    });
 }
 
 /** Several plugins switched together are one redraw of Discord, not one each */
