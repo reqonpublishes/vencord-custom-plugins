@@ -14,6 +14,7 @@ import { Menu } from "@webpack/common";
 
 import { EyeIcon, EyeOffIcon } from "./icons";
 import { place } from "./menu";
+import { unwatchMutuals, watchMutuals } from "./mutuals";
 import { settings } from "./settings";
 import { count, hideServer, invalidate, isHidden, isLoaded, load, showServer, start, stop } from "./store";
 import { About } from "./ui";
@@ -87,10 +88,12 @@ export default definePlugin({
             if (!alive) return;
         }
         start();
+        watchMutuals();
     },
 
     stop() {
         alive = false;
+        unwatchMutuals();
         // The bar goes back to how Discord has it; the list of what was hidden is kept.
         stop();
     }

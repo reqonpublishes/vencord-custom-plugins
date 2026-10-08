@@ -19,6 +19,7 @@ import {
     SendIcon, UndoIcon
 } from "./icons";
 import { place } from "./menu";
+import { unwatchMutuals, watchMutuals } from "./mutuals";
 import { settings } from "./settings";
 import {
     addFakeFriend,
@@ -294,11 +295,13 @@ export default definePlugin({
         }
 
         reapply();
-        FluxDispatcher.subscribe("CONNECTION_OPEN", afterConnect);
+        FluxDispatcher.subscribe("CONNECTION_OPEN", afterConnect); watchMutuals();
+
     },
 
     stop() {
         alive = false;
+        unwatchMutuals();
         FluxDispatcher.unsubscribe("CONNECTION_OPEN", afterConnect);
         unguard();
 

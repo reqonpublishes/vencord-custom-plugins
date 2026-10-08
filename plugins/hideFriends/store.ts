@@ -111,6 +111,10 @@ export function infoOf(id: string, stored?: string): { name: string; image: stri
 
 // ---------------------------------------------------------------- persistence
 
+/** Goes up whenever a list changes, so anything worked out from one knows when it is stale */
+let changed = 0;
+export const changes = () => changed;
+
 let saveQueued = false;
 
 /**
@@ -120,6 +124,8 @@ let saveQueued = false;
  * into one write of how things ended up.
  */
 function save() {
+    changed++;
+
     if (saveQueued || !settings.store.persist) return;
 
     saveQueued = true;
