@@ -17,6 +17,21 @@ import { Menu, React } from "@webpack/common";
  */
 const GROUP = "vc-local-plugins";
 
+/**
+ * Whether the screen is being shown to somebody, as Plugin Hub's Screen Share Protection
+ * sees it. Read off the window because that is the one place every plugin can look without
+ * depending on Plugin Hub being there.
+ */
+export const isShared = () => !!(window as any).vcScreenShared;
+
+let shift = false;
+
+// Whichever press opened the menu, whether a right click or a click on a "..." button. Read
+// in the capture phase so it is known before Discord starts building the menu.
+const noteShift = (event: MouseEvent) => void (shift = event.shiftKey);
+window.addEventListener("contextmenu", noteShift, true);
+window.addEventListener("mousedown", noteShift, true);
+
 const rankOf = (item: any) => parseInt(String(item?.key ?? "").split(":")[0], 10) || 0;
 
 /**
@@ -26,6 +41,11 @@ const rankOf = (item: any) => parseInt(String(item?.key ?? "").split(":")[0], 10
  * straight under the thing that added it.
  */
 export function place(children: any[], rank: number, ...items: any[]) {
+    // On a shared screen a menu full of Hide and Fake entries says what this client is
+    // doing as plainly as the lists would have. They are left out unless Shift is held,
+    // which is a thing a viewer cannot see being done.
+    if (isShared() && !shift) return;
+
     let group = children.find(child => child?.key === GROUP);
 
     if (!group) {

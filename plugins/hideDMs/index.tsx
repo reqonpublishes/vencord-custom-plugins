@@ -112,7 +112,10 @@ export default definePlugin({
     contextMenus: {
         "channel-context": channelCtx,
         "gdm-context": channelCtx,
-        "user-context": userCtx
+        "user-context": userCtx,
+        // the ... menu on a profile, which hands over a person the same way
+        "user-profile-actions": userCtx,
+        "user-profile-overflow-menu": userCtx
     },
 
     /** Told by Cloud Sync that the saved copy was replaced, so the next start reads it again */

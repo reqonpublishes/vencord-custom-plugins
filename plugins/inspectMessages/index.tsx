@@ -29,7 +29,7 @@ import {
 } from "./edits";
 import { InspectIcon as InspectGlyph } from "./icons";
 import { openInspectModal } from "./InspectModal";
-import { place } from "./menu";
+import { isShared, place } from "./menu";
 import { settings } from "./settings";
 import { GatedIcon, isShiftHeldForMenu, shiftGated, startShiftTracking, stopShiftTracking } from "./shiftGate";
 import { About } from "./ui";
@@ -147,7 +147,7 @@ export default definePlugin({
 
             return {
                 label: "Inspect",
-                icon: mode === "shift" ? ShiftInspectIcon : InspectIcon,
+                icon: mode === "shift" || isShared() ? ShiftInspectIcon : InspectIcon,
                 message,
                 channel: ChannelStore.getChannel(message.channel_id),
                 onClick: () => openInspectModal(message)

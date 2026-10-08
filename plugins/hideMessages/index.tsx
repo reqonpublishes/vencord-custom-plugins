@@ -14,7 +14,7 @@ import { Channel, Message, User } from "@vencord/discord-types";
 import { ChannelStore, FluxDispatcher, Menu, SelectedChannelStore } from "@webpack/common";
 
 import { CloseIcon, EyeIcon, EyeOffIcon, FlagIcon } from "./icons";
-import { place } from "./menu";
+import { isShared, place } from "./menu";
 import { settings } from "./settings";
 import { GatedIcon, isShiftHeldForMenu, shiftGated, startShiftTracking, stopShiftTracking } from "./shiftGate";
 import {
@@ -223,7 +223,7 @@ export default definePlugin({
 
             return {
                 label: "Hide Message",
-                icon: mode === "shift" ? ShiftHideIcon : HideIcon,
+                icon: mode === "shift" || isShared() ? ShiftHideIcon : HideIcon,
                 message: msg,
                 channel: ChannelStore.getChannel(msg.channel_id),
                 onClick: () => hideMessage(msg.channel_id, msg.id)

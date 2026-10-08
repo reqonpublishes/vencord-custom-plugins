@@ -81,7 +81,19 @@ export function check() {
         logger.error("Screen share protection could not switch the plugins", e);
     }
 
+    mark();
     for (const listener of listeners) listener();
+}
+
+/**
+ * Say on the window whether the screen is shared, for the other plugins to read.
+ *
+ * They keep their menu entries and hover buttons out of sight while it is, unless Shift is
+ * held. Left on the window rather than asked of this plugin so that none of them depends on
+ * this one being installed.
+ */
+function mark() {
+    (window as any).vcScreenShared = isProtecting();
 }
 
 export function startProtection() {
@@ -109,4 +121,6 @@ export function stopProtection() {
         const off: string[] = Settings.plugins.PluginHub?.off ?? [];
         for (const name of mine) if (off.includes(name)) force(name, false);
     }
+
+    mark();
 }
