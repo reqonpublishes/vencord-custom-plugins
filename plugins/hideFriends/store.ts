@@ -6,7 +6,7 @@
 
 import { del, get, set } from "@api/DataStore";
 import { Logger } from "@utils/Logger";
-import { FluxDispatcher, RelationshipStore, UserStore } from "@webpack/common";
+import { Flux, FluxDispatcher, RelationshipStore, UserStore } from "@webpack/common";
 
 import { settings } from "./settings";
 
@@ -111,13 +111,41 @@ export function infoOf(id: string, stored?: string): { name: string; image: stri
 
 // ---------------------------------------------------------------- persistence
 
-const save = () => void (settings.store.persist && set(KEY, held));
+let saveQueued = false;
+
+/**
+ * Write the list down, once, after whatever is changing it has finished.
+ *
+ * Asked for on every change, and a change to fifty things asks fifty times. They are folded
+ * into one write of how things ended up.
+ */
+function save() {
+    if (saveQueued || !settings.store.persist) return;
+
+    saveQueued = true;
+    queueMicrotask(() => {
+        saveQueued = false;
+        if (settings.store.persist) set(KEY, held);
+    });
+}
+
+/**
+ * Whether what is in memory is what is on disk.
+ *
+ * Read once, then trusted: switching the plugin off and on again should not go back to disk
+ * for a list it is already holding. Only something writing to disk behind its back - a sync
+ * from the cloud - makes it worth reading again.
+ */
+let loaded = false;
+export const isLoaded = () => loaded;
+export const invalidate = () => void (loaded = false);
 
 export async function load() {
-    if (!settings.store.persist) {
-        held = blank();
-        return;
-    }
+    if (loaded) return;
+    loaded = true;
+
+    // Nothing on disk to read, and what is in memory is the only copy there is.
+    if (!settings.store.persist) return;
 
     const stored = await get<Partial<Stored>>(KEY);
     if (stored) held = { ...blank(), ...stored };
@@ -136,6 +164,19 @@ export function replaceAll(next: Partial<Stored>) {
     held = { ...blank(), ...next };
     save();
     reapply();
+}
+
+/**
+ * Do several things to the client and let it redraw once at the end.
+ *
+ * Every dispatch makes Discord's stores tell React to draw again. Hiding fifty of something
+ * one at a time is fifty redraws of the same list, which is where switching this on and off
+ * used to spend its time. Held back until the last one, it is a single redraw.
+ */
+function batched(run: () => void) {
+    const emitter = (Flux as any)?.Emitter;
+    if (typeof emitter?.batched === "function") emitter.batched(run);
+    else run();
 }
 
 // ---------------------------------------------------------------- saying it to the client
@@ -224,16 +265,21 @@ export function hideAllFriends(): number {
     }
 
     let n = 0;
-    for (const id of ids) {
-        if (hideFriend(id)) n++;
-    }
+    batched(() => {
+        for (const id of ids) {
+            if (hideFriend(id)) n++;
+        }
+    });
 
     return n;
 }
 
 export function showAllFriends(): number {
     const ids = Object.keys(held.hidden);
-    for (const id of ids) showFriend(id);
+    batched(() => {
+        for (const id of ids) showFriend(id);
+    });
+
     return ids.length;
 }
 
@@ -354,11 +400,13 @@ export function restoreRequest(id: string): boolean {
  * back without losing the list, while clearing it should lose the list too.
  */
 export function restoreEverything(forget = true) {
-    for (const id of Object.keys(held.hidden)) putBack(id, held.hiddenWas[id]);
-    for (const id of Object.keys(held.blocked)) putBack(id, held.blockedWas[id]);
-    for (const id of Object.keys(held.pending)) unsay(id, PENDING_OUTGOING);
-    for (const id of Object.keys(held.incoming)) unsay(id, PENDING_INCOMING);
-    for (const id of Object.keys(held.friended)) unsay(id, FRIEND);
+    batched(() => {
+        for (const id of Object.keys(held.hidden)) putBack(id, held.hiddenWas[id]);
+        for (const id of Object.keys(held.blocked)) putBack(id, held.blockedWas[id]);
+        for (const id of Object.keys(held.pending)) unsay(id, PENDING_OUTGOING);
+        for (const id of Object.keys(held.incoming)) unsay(id, PENDING_INCOMING);
+        for (const id of Object.keys(held.friended)) unsay(id, FRIEND);
+    });
 
     if (!forget) return;
 
@@ -373,15 +421,17 @@ export function restoreEverything(forget = true) {
  * and the server has never heard of any of this - so without this everybody comes back.
  */
 export function reapply() {
-    for (const id of Object.keys(held.hidden)) unsay(id, FRIEND);
-    for (const id of Object.keys(held.blocked)) say(BLOCKED, id);
-    for (const id of Object.keys(held.friended)) say(FRIEND, id);
-    for (const id of Object.keys(held.pending)) say(PENDING_OUTGOING, id);
-    for (const id of Object.keys(held.dismissed)) unsay(id, PENDING_INCOMING);
+    batched(() => {
+        for (const id of Object.keys(held.hidden)) unsay(id, FRIEND);
+        for (const id of Object.keys(held.blocked)) say(BLOCKED, id);
+        for (const id of Object.keys(held.friended)) say(FRIEND, id);
+        for (const id of Object.keys(held.pending)) say(PENDING_OUTGOING, id);
+        for (const id of Object.keys(held.dismissed)) unsay(id, PENDING_INCOMING);
 
-    // Last: hiding somebody takes them out, and a pretended request puts them back as a
-    // request - so for anybody who is both, the request is the one that should survive.
-    for (const id of Object.keys(held.incoming)) say(PENDING_INCOMING, id);
+        // Last: hiding somebody takes them out, and a pretended request puts them back as a
+        // request - so for anybody who is both, the request is the one that should survive.
+        for (const id of Object.keys(held.incoming)) say(PENDING_INCOMING, id);
+    });
 }
 
 export const isOurEvent = (action: any) => !!action?.[OURS];

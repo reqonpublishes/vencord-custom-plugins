@@ -15,7 +15,7 @@ import { ChannelStore, FluxDispatcher, Menu, SelectedChannelStore } from "@webpa
 import { openAddCall } from "./AddCallModal";
 import { PhoneAddIcon, TrashIcon } from "./icons";
 import { settings } from "./settings";
-import { clearChannel, countIn, interceptor, isFake, load, removeCall, showIn, takeAllOffScreen } from "./store";
+import { clearChannel, countIn, interceptor, invalidate, isFake, isLoaded, load, removeCall, showIn, takeAllOffScreen } from "./store";
 import { About } from "./ui";
 
 let interceptorRegistered = false;
@@ -134,8 +134,13 @@ export default definePlugin({
         "user-context": userCtx
     },
 
+    /** Told by Cloud Sync that the saved copy was replaced, so the next start reads it again */
+    dataChanged: invalidate,
+
     async start() {
-        await load();
+        // Only the first start reads from disk. After that the list is already in memory,
+        // and not waiting is what lets switching back on happen at once.
+        if (!isLoaded()) await load();
 
         // Added once and left: there is no taking an interceptor back off, so a second
         // start would stack another copy and every page would be processed twice.

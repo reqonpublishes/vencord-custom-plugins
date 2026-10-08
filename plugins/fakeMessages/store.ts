@@ -6,7 +6,7 @@
 
 import { del, get, set } from "@api/DataStore";
 import { Logger } from "@utils/Logger";
-import { ChannelStore, FluxDispatcher, UserStore } from "@webpack/common";
+import { ChannelStore, Flux, FluxDispatcher, UserStore } from "@webpack/common";
 
 import { settings } from "./settings";
 
@@ -66,13 +66,41 @@ export const total = () => {
 
 // ---------------------------------------------------------------- persistence
 
-const save = () => void (settings.store.persist && set(KEY, [...added]));
+let saveQueued = false;
+
+/**
+ * Write the list down, once, after whatever is changing it has finished.
+ *
+ * Asked for on every change, and a change to fifty things asks fifty times. They are folded
+ * into one write of how things ended up.
+ */
+function save() {
+    if (saveQueued || !settings.store.persist) return;
+
+    saveQueued = true;
+    queueMicrotask(() => {
+        saveQueued = false;
+        if (settings.store.persist) set(KEY, [...added]);
+    });
+}
+
+/**
+ * Whether what is in memory is what is on disk.
+ *
+ * Read once, then trusted: switching the plugin off and on again should not go back to disk
+ * for a list it is already holding. Only something writing to disk behind its back - a sync
+ * from the cloud - makes it worth reading again.
+ */
+let loaded = false;
+export const isLoaded = () => loaded;
+export const invalidate = () => void (loaded = false);
 
 export async function load() {
-    if (!settings.store.persist) {
-        added = new Map();
-        return;
-    }
+    if (loaded) return;
+    loaded = true;
+
+    // Nothing on disk to read, and what is in memory is the only copy there is.
+    if (!settings.store.persist) return;
 
     const stored = await get<[string, FakeMessage[]][] | Record<string, FakeMessage[]>>(KEY);
     if (!stored) return;
@@ -91,6 +119,19 @@ export const asRecord = (): Record<string, FakeMessage[]> => Object.fromEntries(
 export function replaceAll(next: Record<string, FakeMessage[]>) {
     added = new Map(Object.entries(next ?? {}));
     save();
+}
+
+/**
+ * Do several things to the client and let it redraw once at the end.
+ *
+ * Every dispatch makes Discord's stores tell React to draw again. Hiding fifty of something
+ * one at a time is fifty redraws of the same list, which is where switching this on and off
+ * used to spend its time. Held back until the last one, it is a single redraw.
+ */
+function batched(run: () => void) {
+    const emitter = (Flux as any)?.Emitter;
+    if (typeof emitter?.batched === "function") emitter.batched(run);
+    else run();
 }
 
 // ---------------------------------------------------------------- adding and removing
@@ -139,7 +180,10 @@ export function clearChannel(channelId: string): number {
     added.delete(channelId);
     save();
 
-    for (const one of list) hideNow(channelId, one.id);
+    batched(() => {
+        for (const one of list) hideNow(channelId, one.id);
+    });
+
     return list.length;
 }
 
@@ -148,9 +192,11 @@ export function clearAll() {
     added = new Map();
     save();
 
-    for (const [channelId, list] of held) {
-        for (const one of list) hideNow(channelId, one.id);
-    }
+    batched(() => {
+        for (const [channelId, list] of held) {
+            for (const one of list) hideNow(channelId, one.id);
+        }
+    });
 }
 
 // ---------------------------------------------------------------- putting one on screen
@@ -243,14 +289,18 @@ function hideNow(channelId: string, messageId: string) {
  * showing the old one first or the two disagree until the channel is opened again.
  */
 export function takeAllOffScreen() {
-    for (const [channelId, list] of added) {
-        for (const one of list) hideNow(channelId, one.id);
-    }
+    batched(() => {
+        for (const [channelId, list] of added) {
+            for (const one of list) hideNow(channelId, one.id);
+        }
+    });
 }
 
 /** Put the ones belonging to a channel on screen now, for a channel that is already open */
 export function showIn(channelId: string) {
-    for (const one of added.get(channelId) ?? []) showNow(one);
+    batched(() => {
+        for (const one of added.get(channelId) ?? []) showNow(one);
+    });
 }
 
 // ---------------------------------------------------------------- message loads

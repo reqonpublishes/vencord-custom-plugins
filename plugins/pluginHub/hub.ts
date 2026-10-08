@@ -6,6 +6,7 @@
 
 import { Settings } from "@api/Settings";
 import { Logger } from "@utils/Logger";
+import { Flux } from "@webpack/common";
 
 import {
     BellIcon, BoltIcon, ChatAddIcon, ChatIcon, CloudIcon, EyeOffIcon, IconComponent, InspectIcon, PersonOffIcon,
@@ -119,6 +120,13 @@ export function setOn(name: string, on: boolean): "done" | "restart" | "failed" 
     }
 }
 
+/** Several plugins switched together are one redraw of Discord, not one each */
+function batched(run: () => void) {
+    const emitter = (Flux as any)?.Emitter;
+    if (typeof emitter?.batched === "function") emitter.batched(run);
+    else run();
+}
+
 /** The plugins that change what Discord shows and are doing so right now */
 export const applying = () => installed().filter(entry => entry.view && isOn(entry.plugin)).map(entry => entry.plugin);
 
@@ -133,7 +141,9 @@ export function flipAll(remembered: string[]): { on: boolean; changed: number; r
 
     if (live.length) {
         let changed = 0;
-        for (const name of live) if (setOn(name, false) === "done") changed++;
+        batched(() => {
+            for (const name of live) if (setOn(name, false) === "done") changed++;
+        });
 
         return { on: false, changed, remember: live, restart: false };
     }
@@ -143,11 +153,13 @@ export function flipAll(remembered: string[]): { on: boolean; changed: number; r
 
     let changed = 0;
     let restart = false;
-    for (const name of back.length ? back : views) {
-        const result = setOn(name, true);
-        if (result === "done") changed++;
-        if (result === "restart") restart = true;
-    }
+    batched(() => {
+        for (const name of back.length ? back : views) {
+            const result = setOn(name, true);
+            if (result === "done") changed++;
+            if (result === "restart") restart = true;
+        }
+    });
 
     return { on: true, changed, remember: [], restart };
 }

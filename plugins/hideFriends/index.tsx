@@ -20,8 +20,8 @@ import {
 } from "./icons";
 import { settings } from "./settings";
 import {
-    addFakeFriend, BLOCKED, blockUser, clearRequest, dismissRequest, FRIEND, hideFriend, isBlocked,
-    isFriended, isHidden, isIncoming, isPending, load, PENDING_INCOMING, reapply, receiveRequest,
+    addFakeFriend, BLOCKED, blockUser, clearRequest, dismissRequest, FRIEND, hideFriend, invalidate, isBlocked,
+    isFriended, isHidden, isIncoming, isLoaded, isPending, load, PENDING_INCOMING, reapply, receiveRequest,
     removeFakeFriend, restoreEverything, sendRequest, showFriend, unblockUser
 } from "./store";
 import { About } from "./ui";
@@ -230,8 +230,13 @@ export default definePlugin({
         "user-context": userCtx
     },
 
+    /** Told by Cloud Sync that the saved copy was replaced, so the next start reads it again */
+    dataChanged: invalidate,
+
     async start() {
-        await load();
+        // Only the first start reads from disk. After that the list is already in memory,
+        // and not waiting is what lets switching back on happen at once.
+        if (!isLoaded()) await load();
 
         try {
             guard();

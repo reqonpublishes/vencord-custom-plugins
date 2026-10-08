@@ -831,8 +831,26 @@ export async function startStore() {
 
 export function stopStore() {
     enabled = false;
+
+    // Which chats had something taken out of them, noted before the lists are emptied.
+    const touched = new Set([...hiddenChannels.keys(), ...hiddenMessages.keys(), ...hiddenRanges.keys()]);
+    const open = SelectedChannelStore.getChannelId();
+
     showEverything();
     stopObserver();
+
+    // Switching off has to show the real chat now, not the next time it is opened. A chat
+    // hidden whole had its messages dropped as they loaded, so there is nothing on screen to
+    // reveal until it is loaded again - the open one straight away, and the others emptied
+    // so they load fresh when you go to them.
+    for (const channelId of touched) {
+        try {
+            if (channelId === open) refresh(channelId);
+            else clearLoadedMessages(channelId, true);
+        } catch (e) {
+            logger.error("Could not reload a chat after switching off", e);
+        }
+    }
 
     styleEl?.remove();
     styleEl = null;

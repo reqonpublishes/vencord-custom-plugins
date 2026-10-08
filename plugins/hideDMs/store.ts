@@ -6,7 +6,7 @@
 
 import { del, get, set } from "@api/DataStore";
 import { Logger } from "@utils/Logger";
-import { ChannelStore, FluxDispatcher, UserStore } from "@webpack/common";
+import { ChannelStore, Flux, FluxDispatcher, UserStore } from "@webpack/common";
 
 import { settings } from "./settings";
 
@@ -36,13 +36,41 @@ export const names = () => [...hidden.entries()];
 
 // ---------------------------------------------------------------- persistence
 
-const save = () => void (settings.store.persist && set(KEY, [...hidden]));
+let saveQueued = false;
+
+/**
+ * Write the list down, once, after whatever is changing it has finished.
+ *
+ * Asked for on every change, and a change to fifty things asks fifty times. They are folded
+ * into one write of how things ended up.
+ */
+function save() {
+    if (saveQueued || !settings.store.persist) return;
+
+    saveQueued = true;
+    queueMicrotask(() => {
+        saveQueued = false;
+        if (settings.store.persist) set(KEY, [...hidden]);
+    });
+}
+
+/**
+ * Whether what is in memory is what is on disk.
+ *
+ * Read once, then trusted: switching the plugin off and on again should not go back to disk
+ * for a list it is already holding. Only something writing to disk behind its back - a sync
+ * from the cloud - makes it worth reading again.
+ */
+let loaded = false;
+export const isLoaded = () => loaded;
+export const invalidate = () => void (loaded = false);
 
 export async function load() {
-    if (!settings.store.persist) {
-        hidden = new Map();
-        return;
-    }
+    if (loaded) return;
+    loaded = true;
+
+    // Nothing on disk to read, and what is in memory is the only copy there is.
+    if (!settings.store.persist) return;
 
     const stored = await get<[string, string][] | Record<string, string>>(KEY);
     if (!stored) return;
@@ -66,6 +94,19 @@ export function replaceAll(next: Record<string, string>) {
     hidden = new Map(Object.entries(next ?? {}));
     save();
     reapply();
+}
+
+/**
+ * Do several things to the client and let it redraw once at the end.
+ *
+ * Every dispatch makes Discord's stores tell React to draw again. Hiding fifty of something
+ * one at a time is fifty redraws of the same list, which is where switching this on and off
+ * used to spend its time. Held back until the last one, it is a single redraw.
+ */
+function batched(run: () => void) {
+    const emitter = (Flux as any)?.Emitter;
+    if (typeof emitter?.batched === "function") emitter.batched(run);
+    else run();
 }
 
 // ---------------------------------------------------------------- hiding and showing
@@ -171,12 +212,14 @@ export function hideAll(except?: string | null): number {
     }
 
     let n = 0;
-    for (const id of ids) {
-        // Not the one you are in: hiding the conversation on screen is a thing to do on
-        // purpose, one at a time, rather than as a side effect of clearing the list.
-        if (id === except || hidden.has(id)) continue;
-        if (hideChat(id)) n++;
-    }
+    batched(() => {
+        for (const id of ids) {
+            // Not the one you are in: hiding the conversation on screen is a thing to do on
+            // purpose, one at a time, rather than as a side effect of clearing the list.
+            if (id === except || hidden.has(id)) continue;
+            if (hideChat(id)) n++;
+        }
+    });
 
     return n;
 }
@@ -188,7 +231,10 @@ export function hideAll(except?: string | null): number {
  * on screen and remember them for next time, while clearing the list should not.
  */
 export function showAll(forget = true) {
-    for (const channelId of [...hidden.keys()]) showChat(channelId, forget);
+    batched(() => {
+        for (const channelId of [...hidden.keys()]) showChat(channelId, forget);
+    });
+
     if (forget) save();
 }
 
@@ -200,7 +246,9 @@ export function showAll(forget = true) {
  * they land, or they quietly come back.
  */
 export function reapply() {
-    for (const channelId of hidden.keys()) {
-        if (ChannelStore.getChannel(channelId)) hideChat(channelId);
-    }
+    batched(() => {
+        for (const channelId of hidden.keys()) {
+            if (ChannelStore.getChannel(channelId)) hideChat(channelId);
+        }
+    });
 }

@@ -14,7 +14,7 @@ import { Menu } from "@webpack/common";
 
 import { EyeIcon, EyeOffIcon } from "./icons";
 import { settings } from "./settings";
-import { hideServer, isHidden, load, showServer, start, stop } from "./store";
+import { hideServer, invalidate, isHidden, isLoaded, load, showServer, start, stop } from "./store";
 import { About } from "./ui";
 
 const guildCtx: NavContextMenuPatchCallback = (children, { guild }: { guild?: Guild; }) => {
@@ -61,8 +61,13 @@ export default definePlugin({
         "guild-context": guildCtx
     },
 
+    /** Told by Cloud Sync that the saved copy was replaced, so the next start reads it again */
+    dataChanged: invalidate,
+
     async start() {
-        await load();
+        // Only the first start reads from disk. After that the list is already in memory,
+        // and not waiting is what lets switching back on happen at once.
+        if (!isLoaded()) await load();
         start();
     },
 

@@ -92,11 +92,16 @@ function restart(names: string[]) {
 
     for (const name of names) {
         const plugin = PM.plugins[name];
-        if (!plugin?.started) continue;
+        if (!plugin) continue;
 
         try {
-            PM.stopPlugin(plugin);
-            PM.startPlugin(plugin);
+            // Stopped with what it was holding, so the screen goes back to how Discord has
+            // it - and only then told that the saved copy is new, so starting reads that.
+            const running = !!plugin.started;
+            if (running) PM.stopPlugin(plugin);
+
+            plugin.dataChanged?.();
+            if (running) PM.startPlugin(plugin);
         } catch (e) {
             logger.error("Could not restart " + name + " after a fetch", e);
         }
