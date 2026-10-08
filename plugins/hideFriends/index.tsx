@@ -20,7 +20,7 @@ import {
 } from "./icons";
 import { place } from "./menu";
 import { unwatchMutuals, watchMutuals } from "./mutuals";
-import { settings } from "./settings";
+import { setRunning, settings } from "./settings";
 import {
     addFakeFriend,
     BLOCKED,
@@ -296,12 +296,14 @@ export default definePlugin({
 
         reapply();
         FluxDispatcher.subscribe("CONNECTION_OPEN", afterConnect); watchMutuals();
+        setRunning(true);
 
     },
 
     stop() {
         alive = false;
         unwatchMutuals();
+        setRunning(false);
         FluxDispatcher.unsubscribe("CONNECTION_OPEN", afterConnect);
         unguard();
 

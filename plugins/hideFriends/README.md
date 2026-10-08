@@ -37,6 +37,12 @@ Discord — accepting a request nobody sent would send them a real one. So they 
 on your computer instead: accepting shows them as a friend, declining takes the request
 away. The same goes for unblocking somebody only this computer thinks is blocked.
 
+## The Implicit tab
+
+If you use Vencord's **ImplicitRelationships** plugin, it adds an **Implicit** tab to the Friends
+page listing people you talk to without being friends. **Hide the Implicit tab** takes that tab
+away while this plugin is on. It is on by default.
+
 ## Settings
 
 | Setting | What it does |

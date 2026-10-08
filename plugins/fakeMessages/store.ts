@@ -318,7 +318,7 @@ export function showIn(channelId: string) {
  */
 export function interceptor(action: any) {
     if (action?.type === "SEARCH_RESULTS_QUERY_UPDATE") {
-        asked.set(String(action.id), action.query);
+        asked.set(String(action.id), { query: action.query, offset: action.offset });
         return false;
     }
     if (action?.type === "SEARCH_MESSAGES_SUCCESS") {
@@ -366,7 +366,7 @@ export function interceptor(action: any) {
 // ---------------------------------------------------------------- search
 
 /** What each open search asked for, by the id Discord gives the search (a channel, a server or "DMS") */
-const asked = new Map<string, any>();
+const asked = new Map<string, { query: any; offset?: number; }>();
 
 /** The filters this can answer for. A search using any other is left exactly as the server answered it */
 const UNDERSTOOD = new Set([
@@ -420,17 +420,22 @@ function inScope(searchId: string, channelId: string): boolean {
     return searchId === "DMS" ? !channel.guild_id : channel.guild_id === searchId;
 }
 
-/** How far down each search has been read, so a later page does not repeat an earlier one */
-const readDownTo = new Map<string, bigint>();
+/** Where each page of each search ended, so the page after it knows where to begin */
+const pageEnds = new Map<string, Map<number, bigint>>();
 
 /**
  * Put the invented messages a search should have found in among the ones it did.
  *
  * The server has never heard of them, so they are matched here against what was asked for
- * and slotted into the results by date, which is the order results come in. A page of
- * results only reaches so far back, and an invented message older than that belongs to a
- * later page - so each page takes the ones that fall inside it, and remembers where it
- * stopped for the page after.
+ * and slotted into the results by date, which is the order results come in.
+ *
+ * Results come a page at a time, and each invented message has to land on exactly one of
+ * them. Which page this is comes from the search itself - how far in it starts - rather than
+ * from looking at what is on it, because other plugins add to a page too and what is on it
+ * stops being a reliable guide. A page takes the messages that fall between where the page
+ * before it ended and where this one ends; the first page has no upper edge and the last no
+ * lower one. Sorted any other way than by date there is no such thing as between, and they
+ * all go on the first page.
  */
 function addToSearch(action: any) {
     if (!running || !added.size || !Array.isArray(action?.data)) return;
@@ -438,8 +443,11 @@ function addToSearch(action: any) {
     try {
         for (const result of action.data) {
             const searchId = String(result?.id ?? "");
-            const query = asked.get(searchId);
-            if (!query || !Array.isArray(result.messages)) continue;
+            const ask = asked.get(searchId);
+            if (!ask?.query || !Array.isArray(result.messages)) continue;
+
+            const { query } = ask;
+            const offset = Number(ask.offset) || 0;
 
             // Only by date, newest first, is an order this can slot something into.
             const byDate = (query.sort_by ?? "timestamp") === "timestamp" && (query.sort_order ?? "desc") === "desc";
@@ -458,24 +466,41 @@ function addToSearch(action: any) {
                 }
             }
 
-            // A page that starts at or above where the last one stopped is a search starting
-            // over, not the next page of the same one.
-            const stopped = readDownTo.get(searchId);
-            const first = stopped === undefined || newest === null || newest >= stopped;
-            const more = result.cursor != null && oldest !== null;
+            const onPage = result.messages.length;
+            const total = typeof result.totalResults === "number" ? result.totalResults : null;
+            const more = oldest !== null && (total !== null ? offset + onPage < total : result.cursor != null);
+
+            const key = searchId + "|" + JSON.stringify(query);
+            let ends = pageEnds.get(key);
+            if (!ends) {
+                // one search at a time is all that is ever being paged through
+                if (pageEnds.size > 20) pageEnds.clear();
+                pageEnds.set(key, ends = new Map());
+            }
+
+            // Where the page before this one ended. If that page was never opened - somebody
+            // jumped straight to page five - the top of this page stands in for it: a message
+            // can go missing from between two unseen pages, but can never turn up twice.
+            const upper = offset === 0 ? null : ends.get(offset) ?? newest;
+            if (oldest !== null) ends.set(offset + onPage, oldest);
 
             const mine: FakeMessage[] = [];
+            let matching = 0;
+
             for (const [channelId, list] of added) {
                 if (!inScope(searchId, channelId)) continue;
 
                 for (const one of list) {
-                    if (found.has(one.id) || !wouldMatch(query, one)) continue;
+                    if (!wouldMatch(query, one)) continue;
+                    matching++;
 
-                    const id = BigInt(one.id);
+                    if (found.has(one.id)) continue;
+
                     if (byDate) {
-                        if (!first && stopped !== undefined && id >= stopped) continue;
+                        const id = BigInt(one.id);
+                        if (upper !== null && id >= upper) continue;
                         if (more && id < oldest!) continue;
-                    } else if (!first) {
+                    } else if (offset !== 0) {
                         continue;
                     }
 
@@ -483,9 +508,8 @@ function addToSearch(action: any) {
                 }
             }
 
-            if (more) readDownTo.set(searchId, oldest!);
-            else readDownTo.delete(searchId);
-
+            // The count is of the whole search, so it is the same on every page of it.
+            if (total !== null) result.totalResults = total + matching;
             if (!mine.length) continue;
 
             const groups = [...result.messages, ...mine.map(one => [{ ...rawMessage(one), hit: true }])];
@@ -495,7 +519,6 @@ function addToSearch(action: any) {
             }
 
             result.messages = groups;
-            if (typeof result.totalResults === "number") result.totalResults += mine.length;
         }
     } catch (e) {
         logger.error("Could not add the invented messages to a search", e);

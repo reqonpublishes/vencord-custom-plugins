@@ -475,7 +475,7 @@ export function reapplyChannel(channelId: string) {
 // ---------------------------------------------------------------- search
 
 /** What each open search asked for, by the id Discord gives the search (a channel, a server or "DMS") */
-const asked = new Map<string, any>();
+const asked = new Map<string, { query: any; offset?: number; }>();
 
 /** The filters this can answer for. A search using any other is left exactly as the server answered it */
 const UNDERSTOOD = new Set([
@@ -531,7 +531,7 @@ function inScope(searchId: string, channelId: string): boolean {
 
 /** Remember what a search asked for. Cheap, and done whether or not anything is edited yet */
 export function noteSearch(action: any) {
-    asked.set(String(action.id), action.query);
+    asked.set(String(action.id), { query: action.query, offset: action.offset });
 }
 
 /** A loaded message, put back into the shape the server sends, with our changes on it */
@@ -576,6 +576,9 @@ function rawFrom(id: string, entry: StoredEdit): any | null {
     return raw;
 }
 
+/** How many rewritten messages each search had put on its first page */
+const putIn = new Map<string, number>();
+
 /**
  * Make a search agree with what the messages now say.
  *
@@ -591,7 +594,9 @@ export function patchSearch(action: any) {
         if (!Array.isArray(result?.messages)) continue;
 
         const searchId = String(result.id ?? "");
-        const query = asked.get(searchId);
+        const ask = asked.get(searchId);
+        const query = ask?.query;
+        const offset = Number(ask?.offset) || 0;
         const found = new Set<string>();
         let dropped = 0;
 
@@ -616,7 +621,7 @@ export function patchSearch(action: any) {
         // Only the first page: which page a rewritten message belongs on would need the
         // dates of pages not fetched yet, and the top of the results is where it is looked for.
         let put = 0;
-        if (query?.content && !(query.offset > 0) && result.cursor?.type !== "score") {
+        if (query?.content && offset === 0 && result.cursor?.type !== "score") {
             const extra: any[] = [];
 
             for (const [id, entry] of edits) {
@@ -632,10 +637,14 @@ export function patchSearch(action: any) {
 
             if (extra.length) {
                 put = extra.length;
+                putIn.set(searchId + "|" + JSON.stringify(query), put);
                 const idOf = (group: any[]) => BigInt((group.find(m => m?.hit) ?? group[0]).id);
                 result.messages = [...result.messages, ...extra].sort((a, b) => (idOf(a) < idOf(b) ? 1 : -1));
             }
         }
+
+        // What page one added counts on every page, so the total reads the same throughout.
+        if (offset !== 0) put = putIn.get(searchId + "|" + JSON.stringify(query)) ?? 0;
 
         if (typeof result.totalResults === "number") result.totalResults = Math.max(0, result.totalResults - dropped + put);
     }
