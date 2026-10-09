@@ -228,3 +228,226 @@
     line-height: 16px;
     text-transform: uppercase;
 }
+
+/* ---------------------------------------------------------------- modal form */
+
+/*
+ * One rhythm for the whole form: every block is a section, every section is separated by
+ * the same gap, and nothing sets its own ad-hoc margins.
+ */
+.vc-cfmod-section {
+    margin-bottom: 20px;
+}
+
+.vc-cfmod-section-last {
+    margin-bottom: 0;
+}
+
+.vc-cfmod-label {
+    margin: 0 0 8px;
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 700;
+    font-family: var(--font-display, var(--font-primary));
+    line-height: 16px;
+    letter-spacing: .02em;
+    text-transform: uppercase;
+}
+
+.vc-cfmod-field {
+    display: flex;
+    gap: 8px;
+}
+
+.vc-cfmod-input {
+    flex: 1 1 150px;
+    min-width: 0;
+    padding: 8px 8px 8px 11px;
+    border: 1px solid rgb(128 128 128 / 22%);
+    border-radius: 6px;
+    background: rgb(128 128 128 / 18%);
+    color: var(--text-default, var(--text-normal));
+    font-size: 14px;
+    font-family: var(--font-primary);
+    font-variant-numeric: tabular-nums;
+    color-scheme: dark;
+    cursor: text;
+    transition: background-color .15s ease, border-color .15s ease;
+}
+
+.vc-cfmod-input-time {
+    flex: 0 0 auto;
+    min-width: 158px;
+}
+
+.vc-cfmod-input:hover {
+    background: rgb(128 128 128 / 26%);
+}
+
+.vc-cfmod-input:focus {
+    border-color: var(--brand-500, var(--brand-experiment));
+    outline: none;
+}
+
+/* ships as a black glyph, so it is inverted to a mid grey that shows on any field */
+.vc-cfmod-input::-webkit-calendar-picker-indicator {
+    margin-left: 4px;
+    padding: 0;
+    opacity: 1;
+    cursor: pointer;
+    filter: invert(55%);
+}
+
+.vc-cfmod-line {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 8px;
+}
+
+.vc-cfmod-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.vc-cfmod-chip {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    padding: 5px 10px;
+    border: 1px solid rgb(128 128 128 / 18%);
+    border-radius: 6px;
+    background: rgb(128 128 128 / 12%);
+    color: var(--text-default, var(--text-normal));
+    font-size: 12px;
+    font-weight: 500;
+    font-family: var(--font-primary);
+    font-variant-numeric: tabular-nums;
+    line-height: 16px;
+    cursor: pointer;
+    transition: background-color .15s ease, border-color .15s ease;
+}
+
+.vc-cfmod-chip:hover {
+    background: rgb(128 128 128 / 24%);
+}
+
+.vc-cfmod-chip-on,
+.vc-cfmod-chip-on:hover {
+    border-color: var(--brand-500, #5865f2);
+    background: color-mix(in srgb, var(--brand-500, #5865f2) 26%, transparent);
+}
+
+/* a choice between people or options: bigger than a chip, one of them always picked */
+.vc-cfmod-choices {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.vc-cfmod-choice {
+    display: flex;
+    flex: 1 1 140px;
+    gap: 10px;
+    align-items: center;
+    min-width: 0;
+    padding: 8px 10px;
+    border: 1px solid rgb(128 128 128 / 18%);
+    border-radius: 8px;
+    background: rgb(128 128 128 / 10%);
+    color: var(--text-default, var(--text-normal));
+    font-family: var(--font-primary);
+    text-align: start;
+    cursor: pointer;
+    transition: background-color .15s ease, border-color .15s ease;
+}
+
+.vc-cfmod-choice:hover {
+    background: rgb(128 128 128 / 20%);
+}
+
+.vc-cfmod-choice-on,
+.vc-cfmod-choice-on:hover {
+    border-color: var(--brand-500, #5865f2);
+    background: color-mix(in srgb, var(--brand-500, #5865f2) 22%, transparent);
+}
+
+.vc-cfmod-choice img,
+.vc-cfmod-choice-blank {
+    flex: 0 0 auto;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+}
+
+.vc-cfmod-choice-blank {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgb(128 128 128 / 26%);
+    color: var(--text-muted);
+}
+
+.vc-cfmod-choice-text {
+    min-width: 0;
+}
+
+.vc-cfmod-choice-name,
+.vc-cfmod-choice-detail {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vc-cfmod-choice-name {
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 18px;
+}
+
+.vc-cfmod-choice-detail {
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 16px;
+}
+
+/* the switches read as one panel, set apart from the plain fields around them */
+.vc-cfmod-card {
+    padding: 2px 12px;
+    border: 1px solid rgb(128 128 128 / 14%);
+    border-radius: 8px;
+    background: rgb(128 128 128 / 7%);
+}
+
+.vc-cfmod-switch {
+    margin: 10px 0;
+}
+
+.vc-cfmod-divider {
+    height: 1px;
+    background: rgb(128 128 128 / 14%);
+}
+
+.vc-cfmod-hint {
+    margin-top: 6px;
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 16px;
+}
+
+.vc-cfmod-footnote {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin-top: 14px;
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 16px;
+}
+
+.vc-cfmod-footnote svg {
+    flex: 0 0 auto;
+}
