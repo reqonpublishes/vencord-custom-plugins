@@ -15,7 +15,7 @@ import { ChannelStore, FluxDispatcher, Menu } from "@webpack/common";
 import { EyeIcon, EyeOffIcon } from "./icons";
 import { place } from "./menu";
 import { settings } from "./settings";
-import { count, hideChat, hideWaiting, hidJustNow, invalidate, isHidden, isLoaded, isWaiting, load, reapply, showAll, showChat } from "./store";
+import { count, hideChat, hideWaiting, hidJustNow, invalidate, isHidden, isLoaded, isWaiting, load, pause, reapply, resume, showAll, showChat } from "./store";
 import { About } from "./ui";
 
 /**
@@ -130,7 +130,12 @@ export default definePlugin({
     },
 
     /** Told by Cloud Sync that the saved copy was replaced, so the next start reads it again */
-    dataChanged: invalidate,
+    dataChanged() {
+        // Finished now rather than in bursts: the list is about to be replaced, and anything
+        // still hidden from the old one would have nothing left to bring it back.
+        showAll(false);
+        invalidate();
+    },
 
     async start() {
         // Only the first start reads from disk. After that the list is already in memory,
@@ -142,7 +147,7 @@ export default definePlugin({
             // Switched off again while the list was being read, so it stays off.
             if (!alive) return;
         }
-        reapply();
+        resume();
 
         FluxDispatcher.subscribe("CHANNEL_SELECT", reopen);
         FluxDispatcher.subscribe("VOICE_CHANNEL_SELECT", afterCall);
@@ -157,6 +162,6 @@ export default definePlugin({
 
         // Back on screen, still on the list. Switching the plugin off should give the
         // conversations back without forgetting which ones you had put away.
-        showAll(false);
+        pause();
     }
 });

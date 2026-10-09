@@ -64,25 +64,63 @@ export function check() {
     const want = Settings.plugins.PluginHub?.shareProtection !== false && beingWatched();
     if (want === isProtecting()) return;
 
-    try {
-        if (want) {
-            raised = usable().filter(entry => isView(entry) && !isOn(entry.plugin)).map(entry => entry.plugin);
-            for (const name of raised) force(name, true);
-        } else {
-            const mine = raised ?? [];
-            raised = null;
+    // Decided here, done a moment later. This is called from inside Discord telling its
+    // stores about the share, and switching plugins is more telling of the same kind - which
+    // cannot be started from in there, and is a lot to do in one go at the moment a stream
+    // is trying to start.
+    if (want) {
+        raised = usable().filter(entry => isView(entry) && !isOn(entry.plugin)).map(entry => entry.plugin);
+        spread(raised, true);
+    } else {
+        const mine = raised ?? [];
+        raised = null;
 
-            // Only the ones still meant to be off. Anything switched on by hand during the
-            // share was a decision, and is left alone.
-            const off: string[] = Settings.plugins.PluginHub?.off ?? [];
-            for (const name of mine) if (off.includes(name)) force(name, false);
-        }
-    } catch (e) {
-        logger.error("Screen share protection could not switch the plugins", e);
+        // Only the ones still meant to be off. Anything switched on by hand during the
+        // share was a decision, and is left alone.
+        const off: string[] = Settings.plugins.PluginHub?.off ?? [];
+        spread(mine.filter(name => off.includes(name)), false);
     }
 
     mark();
     for (const listener of listeners) listener();
+}
+
+/** Which run of switching is the current one, so a share that ends at once cancels its own start */
+let turn = 0;
+
+/** The order they are switched in: what gives most away goes first */
+const FIRST = ["HideDMs", "HideFriends", "HideServers", "FakeNotifications", "HideMessages"];
+
+/**
+ * Switch plugins one at a time, giving the window a turn between each.
+ *
+ * All at once is everything each of them does on starting, back to back, with nothing able
+ * to draw until the last has finished. One at a time is the same work and the window stays
+ * alive through it. A share takes far longer than this to reach anybody's screen.
+ */
+function spread(names: string[], on: boolean) {
+    const mine = ++turn;
+    const queue = [...names].sort((a, b) => (FIRST.indexOf(a) + 1 || 99) - (FIRST.indexOf(b) + 1 || 99));
+
+    const next = () => {
+        if (mine !== turn) return;
+
+        const name = queue.shift();
+        if (!name) {
+            for (const listener of listeners) listener();
+            return;
+        }
+
+        try {
+            force(name, on);
+        } catch (e) {
+            logger.error("Screen share protection could not switch " + name, e);
+        }
+
+        setTimeout(next, 0);
+    };
+
+    setTimeout(next, 0);
 }
 
 /**

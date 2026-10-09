@@ -185,6 +185,83 @@ function batched(run: () => void) {
     else run();
 }
 
+/** Which run of spread-out work is the current one, and whether one is holding the screen */
+let slice = 0;
+let holding = false;
+
+/** How long one burst of work may run before the window is given a turn */
+const BURST_MS = 8;
+
+/** Up to this many are done in one go: too few to be felt, and not worth the ceremony */
+const FEW = 24;
+
+/** Stop whatever is being done in bursts, and let the screen draw again */
+function endSlices() {
+    slice++;
+
+    if (holding) {
+        holding = false;
+        (Flux as any)?.Emitter?.resume?.();
+    }
+}
+
+/**
+ * Do a long list of things without the window freezing while it happens.
+ *
+ * Each one is a dispatch that Discord spends a couple of milliseconds on, and nothing here
+ * can make that cheaper - so a few hundred of them, done in one go, is a second or more with
+ * the window not answering. That is the freeze when everything is switched on at once, and
+ * it lands at the worst moment: as a call or a screen share is starting.
+ *
+ * So they are done in short bursts with the window given a turn between each. Discord is
+ * asked to hold its redrawing until the last one, because redrawing the list after every
+ * burst costs more than the work itself. The hold is given a time limit, so that if anything
+ * here stopped half way the screen would still come back by itself.
+ *
+ * Only for switching on and off, where being interrupted is harmless: every step checks what
+ * is true before acting, so a run cut short leaves nothing the next one does not put right.
+ */
+function sliced(steps: (() => void)[]) {
+    endSlices();
+
+    if (steps.length <= FEW) {
+        batched(() => {
+            for (const step of steps) step();
+        });
+        return;
+    }
+
+    const mine = slice;
+    const emitter = (Flux as any)?.Emitter;
+    let at = 0;
+
+    const burst = () => {
+        if (mine !== slice) return;
+
+        holding = true;
+        emitter?.pause?.(3000);
+
+        const began = performance.now();
+        while (at < steps.length && performance.now() - began < BURST_MS) {
+            try {
+                steps[at++]();
+            } catch (e) {
+                logger.error("A step failed while switching", e);
+            }
+        }
+
+        if (at < steps.length) {
+            setTimeout(burst, 0);
+            return;
+        }
+
+        holding = false;
+        emitter?.resume?.();
+    };
+
+    burst();
+}
+
 // ---------------------------------------------------------------- saying it to the client
 
 function snapshot(id: string): Was {
@@ -406,6 +483,9 @@ export function restoreRequest(id: string): boolean {
  * back without losing the list, while clearing it should lose the list too.
  */
 export function restoreEverything(forget = true) {
+    // all of it, now - so anything still being done in bursts is finished here instead
+    endSlices();
+
     batched(() => {
         for (const id of Object.keys(held.hidden)) putBack(id, held.hiddenWas[id]);
         for (const id of Object.keys(held.blocked)) putBack(id, held.blockedWas[id]);
@@ -427,6 +507,8 @@ export function restoreEverything(forget = true) {
  * and the server has never heard of any of this - so without this everybody comes back.
  */
 export function reapply() {
+    endSlices();
+
     batched(() => {
         for (const id of Object.keys(held.hidden)) unsay(id, FRIEND);
         for (const id of Object.keys(held.blocked)) say(BLOCKED, id);
@@ -438,6 +520,29 @@ export function reapply() {
         // request - so for anybody who is both, the request is the one that should survive.
         for (const id of Object.keys(held.incoming)) say(PENDING_INCOMING, id);
     });
+}
+
+/** Switched off: everybody back as Discord has them, kept on the lists, without a freeze */
+export function pause() {
+    sliced([
+        ...Object.keys(held.hidden).map(id => () => putBack(id, held.hiddenWas[id])),
+        ...Object.keys(held.blocked).map(id => () => putBack(id, held.blockedWas[id])),
+        ...Object.keys(held.pending).map(id => () => unsay(id, PENDING_OUTGOING)),
+        ...Object.keys(held.incoming).map(id => () => unsay(id, PENDING_INCOMING)),
+        ...Object.keys(held.friended).map(id => () => unsay(id, FRIEND))
+    ]);
+}
+
+/** Switched back on: all of it said again, in the order reapply says it, without a freeze */
+export function resume() {
+    sliced([
+        ...Object.keys(held.hidden).map(id => () => unsay(id, FRIEND)),
+        ...Object.keys(held.blocked).map(id => () => say(BLOCKED, id)),
+        ...Object.keys(held.friended).map(id => () => say(FRIEND, id)),
+        ...Object.keys(held.pending).map(id => () => say(PENDING_OUTGOING, id)),
+        ...Object.keys(held.dismissed).map(id => () => unsay(id, PENDING_INCOMING)),
+        ...Object.keys(held.incoming).map(id => () => say(PENDING_INCOMING, id))
+    ]);
 }
 
 export const isOurEvent = (action: any) => !!action?.[OURS];

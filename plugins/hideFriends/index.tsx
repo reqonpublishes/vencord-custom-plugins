@@ -38,11 +38,13 @@ import {
     isLoaded,
     isPending,
     load,
+    pause,
     PENDING_INCOMING,
     reapply,
     receiveRequest,
     removeFakeFriend,
     restoreEverything,
+    resume,
     sendRequest,
     showFriend,
     unblockUser
@@ -275,7 +277,12 @@ export default definePlugin({
     },
 
     /** Told by Cloud Sync that the saved copy was replaced, so the next start reads it again */
-    dataChanged: invalidate,
+    dataChanged() {
+        // Finished now rather than in bursts: the lists are about to be replaced, and anybody
+        // still shown differently from the old ones would have nothing left to put them back.
+        restoreEverything(false);
+        invalidate();
+    },
 
     async start() {
         // Only the first start reads from disk. After that the list is already in memory,
@@ -294,7 +301,7 @@ export default definePlugin({
             logger.error("Could not guard the relationship actions", e);
         }
 
-        reapply();
+        resume();
         FluxDispatcher.subscribe("CONNECTION_OPEN", afterConnect); watchMutuals();
         setRunning(true);
 
@@ -309,6 +316,6 @@ export default definePlugin({
 
         // Back as Discord has it, still on the list - switching the plugin off should give
         // everybody back without forgetting who you had put away.
-        restoreEverything(false);
+        pause();
     }
 });

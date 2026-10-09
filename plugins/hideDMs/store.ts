@@ -109,6 +109,83 @@ function batched(run: () => void) {
     else run();
 }
 
+/** Which run of spread-out work is the current one, and whether one is holding the screen */
+let slice = 0;
+let holding = false;
+
+/** How long one burst of work may run before the window is given a turn */
+const BURST_MS = 8;
+
+/** Up to this many are done in one go: too few to be felt, and not worth the ceremony */
+const FEW = 24;
+
+/** Stop whatever is being done in bursts, and let the screen draw again */
+function endSlices() {
+    slice++;
+
+    if (holding) {
+        holding = false;
+        (Flux as any)?.Emitter?.resume?.();
+    }
+}
+
+/**
+ * Do a long list of things without the window freezing while it happens.
+ *
+ * Each one is a dispatch that Discord spends a couple of milliseconds on, and nothing here
+ * can make that cheaper - so a few hundred of them, done in one go, is a second or more with
+ * the window not answering. That is the freeze when everything is switched on at once, and
+ * it lands at the worst moment: as a call or a screen share is starting.
+ *
+ * So they are done in short bursts with the window given a turn between each. Discord is
+ * asked to hold its redrawing until the last one, because redrawing the list after every
+ * burst costs more than the work itself. The hold is given a time limit, so that if anything
+ * here stopped half way the screen would still come back by itself.
+ *
+ * Only for switching on and off, where being interrupted is harmless: every step checks what
+ * is true before acting, so a run cut short leaves nothing the next one does not put right.
+ */
+function sliced(steps: (() => void)[]) {
+    endSlices();
+
+    if (steps.length <= FEW) {
+        batched(() => {
+            for (const step of steps) step();
+        });
+        return;
+    }
+
+    const mine = slice;
+    const emitter = (Flux as any)?.Emitter;
+    let at = 0;
+
+    const burst = () => {
+        if (mine !== slice) return;
+
+        holding = true;
+        emitter?.pause?.(3000);
+
+        const began = performance.now();
+        while (at < steps.length && performance.now() - began < BURST_MS) {
+            try {
+                steps[at++]();
+            } catch (e) {
+                logger.error("A step failed while switching", e);
+            }
+        }
+
+        if (at < steps.length) {
+            setTimeout(burst, 0);
+            return;
+        }
+
+        holding = false;
+        emitter?.resume?.();
+    };
+
+    burst();
+}
+
 // ---------------------------------------------------------------- hiding and showing
 
 /** Who a conversation is with, for the settings list */
@@ -233,6 +310,9 @@ export function hideAll(except?: string | null): number {
  * on screen and remember them for next time, while clearing the list should not.
  */
 export function showAll(forget = true) {
+    // all of it, now - so anything still being done in bursts is finished here instead
+    endSlices();
+
     batched(() => {
         for (const channelId of [...hidden.keys()]) showChat(channelId, forget);
     });
@@ -248,6 +328,8 @@ export function showAll(forget = true) {
  * they land, or they quietly come back.
  */
 export function reapply() {
+    endSlices();
+
     batched(() => {
         for (const channelId of hidden.keys()) {
             if (!ChannelStore.getChannel(channelId)) continue;
@@ -301,4 +383,23 @@ export function hideWaiting() {
             if (ChannelStore.getChannel(channelId)) hideChat(channelId);
         }
     });
+}
+
+/** Switched off: every hidden conversation back in the list, kept on the list, without a freeze */
+export function pause() {
+    sliced([...hidden.keys()].map(channelId => () => void showChat(channelId, false)));
+}
+
+/** Switched back on: every one of them hidden again, without a freeze */
+export function resume() {
+    sliced([...hidden.keys()].map(channelId => () => {
+        if (!hidden.has(channelId) || !ChannelStore.getChannel(channelId)) return;
+
+        if (inUse(channelId)) {
+            waiting.add(channelId);
+            return;
+        }
+
+        hideChat(channelId);
+    }));
 }
