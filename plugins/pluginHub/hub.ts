@@ -10,7 +10,7 @@ import { Flux } from "@webpack/common";
 
 import {
     BellIcon, BoltIcon, ChatAddIcon, ChatIcon, CloudIcon, EyeOffIcon, IconComponent, InspectIcon, PersonOffIcon,
-    PhoneAddIcon, ServerIcon
+    PhoneAddIcon, ServerIcon, ShieldIcon
 } from "./icons";
 
 const logger = new Logger("PluginHub");
@@ -51,6 +51,7 @@ export const ENTRIES: Entry[] = [
     { plugin: "FakeMessages", label: "Fake Messages", icon: ChatAddIcon, section: "fake", about: "Add messages nobody sent", off: "Off. Only real messages are showing" },
     { plugin: "FakeCalls", label: "Fake Calls", icon: PhoneAddIcon, section: "fake", about: "Add calls that never happened", off: "Off. Only real calls are showing" },
     { plugin: "FakeNotifications", label: "Fake Notifications", icon: BellIcon, section: "fake", about: "Set the numbers on your badges", off: "Off. Badges show the real numbers" },
+    { plugin: "FakeMod", label: "Fake Mod", icon: ShieldIcon, section: "fake", about: "Menus that look like moderator tools", off: "Off. The moderation entries are gone" },
     { plugin: "InspectMessages", label: "Inspect Messages", icon: InspectIcon, section: "fake", about: "Change what a message says and when it was sent", off: "Off. Messages read as they really are" },
     { plugin: "CloudSync", label: "Cloud Sync", icon: CloudIcon, section: "tools", about: "Sync all of this with your phone", off: "Off" },
     { plugin: "QuickRestart", label: "Quick Restart", icon: BoltIcon, section: "tools", about: "Restart plugins in milliseconds", off: "Off. The restart shortcuts do nothing" }

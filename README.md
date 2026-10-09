@@ -17,6 +17,7 @@ Custom plugins for [Vencord](https://vencord.dev).
 | **[Hide&nbsp;Friends](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/hideFriends)** | Hide friends from your friends list, one at a time or all at once. Can also fake a block, a friend request or a friendship. |
 | **[Hide&nbsp;Servers](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/hideServers)** | Take a server off your server list, or all of them at once. You stay in every one. |
 | **[Fake&nbsp;Calls](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/fakeCalls)** | Add a call to any DM: who rang, when, how long it lasted, and whether you picked up. |
+| **[Fake&nbsp;Mod](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/fakeMod)** | Menu entries that look like moderator tools: review, flag, suspend, disable. None of them do anything. |
 | **[Fake&nbsp;Notifications](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/fakeNotifications)** | Choose what the badges say: friend requests and message requests. |
 | **[Plugin&nbsp;Hub](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/pluginHub)** | Adds **Additional Settings** under Vencord: every plugin here in one place with an on/off switch, and one button to see the real Discord. |
 | **[Quick&nbsp;Restart](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/quickRestart)** | Restart Discord in milliseconds instead of seconds, without losing your connection. |
