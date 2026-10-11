@@ -61,31 +61,31 @@ export const POWERS: Power[] = [
     {
         id: "standing", target: "user", label: "View Account Standing", icon: EyeIcon, needs: "trial", kind: "info",
         title: "%s's account standing",
-        body: "All good. No active violations, no open reports, and nothing awaiting review."
+        body: "No active violations. No open reports. Nothing pending review."
     },
     {
         id: "history", target: "user", label: "View Report History", icon: UndoIcon, needs: "trial", kind: "info",
         title: "Reports against %s",
-        body: "No reports in the last 90 days. Older reports are archived and need Moderator access to open."
+        body: "No reports in the last 90 days. Archived reports require Moderator access."
     },
     {
         id: "note", target: "user", label: "Add Staff Note", icon: PencilIcon, needs: "trial", kind: "note",
         title: "Staff note on %s",
-        body: "Visible to moderators only. The account owner never sees it.",
+        body: "Internal only. Notes are visible to the moderation team and are never shown to the account owner.",
         confirm: "Save Note",
         done: "Note saved on %s"
     },
     {
         id: "review", target: "user", label: "Force Profile Review", icon: ShieldIcon, needs: "trial", kind: "confirm",
-        title: "Send %s's profile for review?",
-        body: "Their avatar, banner, bio and display name go to the review queue. A moderator resets anything that breaks the guidelines.",
-        confirm: "Send for Review",
-        done: "Profile sent for review · Case %c"
+        title: "Force review of %s's profile?",
+        body: "Queues this profile's avatar, banner, bio and display name for review against the Community Guidelines. Content found in violation is removed.",
+        confirm: "Force Review",
+        done: "Profile queued for review · Case %c"
     },
     {
         id: "escalate", target: "user", label: "Escalate Account", icon: FlagIcon, needs: "trial", kind: "confirm",
         title: "Escalate %s?",
-        body: "This opens a case for a moderator to pick up. As a trial moderator you can raise it, but not act on it.",
+        body: "Opens a case in the moderation queue for a Moderator to action.",
         confirm: "Escalate",
         done: "Escalated · Case %c"
     },
@@ -93,21 +93,21 @@ export const POWERS: Power[] = [
         id: "suspend", target: "user", label: "Suspend Account", icon: ClockIcon, needs: "moderator", kind: "confirm",
         lengths: ["24 Hours", "7 Days", "30 Days"],
         title: "Suspend %s for %l?",
-        body: "They are logged out of every device and cannot sign in until the suspension ends. They are told why by email.",
+        body: "The account is signed out on all devices and cannot log in until the suspension expires. A notice is sent to the email on the account.",
         confirm: "Suspend",
         done: "%s suspended for %l · Case %c"
     },
     {
         id: "rename", target: "user", label: "Reset Username", icon: GavelIcon, needs: "moderator", kind: "confirm",
         title: "Reset %s's username?",
-        body: "Their username and display name are replaced with generated ones, and they pick new ones the next time they sign in.",
+        body: "Replaces the username and display name with generated ones. The account owner is prompted to choose new ones at next login.",
         confirm: "Reset Username",
         done: "Username reset · Case %c"
     },
     {
         id: "disable", target: "user", label: "Disable Account", icon: BlockIcon, needs: "senior", kind: "confirm", danger: true,
         title: "Disable %s's account?",
-        body: "The account is closed and its owner is told by email. It can only be undone by an appeal.",
+        body: "Permanently disables the account. A notice is sent to the email on the account. This can only be reversed through an appeal.",
         confirm: "Disable Account",
         done: "Account disabled · Case %c"
     },
@@ -116,33 +116,33 @@ export const POWERS: Power[] = [
     {
         id: "server-standing", target: "server", label: "View Server Standing", icon: EyeIcon, needs: "trial", kind: "info",
         title: "%s's standing",
-        body: "All good. No active violations, and no open reports against the server or its owner."
+        body: "No active violations. No open reports against this server or its owner."
     },
     {
         id: "server-review", target: "server", label: "Force Server Review", icon: ShieldIcon, needs: "trial", kind: "confirm",
-        title: "Send %s for review?",
-        body: "The server's name, icon, banner, channels and recent reports go to the review queue. Its members are not told.",
-        confirm: "Send for Review",
-        done: "Server sent for review · Case %c"
+        title: "Force review of %s?",
+        body: "Queues the server's name, icon, banner, channels and recent reports for review against the Community Guidelines.",
+        confirm: "Force Review",
+        done: "Server queued for review · Case %c"
     },
     {
         id: "server-escalate", target: "server", label: "Escalate Server", icon: FlagIcon, needs: "trial", kind: "confirm",
         title: "Escalate %s?",
-        body: "This opens a case for a moderator to pick up. As a trial moderator you can raise it, but not act on it.",
+        body: "Opens a case in the moderation queue for a Moderator to action.",
         confirm: "Escalate",
         done: "Escalated · Case %c"
     },
     {
         id: "server-quarantine", target: "server", label: "Quarantine Server", icon: ServerIcon, needs: "moderator", kind: "confirm",
         title: "Quarantine %s?",
-        body: "Nobody new can join and the server is taken out of Discovery until a review is finished. Members can still talk.",
+        body: "Disables new joins and removes the server from Discovery pending review. Existing members are unaffected.",
         confirm: "Quarantine",
         done: "Server quarantined · Case %c"
     },
     {
         id: "server-disable", target: "server", label: "Disable Server", icon: BlockIcon, needs: "senior", kind: "confirm", danger: true,
         title: "Disable %s?",
-        body: "The server is closed for everybody in it and its owner is told by email. It can only be undone by an appeal.",
+        body: "Permanently disables the server for all members. A notice is sent to the owner's email. This can only be reversed through an appeal.",
         confirm: "Disable Server",
         done: "Server disabled · Case %c"
     },
@@ -151,14 +151,14 @@ export const POWERS: Power[] = [
     {
         id: "message-review", target: "message", label: "Send Message for Review", icon: ShieldIcon, needs: "trial", kind: "confirm",
         title: "Send this message for review?",
-        body: "The message and the ones around it go to the review queue. %s is not told.",
+        body: "Queues this message and its surrounding context for review against the Community Guidelines.",
         confirm: "Send for Review",
-        done: "Message sent for review · Case %c"
+        done: "Message queued for review · Case %c"
     },
     {
         id: "message-remove", target: "message", label: "Remove Message", icon: TrashIcon, needs: "moderator", kind: "confirm", danger: true,
         title: "Remove this message?",
-        body: "It is deleted for everybody and a strike is recorded against %s.",
+        body: "Deletes the message for all users and records a violation against %s's account.",
         confirm: "Remove Message",
         done: "Message removed · Case %c"
     }

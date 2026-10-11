@@ -85,7 +85,7 @@ const reopen = (action: any) => {
 const afterCall = () => void setTimeout(hideWaiting, 0);
 
 /** Kept up with while hidden, so a conversation comes back where its newest message puts it */
-const onMessage = (action: any) => noteMessage(action?.channelId, action?.message?.id);
+const onMessage = (action: any) => noteMessage(action?.channelId, action?.message?.id, action?.message?.author?.id);
 
 /** Discord rebuilds its conversations on every reconnect, so what was hidden is said again */
 const afterConnect = () => reapply();

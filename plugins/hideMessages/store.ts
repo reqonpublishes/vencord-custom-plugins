@@ -885,21 +885,24 @@ export async function startStore() {
 export function stopStore() {
     enabled = false;
 
-    // Which chats had something taken out of them, noted before the lists are emptied.
-    const touched = new Set([...hiddenChannels.keys(), ...hiddenMessages.keys(), ...hiddenRanges.keys()]);
+    // Which chats were hidden whole, noted before the lists are emptied.
+    const whole = [...hiddenChannels.keys()];
     const open = SelectedChannelStore.getChannelId();
 
     showEverything();
     stopObserver();
 
-    // Switching off has to show the real chat now, not the next time it is opened. A chat
-    // hidden whole had its messages dropped as they loaded, so there is nothing on screen to
-    // reveal until it is loaded again - the open one straight away, and the others emptied
-    // so they load fresh when you go to them.
-    for (const channelId of touched) {
+    // Switching off has to show the real chat now, not the next time it is opened. Single
+    // messages and ranges were only ever hidden by a style, which is gone with the rest. A
+    // chat hidden whole is different: its messages were dropped as they loaded, so there is
+    // nothing on screen to reveal until it is loaded again. The open one is loaded straight
+    // away. The others are forgotten rather than emptied - a chat left holding nothing looks
+    // like a chat with nothing in it, where one Discord has no copy of is simply fetched the
+    // next time you go to it.
+    for (const channelId of whole) {
         try {
             if (channelId === open) refresh(channelId);
-            else clearLoadedMessages(channelId, true);
+            else (MessageCache as any).clear(channelId);
         } catch (e) {
             logger.error("Could not reload a chat after switching off", e);
         }

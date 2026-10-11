@@ -241,8 +241,17 @@ export function infoOf(channelId: string): { name: string; image: string | null;
 /** The newest message to arrive in each hidden conversation while it was away */
 const latest = new Map<string, string>();
 
-/** Whether each hidden conversation had been read when it was hidden */
-const wasRead = new Map<string, boolean>();
+/** How many messages from somebody else arrived in each hidden conversation while it was away */
+const arrivals = new Map<string, number>();
+
+/** What Discord knew about how far each hidden conversation had been read, as it was hidden */
+const reads = new Map<string, Record<string, any>>();
+
+/** The parts of a conversation's read state that say how far it has been read and what is waiting */
+const READ_FIELDS = [
+    "_ackMessageId", "_ackMessageTimestamp", "_mentionCount", "_unreadCount", "_oldestUnreadMessageId",
+    "oldestUnreadMessageIdStale", "estimated", "ackPinTimestamp"
+];
 
 const isNewer = (a: string, b?: string | null) => {
     try {
@@ -259,9 +268,16 @@ const isNewer = (a: string, b?: string | null) => {
  * is handed back from a record taken when it was hidden. Without this it comes back sorted
  * by how things stood then, far down the list from where a chat you were just in belongs.
  */
-export function noteMessage(channelId?: string, messageId?: string) {
+export function noteMessage(channelId?: string, messageId?: string, authorId?: string) {
     if (!channelId || !messageId || !hidden.has(channelId)) return;
-    if (isNewer(messageId, latest.get(channelId))) latest.set(channelId, messageId);
+    if (!isNewer(messageId, latest.get(channelId))) return;
+
+    latest.set(channelId, messageId);
+
+    // One of yours, sent from another device, is not something waiting to be read.
+    if (authorId && authorId !== UserStore.getCurrentUser()?.id) {
+        arrivals.set(channelId, (arrivals.get(channelId) ?? 0) + 1);
+    }
 }
 
 function readState(): any {
@@ -272,6 +288,50 @@ function readState(): any {
     }
 }
 
+/**
+ * Write down how far a conversation has been read, before it is hidden.
+ *
+ * Discord throws this away when a conversation closes. One handed back afterwards starts
+ * from nothing: no badge on it however many messages were waiting, and unread from the top.
+ * Neither is how you left it - so how you left it is kept, and put back with it.
+ */
+function rememberRead(channelId: string) {
+    try {
+        const state = readState()?.getForDebugging?.(channelId);
+        if (!state) return;
+
+        const snapshot: Record<string, any> = {};
+        for (const field of READ_FIELDS) snapshot[field] = state[field];
+        reads.set(channelId, snapshot);
+    } catch { /* it comes back as Discord makes it, which is only untidy */ }
+}
+
+/**
+ * Put back how far a conversation had been read, now that it is on screen again.
+ *
+ * Exactly as it was, plus whatever arrived while it was hidden: those are new messages
+ * waiting like any others, so they are added to the badge and it reads as unread from them.
+ */
+function restoreRead(channelId: string, arrived: number) {
+    try {
+        const store = readState();
+        const state = store?.getForDebugging?.(channelId);
+        const snapshot = reads.get(channelId);
+        if (!state || !snapshot) return;
+
+        for (const field of READ_FIELDS) state[field] = snapshot[field];
+
+        if (arrived > 0) {
+            state._mentionCount = (Number(snapshot._mentionCount) || 0) + arrived;
+            state._unreadCount = (Number(snapshot._unreadCount) || 0) + arrived;
+        }
+
+        store.emitChange?.();
+    } catch (e) {
+        logger.error("Could not put back what had been read", e);
+    }
+}
+
 export function hideChat(channelId: string): boolean {
     const record = ChannelStore.getChannel(channelId) ?? kept.get(channelId);
     if (!record) return false;
@@ -279,11 +339,9 @@ export function hideChat(channelId: string): boolean {
     // Only when it is really on screen: one being hidden again from its kept record has
     // nothing new to say about whether it was read.
     if (ChannelStore.getChannel(channelId)) {
-        try {
-            wasRead.set(channelId, !readState()?.hasUnread?.(channelId));
-        } catch { /* it comes back unread, which is the safe way to be wrong */ }
-
+        rememberRead(channelId);
         latest.delete(channelId);
+        arrivals.delete(channelId);
     }
 
     kept.set(channelId, record);
@@ -308,13 +366,13 @@ export function showChat(channelId: string, forget = true): boolean {
 
     let record = kept.get(channelId);
     const newer = latest.get(channelId);
-    const read = wasRead.get(channelId);
+    const arrived = arrivals.get(channelId) ?? 0;
 
     if (forget) {
         if (!hidden.delete(channelId)) return false;
         kept.delete(channelId);
         latest.delete(channelId);
-        wasRead.delete(channelId);
+        arrivals.delete(channelId);
         save();
     }
 
@@ -322,8 +380,7 @@ export function showChat(channelId: string, forget = true): boolean {
 
     // Handed back as it is now, not as it was: with the newest message that arrived while
     // it was away, so it takes its place in the list by that.
-    const arrived = !!newer && isNewer(newer, record.lastMessageId);
-    if (arrived) {
+    if (newer && isNewer(newer, record.lastMessageId)) {
         try {
             record = typeof record.set === "function" ? record.set("lastMessageId", newer) : record;
             kept.set(channelId, record);
@@ -333,10 +390,10 @@ export function showChat(channelId: string, forget = true): boolean {
     try {
         FluxDispatcher.dispatch({ type: "CHANNEL_CREATE", channel: record } as any);
 
-        // Discord forgets what you had read in a conversation when it closes, so one handed
-        // back reads as unread from top to bottom. If it was read when it went, and nothing
-        // has arrived since, it is read - said locally, which is all this ever is.
-        if (read && !arrived) FluxDispatcher.dispatch({ type: "CHANNEL_LOCAL_ACK", channelId } as any);
+        // Read as far as it was, with the same badge - not marked read, and not unread from
+        // the top, which are the two things Discord would otherwise make of it.
+        restoreRead(channelId, arrived);
+        if (forget) reads.delete(channelId);
     } catch (e) {
         logger.error("Could not bring the conversation back", e);
         return false;
