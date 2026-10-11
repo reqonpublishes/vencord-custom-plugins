@@ -466,6 +466,17 @@ export function restoreVisuals() {
  * Only needed when the plugin is enabled mid-session; every load after that is covered by
  * the interceptor, which is both earlier and cheaper.
  */
+/**
+ * Draw every edit onto whatever is loaded, in every conversation.
+ *
+ * Not only the open one: a chat visited earlier keeps its messages and is not asked for
+ * again, so an edit that arrives later - from a sync, or by the plugin coming back on -
+ * would not show there until the chat was closed and reopened.
+ */
+export function reapplyLoaded() {
+    for (const [id, entry] of edits) render(id, entry);
+}
+
 export function reapplyChannel(channelId: string) {
     for (const [id, entry] of edits) {
         if (entry.channelId === channelId) render(id, entry);

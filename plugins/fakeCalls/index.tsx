@@ -26,7 +26,7 @@ import {
     isLoaded,
     load,
     removeCall,
-    showIn,
+    showLoaded,
     takeAllOffScreen,
     total
 } from "./store";
@@ -181,8 +181,7 @@ export default definePlugin({
         }
 
         // The channel on screen was loaded before this started - see Fake Messages.
-        const here = SelectedChannelStore.getChannelId();
-        if (here) showIn(here);
+        showLoaded(SelectedChannelStore.getChannelId());
     },
 
     stop() {

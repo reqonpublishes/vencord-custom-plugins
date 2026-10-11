@@ -27,7 +27,7 @@ import {
     load,
     removeMessage,
     setRunning,
-    showIn,
+    showLoaded,
     takeAllOffScreen,
     total
 } from "./store";
@@ -169,10 +169,9 @@ export default definePlugin({
             FluxDispatcher.addInterceptor(interceptor);
         }
 
-        // The channel on screen was loaded before this started, so nothing has spliced
-        // anything into it. Everywhere else gets them as its pages arrive.
-        const here = SelectedChannelStore.getChannelId();
-        if (here) showIn(here);
+        // Whatever is already loaded was loaded before this started, so nothing has spliced
+        // anything into it. Everything else gets them as its pages arrive.
+        showLoaded(SelectedChannelStore.getChannelId());
     },
 
     stop() {

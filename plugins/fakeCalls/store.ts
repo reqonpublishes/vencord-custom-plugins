@@ -367,3 +367,44 @@ export function interceptor(action: any) {
 
     return false;
 }
+
+/**
+ * Put them on screen in every conversation that is already loaded, not only the open one.
+ *
+ * A conversation you have visited keeps its messages, and is not asked for again when you go
+ * back to it - so one that was loaded before these arrived would not show them until it was
+ * closed and reopened. That is what a sync from the cloud looked like: nothing, until you
+ * left the chat and came back.
+ *
+ * The open one is told as a message arriving, which is what redraws it. The others have the
+ * calls slipped into what they are holding, quietly: telling Discord a message had arrived
+ * in a chat you are not looking at would mark it unread and could ping.
+ */
+export function showLoaded(open?: string | null) {
+    for (const [channelId, list] of added) {
+        if (channelId === open) {
+            showIn(channelId);
+            continue;
+        }
+
+        try {
+            let cache: any = (MessageCache as any).get?.(channelId);
+            if (!cache?.ready) continue;
+
+            let put = false;
+            for (const one of list) {
+                if (cache.has(one.id)) continue;
+
+                cache = cache.receiveMessage(rawCall(one));
+                put = true;
+            }
+            if (!put) continue;
+
+            MessageCache.commit(cache);
+            settle(channelId);
+            MessageStore.emitChange();
+        } catch (e) {
+            logger.error("Could not add to a conversation that was already loaded", e);
+        }
+    }
+}

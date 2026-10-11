@@ -12,7 +12,7 @@ import { migratePluginSettings } from "@api/Settings";
 import { Logger } from "@utils/Logger";
 import definePlugin from "@utils/types";
 import { Message } from "@vencord/discord-types";
-import { ChannelStore, FluxDispatcher, Menu, SelectedChannelStore } from "@webpack/common";
+import { ChannelStore, FluxDispatcher, Menu } from "@webpack/common";
 
 import {
     countEdits,
@@ -22,7 +22,7 @@ import {
     patchRawMessage,
     patchRawMessages,
     patchSearch,
-    reapplyChannel,
+    reapplyLoaded,
     restoreVisuals,
     startStyles,
     stopStyles
@@ -135,6 +135,16 @@ export default definePlugin({
         />
     ),
 
+    /**
+     * Rewrite a message another plugin is about to put on screen by hand.
+     *
+     * Messages are rewritten here as they load. One made up by Fake Messages does not load -
+     * it is slipped in - so that plugin asks, and gets it back as it has been edited.
+     */
+    patchRaw(raw: any) {
+        if (enabled && hasEdits()) patchRawMessage(raw);
+    },
+
     contextMenus: {
         "message": messageCtx
     },
@@ -174,9 +184,8 @@ export default definePlugin({
             FluxDispatcher.addInterceptor(interceptor);
         }
 
-        // messages already on screen when the plugin starts predate the interceptor
-        const channelId = SelectedChannelStore.getChannelId();
-        if (channelId && hasEdits()) reapplyChannel(channelId);
+        // messages already loaded when the plugin starts predate the interceptor
+        if (hasEdits()) reapplyLoaded();
     },
 
     stop() {

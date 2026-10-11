@@ -225,7 +225,7 @@ function rawMessage(one: FakeMessage) {
         }
         : { id: one.authorId, username: "unknown", global_name: null, discriminator: "0", avatar: null, bot: false };
 
-    return {
+    const raw = {
         id: one.id,
         type: 0,
         channel_id: one.channelId,
@@ -248,6 +248,16 @@ function rawMessage(one: FakeMessage) {
         tts: false,
         flags: 0
     };
+
+    // If this one has been rewritten with Inspect Messages, it is handed over already
+    // rewritten. Inspect only gets to messages as they load, and these are put in by hand,
+    // sometimes after it has looked - so it is asked directly rather than left to notice.
+    try {
+        const inspect = (window as any).Vencord?.Plugins?.plugins?.InspectMessages;
+        if (inspect?.started) inspect.patchRaw?.(raw);
+    } catch { /* shown as written, which is still right */ }
+
+    return raw;
 }
 
 /** Show one straight away, rather than waiting for the channel to be opened again */
@@ -572,5 +582,46 @@ function addToSearch(action: any) {
         }
     } catch (e) {
         logger.error("Could not add the invented messages to a search", e);
+    }
+}
+
+/**
+ * Put them on screen in every conversation that is already loaded, not only the open one.
+ *
+ * A conversation you have visited keeps its messages, and is not asked for again when you go
+ * back to it - so one that was loaded before these arrived would not show them until it was
+ * closed and reopened. That is what a sync from the cloud looked like: nothing, until you
+ * left the chat and came back.
+ *
+ * The open one is told as a message arriving, which is what redraws it. The others have the
+ * messages slipped into what they are holding, quietly: telling Discord a message had arrived
+ * in a chat you are not looking at would mark it unread and could ping.
+ */
+export function showLoaded(open?: string | null) {
+    for (const [channelId, list] of added) {
+        if (channelId === open) {
+            showIn(channelId);
+            continue;
+        }
+
+        try {
+            let cache: any = (MessageCache as any).get?.(channelId);
+            if (!cache?.ready) continue;
+
+            let put = false;
+            for (const one of list) {
+                if (cache.has(one.id)) continue;
+
+                cache = cache.receiveMessage(rawMessage(one));
+                put = true;
+            }
+            if (!put) continue;
+
+            MessageCache.commit(cache);
+            settle(channelId);
+            MessageStore.emitChange();
+        } catch (e) {
+            logger.error("Could not add to a conversation that was already loaded", e);
+        }
     }
 }
