@@ -15,7 +15,7 @@ import { ChannelStore, FluxDispatcher, Menu } from "@webpack/common";
 import { EyeIcon, EyeOffIcon } from "./icons";
 import { place } from "./menu";
 import { settings } from "./settings";
-import { count, hideChat, hideWaiting, hidJustNow, invalidate, isHidden, isLoaded, isWaiting, load, pause, reapply, resume, showAll, showChat } from "./store";
+import { count, hideChat, hideWaiting, hidJustNow, invalidate, isHidden, isLoaded, isWaiting, load, noteMessage, pause, reapply, resume, showAll, showChat } from "./store";
 import { About } from "./ui";
 
 /**
@@ -84,6 +84,9 @@ const reopen = (action: any) => {
 /** A call ending frees the conversation it was in, the same way leaving it does */
 const afterCall = () => void setTimeout(hideWaiting, 0);
 
+/** Kept up with while hidden, so a conversation comes back where its newest message puts it */
+const onMessage = (action: any) => noteMessage(action?.channelId, action?.message?.id);
+
 /** Discord rebuilds its conversations on every reconnect, so what was hidden is said again */
 const afterConnect = () => reapply();
 
@@ -151,6 +154,7 @@ export default definePlugin({
 
         FluxDispatcher.subscribe("CHANNEL_SELECT", reopen);
         FluxDispatcher.subscribe("VOICE_CHANNEL_SELECT", afterCall);
+        FluxDispatcher.subscribe("MESSAGE_CREATE", onMessage);
         FluxDispatcher.subscribe("CONNECTION_OPEN", afterConnect);
     },
 
@@ -158,6 +162,7 @@ export default definePlugin({
         alive = false;
         FluxDispatcher.unsubscribe("CHANNEL_SELECT", reopen);
         FluxDispatcher.unsubscribe("VOICE_CHANNEL_SELECT", afterCall);
+        FluxDispatcher.unsubscribe("MESSAGE_CREATE", onMessage);
         FluxDispatcher.unsubscribe("CONNECTION_OPEN", afterConnect);
 
         // Back on screen, still on the list. Switching the plugin off should give the

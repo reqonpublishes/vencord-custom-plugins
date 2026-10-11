@@ -6,6 +6,7 @@
 
 import { del, get, set } from "@api/DataStore";
 import { Logger } from "@utils/Logger";
+import { findStore } from "@webpack";
 import { ChannelStore, Flux, FluxDispatcher, SelectedChannelStore, UserStore } from "@webpack/common";
 
 import { settings } from "./settings";
@@ -237,9 +238,53 @@ export function infoOf(channelId: string): { name: string; image: string | null;
  * state the client already knows how to be in, and anything more inventive is a state it
  * never reaches on its own.
  */
+/** The newest message to arrive in each hidden conversation while it was away */
+const latest = new Map<string, string>();
+
+/** Whether each hidden conversation had been read when it was hidden */
+const wasRead = new Map<string, boolean>();
+
+const isNewer = (a: string, b?: string | null) => {
+    try {
+        return !b || BigInt(a) > BigInt(b);
+    } catch {
+        return false;
+    }
+};
+
+/**
+ * Note a message that arrived in a hidden conversation.
+ *
+ * Where a conversation sits in the list is decided by its newest message, and a hidden one
+ * is handed back from a record taken when it was hidden. Without this it comes back sorted
+ * by how things stood then, far down the list from where a chat you were just in belongs.
+ */
+export function noteMessage(channelId?: string, messageId?: string) {
+    if (!channelId || !messageId || !hidden.has(channelId)) return;
+    if (isNewer(messageId, latest.get(channelId))) latest.set(channelId, messageId);
+}
+
+function readState(): any {
+    try {
+        return findStore("ReadStateStore");
+    } catch {
+        return null;
+    }
+}
+
 export function hideChat(channelId: string): boolean {
     const record = ChannelStore.getChannel(channelId) ?? kept.get(channelId);
     if (!record) return false;
+
+    // Only when it is really on screen: one being hidden again from its kept record has
+    // nothing new to say about whether it was read.
+    if (ChannelStore.getChannel(channelId)) {
+        try {
+            wasRead.set(channelId, !readState()?.hasUnread?.(channelId));
+        } catch { /* it comes back unread, which is the safe way to be wrong */ }
+
+        latest.delete(channelId);
+    }
 
     kept.set(channelId, record);
     hidden.set(channelId, nameOf(channelId));
@@ -261,18 +306,37 @@ export function hideChat(channelId: string): boolean {
 export function showChat(channelId: string, forget = true): boolean {
     waiting.delete(channelId);
 
-    const record = kept.get(channelId);
+    let record = kept.get(channelId);
+    const newer = latest.get(channelId);
+    const read = wasRead.get(channelId);
 
     if (forget) {
         if (!hidden.delete(channelId)) return false;
         kept.delete(channelId);
+        latest.delete(channelId);
+        wasRead.delete(channelId);
         save();
     }
 
     if (!record || ChannelStore.getChannel(channelId)) return true;
 
+    // Handed back as it is now, not as it was: with the newest message that arrived while
+    // it was away, so it takes its place in the list by that.
+    const arrived = !!newer && isNewer(newer, record.lastMessageId);
+    if (arrived) {
+        try {
+            record = typeof record.set === "function" ? record.set("lastMessageId", newer) : record;
+            kept.set(channelId, record);
+        } catch { /* it keeps its old place, which is only untidy */ }
+    }
+
     try {
         FluxDispatcher.dispatch({ type: "CHANNEL_CREATE", channel: record } as any);
+
+        // Discord forgets what you had read in a conversation when it closes, so one handed
+        // back reads as unread from top to bottom. If it was read when it went, and nothing
+        // has arrived since, it is read - said locally, which is all this ever is.
+        if (read && !arrived) FluxDispatcher.dispatch({ type: "CHANNEL_LOCAL_ACK", channelId } as any);
     } catch (e) {
         logger.error("Could not bring the conversation back", e);
         return false;
