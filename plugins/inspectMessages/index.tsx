@@ -141,6 +141,11 @@ export default definePlugin({
      * Messages are rewritten here as they load. One made up by Fake Messages does not load -
      * it is slipped in - so that plugin asks, and gets it back as it has been edited.
      */
+    /** Open the editor on a message, for a plugin that wants to offer it somewhere of its own */
+    inspect(message: Message) {
+        openInspectModal(message);
+    },
+
     patchRaw(raw: any) {
         if (enabled && hasEdits()) patchRawMessage(raw);
     },

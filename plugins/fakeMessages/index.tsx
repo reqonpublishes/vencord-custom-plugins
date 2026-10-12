@@ -10,10 +10,10 @@ import { NavContextMenuPatchCallback } from "@api/ContextMenu";
 import { migratePluginSettings } from "@api/Settings";
 import definePlugin from "@utils/types";
 import { Channel, Message } from "@vencord/discord-types";
-import { FluxDispatcher, Menu, SelectedChannelStore } from "@webpack/common";
+import { FluxDispatcher, Menu, SelectedChannelStore, showToast } from "@webpack/common";
 
 import { openAddMessage } from "./AddMessageModal";
-import { ChatAddIcon, TrashIcon } from "./icons";
+import { ChatAddIcon, PencilIcon, TrashIcon } from "./icons";
 import { place } from "./menu";
 import { settings } from "./settings";
 import {
@@ -43,6 +43,26 @@ const messageCtx: NavContextMenuPatchCallback = (children, { message }: { messag
     // Taking one back is offered where it is: on the message itself, which is the only place
     // somebody looking at it would think to ask.
     if (isFake(channelId, message.id)) {
+        // Editing one is Inspect Messages' job - it rewrites the text, the time and the
+        // edited tag of any message, and these are messages like any other. But its own
+        // entry only shows while Shift is held, which nobody guesses on a message they made
+        // up themselves, so the way in is offered here in plain sight.
+        place(children, 44,
+            <Menu.MenuItem
+                id="vc-cfm-edit"
+                key="vc-cfm-edit"
+                label="Edit Fake Message"
+                icon={PencilIcon}
+                leadingAccessory={{ type: "icon", icon: PencilIcon }}
+                action={() => {
+                    const inspect = (window as any).Vencord?.Plugins?.plugins?.InspectMessages;
+
+                    if (inspect?.started && typeof inspect.inspect === "function") inspect.inspect(message);
+                    else showToast("Turn on Inspect Messages to edit a fake message", "message");
+                }}
+            />
+        );
+
         place(children, 45,
             <Menu.MenuItem
                 id="vc-cfm-remove"
