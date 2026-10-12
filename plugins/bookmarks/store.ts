@@ -5,9 +5,41 @@
  */
 
 import { get, set } from "@api/DataStore";
+import { Logger } from "@utils/Logger";
+import { findByPropsLazy } from "@webpack";
 import { IconUtils, UserStore } from "@webpack/common";
 
 const KEY = "Bookmarks_People";
+
+const logger = new Logger("Bookmarks");
+
+const ChannelActions = findByPropsLazy("openPrivateChannel", "ensurePrivateChannel");
+
+/**
+ * Open the DM with somebody, making Discord reopen it if it was closed.
+ *
+ * Asked for the way Discord's own Message buttons ask. The shape of that call has changed
+ * between builds: it used to take the person, and now takes a description with the person
+ * inside. Handing the old shape to the new function is not an error - it reads as a
+ * conversation with nobody in it, and Discord obligingly creates an empty group. So which
+ * shape this build wants is read off the function, and if that cannot be told, nothing is
+ * opened at all.
+ */
+export function openDM(userId?: string) {
+    if (!userId) return;
+
+    try {
+        const actions: any = ChannelActions;
+        const source = String(actions.openPrivateChannel);
+
+        if (source.includes("recipientIds")) actions.openPrivateChannel({ recipientIds: [userId] });
+        else if (typeof actions.getOrEnsurePrivateChannel === "function") {
+            actions.getOrEnsurePrivateChannel(userId).then((channelId: string) => actions.selectPrivateChannel?.(channelId) ?? actions.openPrivateChannel(userId));
+        } else logger.warn("Could not tell how this build opens a DM, so nothing was opened");
+    } catch (e) {
+        logger.error("Could not open the DM", e);
+    }
+}
 
 export interface Bookmark {
     id: string;

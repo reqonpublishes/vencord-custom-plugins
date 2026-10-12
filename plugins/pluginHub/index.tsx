@@ -36,8 +36,18 @@ export const settings = definePluginSettings({
     shareProtection: {
         type: OptionType.BOOLEAN,
         displayName: "Screen Share Protection",
-        description: "While you share your screen, every plugin is switched on, including the ones you turned off. They go back to how you had them when you stop.",
+        description: "While you share your screen, every plugin is switched on or off together, whichever you pick below. They go back to how you had them when you stop.",
         default: true,
+        onChange: () => check()
+    },
+    shareMode: {
+        type: OptionType.SELECT,
+        displayName: "While sharing",
+        description: "What Screen Share Protection does to the plugins for as long as your screen is shared. Either way they go back to how you had them afterwards",
+        options: [
+            { label: "Turn every plugin on", value: "on", default: true },
+            { label: "Turn every plugin off", value: "off" }
+        ],
         onChange: () => check()
     },
     streamerMode: {

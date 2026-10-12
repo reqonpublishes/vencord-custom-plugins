@@ -14,6 +14,7 @@ import { ChannelStore, FluxDispatcher, Menu, SelectedChannelStore } from "@webpa
 
 import { openAddCall } from "./AddCallModal";
 import { PhoneAddIcon, TrashIcon } from "./icons";
+import { startLive, stopLive } from "./live";
 import { place } from "./menu";
 import { settings } from "./settings";
 import {
@@ -182,10 +183,12 @@ export default definePlugin({
 
         // The channel on screen was loaded before this started - see Fake Messages.
         showLoaded(SelectedChannelStore.getChannelId());
+        startLive();
     },
 
     stop() {
         alive = false;
+        stopLive();
         takeAllOffScreen();
     }
 });

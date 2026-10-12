@@ -8,14 +8,33 @@ import "./shared.css";
 import "./styles.css";
 
 import { NavContextMenuPatchCallback } from "@api/ContextMenu";
+import { Settings } from "@api/Settings";
 import definePlugin from "@utils/types";
 import { Channel, User } from "@vencord/discord-types";
-import { Menu, showToast, UserStore } from "@webpack/common";
+import { findStoreLazy } from "@webpack";
+import { FluxDispatcher, Menu, RelationshipStore, showToast, UserStore } from "@webpack/common";
 
 import BookmarksPage from "./BookmarksPage";
 import { BookmarkAddIcon, BookmarkIcon } from "./icons";
-import { add, isBookmarked, load, remove } from "./store";
+import { add, count, isBookmarked, load, remove } from "./store";
 import { About } from "./ui";
+
+const FriendsStore: any = findStoreLazy("FriendsStore");
+
+/** Whether Vencord had this switched on when Discord loaded, which is when the tab is put in */
+const enabledAtLoad = !!Settings.plugins.Bookmarks?.enabled;
+
+let running = false;
+
+/** Have the Friends page look again at which tabs it has */
+function redrawFriends() {
+    try {
+        // The page keeps its list of tabs until something it is listening to changes, and
+        // the relationships are what it listens to.
+        RelationshipStore.emitChange?.();
+        FriendsStore.emitChange?.();
+    } catch { /* not open */ }
+}
 
 /** The id of the tab, as Discord keeps track of which one is open */
 const SECTION = "BOOKMARKED";
@@ -79,7 +98,7 @@ export default definePlugin({
             replacement: [
                 {
                     match: /className:(\i\.\i)\},\{id:(\i\.\i)\.SUGGESTIONS,show:/,
-                    replace: "className:$1},{id:$self.SECTION,show:!0,className:$1,content:\"Bookmarked\",announceName:\"Bookmarked\"},{id:$2.SUGGESTIONS,show:"
+                    replace: "className:$1},{id:$self.SECTION,show:$self.tabShown(),className:$1,content:\"Bookmarked\",announceName:\"Bookmarked\"},{id:$2.SUGGESTIONS,show:"
                 },
                 {
                     // What is drawn under the tabs. Add Friend has a page of its own and every
@@ -93,6 +112,25 @@ export default definePlugin({
 
     SECTION,
 
+    /**
+     * Whether the tab is there. The tab is part of Discord's page for as long as the window
+     * lives, so switching the plugin off cannot take it out - it is asked each time instead.
+     */
+    tabShown() {
+        return running;
+    },
+
+    /** Whether Discord loaded with the tab in, which is the only time it can go in */
+    patchesLive() {
+        return enabledAtLoad;
+    },
+
+    /** One line for Additional Settings */
+    hubSummary() {
+        const n = count();
+        return n ? `${n} ${n === 1 ? "person" : "people"} bookmarked` : "Nobody bookmarked yet";
+    },
+
     renderPage() {
         return <BookmarksPage />;
     },
@@ -104,6 +142,22 @@ export default definePlugin({
     },
 
     async start() {
+        running = true;
+        redrawFriends();
+
         await load();
+    },
+
+    stop() {
+        running = false;
+
+        // Standing on the tab as it goes would leave its page up with no tab selected.
+        try {
+            if (FriendsStore.getState?.()?.section === SECTION) {
+                FluxDispatcher.dispatch({ type: "FRIENDS_SET_SECTION", section: "ALL" } as any);
+            }
+        } catch { /* nothing open to move */ }
+
+        redrawFriends();
     }
 });

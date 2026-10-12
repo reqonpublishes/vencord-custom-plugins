@@ -45,6 +45,10 @@ function idAt(at: number): string {
     }
 }
 
+/** An added call with no end: one that should look as though it is still going */
+export const isLive = (channelId: string, messageId: string) =>
+    !!added.get(channelId)?.some(one => one.id === messageId && one.endedAt === null);
+
 export const isFake = (channelId: string, messageId: string) =>
     !!added.get(channelId)?.some(one => one.id === messageId);
 

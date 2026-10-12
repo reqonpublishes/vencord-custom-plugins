@@ -15,8 +15,15 @@ const logger = new Logger("PluginHub");
 const ApplicationStreamingStore: any = findStoreLazy("ApplicationStreamingStore");
 const StreamerModeStore: any = findStoreLazy("StreamerModeStore");
 
-/** The plugins this switched on for a share, so only those are switched back off after it */
+/**
+ * The plugins switched for the length of a share, and which way they were switched - so
+ * only those are switched back after it, and switched back the right way.
+ */
 let raised: string[] | null = null;
+let raisedTo = true;
+
+/** Which way a share switches things: every plugin on, or every plugin off */
+const turnsOn = () => Settings.plugins.PluginHub?.shareMode !== "off";
 
 const listeners = new Set<() => void>();
 
@@ -69,16 +76,19 @@ export function check() {
     // cannot be started from in there, and is a lot to do in one go at the moment a stream
     // is trying to start.
     if (want) {
-        raised = usable().filter(entry => isView(entry) && !isOn(entry.plugin)).map(entry => entry.plugin);
-        spread(raised, true);
+        // Whatever is not already the way the share wants it. Nothing is written down about
+        // these being switched: what you chose stays exactly as you left it.
+        raisedTo = turnsOn();
+        raised = usable().filter(entry => isView(entry) && isOn(entry.plugin) !== raisedTo).map(entry => entry.plugin);
+        spread(raised, raisedTo);
     } else {
         const mine = raised ?? [];
         raised = null;
 
-        // Only the ones still meant to be off. Anything switched on by hand during the
-        // share was a decision, and is left alone.
+        // Back to how each was chosen to be. One switched by hand during the share was a
+        // decision, and is left as it was decided.
         const off: string[] = Settings.plugins.PluginHub?.off ?? [];
-        spread(mine.filter(name => off.includes(name)), false);
+        spread(mine.filter(name => off.includes(name) === raisedTo), !raisedTo);
     }
 
     mark();
@@ -157,8 +167,11 @@ export function stopProtection() {
         raised = null;
 
         const off: string[] = Settings.plugins.PluginHub?.off ?? [];
-        for (const name of mine) if (off.includes(name)) force(name, false);
+        for (const name of mine) if (off.includes(name) === raisedTo) force(name, !raisedTo);
     }
 
     mark();
 }
+
+/** Which way things are being held right now, for the settings page to say */
+export const protectingTo = () => raisedTo;

@@ -5,11 +5,11 @@
  */
 
 import ErrorBoundary from "@components/ErrorBoundary";
-import { openPrivateChannel, openUserProfile } from "@utils/discord";
+import { openUserProfile } from "@utils/discord";
 import { React, Tooltip, useEffect, useState } from "@webpack/common";
 
 import { BookmarkIcon, ChatIcon, CloseIcon, PersonIcon } from "./icons";
-import { all, describe, onChange, remove } from "./store";
+import { all, describe, onChange, openDM, remove } from "./store";
 import { cl } from "./ui";
 
 function RowButton({ label, onClick, danger, children }: { label: string; onClick(): void; danger?: boolean; children: React.ReactNode; }) {
@@ -80,9 +80,9 @@ function BookmarksPage() {
                         className={cl("person")}
                         role="button"
                         tabIndex={0}
-                        onClick={() => openPrivateChannel(bookmark.id)}
+                        onClick={() => openDM(bookmark.id)}
                         onKeyDown={event => {
-                            if (event.key === "Enter") openPrivateChannel(bookmark.id);
+                            if (event.key === "Enter") openDM(bookmark.id);
                         }}
                     >
                         {image
@@ -93,7 +93,7 @@ function BookmarksPage() {
                             <div className={cl("username")}>{username}</div>
                         </div>
                         <div className={cl("buttons")}>
-                            <RowButton label="Message" onClick={() => openPrivateChannel(bookmark.id)}>
+                            <RowButton label="Message" onClick={() => openDM(bookmark.id)}>
                                 <ChatIcon height={20} width={20} />
                             </RowButton>
                             <RowButton label="Profile" onClick={() => openUserProfile(bookmark.id)}>
