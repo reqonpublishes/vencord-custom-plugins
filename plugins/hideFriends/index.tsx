@@ -38,6 +38,7 @@ import {
     isLoaded,
     isPending,
     load,
+    noteReal,
     pause,
     PENDING_INCOMING,
     reapply,
@@ -229,6 +230,9 @@ const afterConnect = () => {
     setTimeout(reapply, 0);
 };
 
+/** Whether the real relationships are being listened for */
+let watching = false;
+
 /** Whether the plugin is meant to be on. Checked after waiting, in case it was switched off meanwhile */
 let alive = false;
 
@@ -285,6 +289,19 @@ export default definePlugin({
     },
 
     async start() {
+        // Once, and left: there is no taking an interceptor back off. It only listens, and
+        // has to go on listening while the plugin is off, or what it knows goes stale.
+        if (!watching) {
+            watching = true;
+            FluxDispatcher.addInterceptor((action: any) => {
+                try {
+                    noteReal(action);
+                } catch { /* what Discord sends still goes through */ }
+
+                return false;
+            });
+        }
+
         // Only the first start reads from disk. After that the list is already in memory,
         // and not waiting is what lets switching back on happen at once.
         alive = true;

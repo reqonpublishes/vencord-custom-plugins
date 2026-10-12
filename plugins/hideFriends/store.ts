@@ -264,7 +264,86 @@ function sliced(steps: (() => void)[]) {
 
 // ---------------------------------------------------------------- saying it to the client
 
+/**
+ * Every relationship as Discord really has it, whatever this client is showing.
+ *
+ * Putting somebody back used to mean putting back what was written down when they were
+ * hidden. That is only right for as long as nothing else has changed, and plenty does:
+ * somebody hidden while they were a pretended friend was written down as a friend; a list
+ * that came from the phone says nothing about what anybody is on this computer; a friend
+ * removed for real while hidden was still written down as one. Each of those ended the same
+ * way - plugin off, and a person showing as a friend who is not.
+ *
+ * So the truth is kept here instead, from the only place it comes from: what Discord sends.
+ * The whole list when it connects, and each change after that. Nothing this plugin says is
+ * let in. Putting somebody back is then just showing what is in here.
+ */
+const truth = new Map<string, Was>();
+let truthKnown = false;
+
+const idOf = (relationship: any): string | undefined =>
+    relationship?.id ?? relationship?.user_id ?? relationship?.user?.id;
+
+/** Read the relationships as they stand. Only right before anything of ours has been said */
+function learnTruth() {
+    if (truthKnown) return;
+
+    try {
+        const store: any = RelationshipStore;
+        const all = store.getMutableRelationships?.() ?? store.getRelationships?.();
+        const entries: [string, number][] = all instanceof Map ? [...all] : Object.entries(all ?? {});
+
+        for (const [id, type] of entries) {
+            truth.set(id, { type: Number(type), nickname: store.getNickname?.(id) ?? null, since: store.getSince?.(id) ?? null });
+        }
+
+        truthKnown = true;
+    } catch (e) {
+        logger.error("Could not read the real relationships", e);
+    }
+}
+
+/**
+ * Keep the truth up to date from what Discord sends.
+ *
+ * Called for every action, before any store sees it, so it bails on the type first.
+ */
+export function noteReal(action: any) {
+    switch (action?.type) {
+        case "CONNECTION_OPEN":
+            if (!Array.isArray(action.relationships)) return;
+
+            truth.clear();
+            for (const one of action.relationships) {
+                const id = idOf(one);
+                if (id) truth.set(id, { type: one.type, nickname: one.nickname ?? null, since: one.since ?? null });
+            }
+            truthKnown = true;
+            return;
+
+        case "RELATIONSHIP_ADD":
+        case "RELATIONSHIP_UPDATE": {
+            if (action[OURS]) return;
+
+            const one = action.relationship;
+            const id = idOf(one);
+            if (id) truth.set(id, { type: one.type, nickname: one.nickname ?? truth.get(id)?.nickname ?? null, since: one.since ?? truth.get(id)?.since ?? null });
+            return;
+        }
+
+        case "RELATIONSHIP_REMOVE": {
+            if (action[OURS]) return;
+
+            const id = idOf(action.relationship);
+            if (id) truth.delete(id);
+            return;
+        }
+    }
+}
+
 function snapshot(id: string): Was {
+    if (truthKnown) return truth.get(id) ?? { type: NONE, nickname: null, since: null };
+
     let type = NONE;
     let nickname: string | null = null;
     let since: string | null = null;
@@ -303,13 +382,21 @@ function unsay(id: string, type: number) {
 }
 
 /** Put the relationship back to whatever it really was */
+/**
+ * Show somebody as they really are.
+ *
+ * From the truth when it is known, which is always once Discord has connected. What was
+ * written down when they were hidden is only the fallback for the moment before that.
+ */
 function putBack(id: string, was?: Was) {
-    if (!was || !was.type || was.type === NONE) {
+    const real = truthKnown ? truth.get(id) : was;
+
+    if (!real || !real.type || real.type === NONE) {
         unsay(id, FRIEND);
         return;
     }
 
-    say(was.type, id, was.since, was.nickname);
+    say(real.type, id, real.since, real.nickname);
 }
 
 // ---------------------------------------------------------------- the pretences
@@ -424,7 +511,10 @@ export function clearRequest(id: string): boolean {
     delete held.incoming[id];
     save();
 
-    unsay(id, incoming ? PENDING_INCOMING : PENDING_OUTGOING);
+    // Not simply taken away: if there is a real request or friendship underneath, that is
+    // what should be left showing.
+    if (truthKnown) putBack(id);
+    else unsay(id, incoming ? PENDING_INCOMING : PENDING_OUTGOING);
     return true;
 }
 
@@ -450,7 +540,7 @@ export function removeFakeFriend(id: string): boolean {
     delete held.friended[id];
     save();
 
-    unsay(id, FRIEND);
+    putBack(id);
     return true;
 }
 
@@ -471,8 +561,10 @@ export function restoreRequest(id: string): boolean {
     delete held.dismissed[id];
     save();
 
-    // Nothing is said here. The request is real, so Discord hands it back on the next
-    // reconnect by itself - and inventing one now would be this client making it up.
+    // Handed back as Discord has it, when that is known. Otherwise nothing is said: the
+    // request is real, so it returns on the next reconnect, and inventing one now would be
+    // this client making it up.
+    if (truthKnown) putBack(id);
     return true;
 }
 
@@ -487,11 +579,7 @@ export function restoreEverything(forget = true) {
     endSlices();
 
     batched(() => {
-        for (const id of Object.keys(held.hidden)) putBack(id, held.hiddenWas[id]);
-        for (const id of Object.keys(held.blocked)) putBack(id, held.blockedWas[id]);
-        for (const id of Object.keys(held.pending)) unsay(id, PENDING_OUTGOING);
-        for (const id of Object.keys(held.incoming)) unsay(id, PENDING_INCOMING);
-        for (const id of Object.keys(held.friended)) unsay(id, FRIEND);
+        for (const id of touched()) putBack(id, held.hiddenWas[id] ?? held.blockedWas[id]);
     });
 
     if (!forget) return;
@@ -508,6 +596,7 @@ export function restoreEverything(forget = true) {
  */
 export function reapply() {
     endSlices();
+    learnTruth();
 
     batched(() => {
         for (const id of Object.keys(held.hidden)) unsay(id, FRIEND);
@@ -522,19 +611,23 @@ export function reapply() {
     });
 }
 
+/** Everybody this client is showing differently, once each */
+function touched(): string[] {
+    return [...new Set([
+        ...Object.keys(held.hidden), ...Object.keys(held.blocked), ...Object.keys(held.pending),
+        ...Object.keys(held.incoming), ...Object.keys(held.friended), ...Object.keys(held.dismissed)
+    ])];
+}
+
 /** Switched off: everybody back as Discord has them, kept on the lists, without a freeze */
 export function pause() {
-    sliced([
-        ...Object.keys(held.hidden).map(id => () => putBack(id, held.hiddenWas[id])),
-        ...Object.keys(held.blocked).map(id => () => putBack(id, held.blockedWas[id])),
-        ...Object.keys(held.pending).map(id => () => unsay(id, PENDING_OUTGOING)),
-        ...Object.keys(held.incoming).map(id => () => unsay(id, PENDING_INCOMING)),
-        ...Object.keys(held.friended).map(id => () => unsay(id, FRIEND))
-    ]);
+    sliced(touched().map(id => () => putBack(id, held.hiddenWas[id] ?? held.blockedWas[id])));
 }
 
 /** Switched back on: all of it said again, in the order reapply says it, without a freeze */
 export function resume() {
+    learnTruth();
+
     sliced([
         ...Object.keys(held.hidden).map(id => () => unsay(id, FRIEND)),
         ...Object.keys(held.blocked).map(id => () => say(BLOCKED, id)),
