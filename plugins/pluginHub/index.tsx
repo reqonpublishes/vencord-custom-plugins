@@ -36,18 +36,8 @@ export const settings = definePluginSettings({
     shareProtection: {
         type: OptionType.BOOLEAN,
         displayName: "Screen Share Protection",
-        description: "While you share your screen, every plugin is switched on or off together, whichever you pick below. They go back to how you had them when you stop.",
+        description: "While you share your screen, every plugin is switched on, including the ones you turned off, and their menu entries and this page are kept out of sight. Everything goes back to how you had it when you stop.",
         default: true,
-        onChange: () => check()
-    },
-    shareMode: {
-        type: OptionType.SELECT,
-        displayName: "While sharing",
-        description: "What Screen Share Protection does to the plugins for as long as your screen is shared. Either way they go back to how you had them afterwards",
-        options: [
-            { label: "Turn every plugin on", value: "on", default: true },
-            { label: "Turn every plugin off", value: "off" }
-        ],
         onChange: () => check()
     },
     streamerMode: {
@@ -58,6 +48,26 @@ export const settings = definePluginSettings({
         onChange: () => check()
     }
 });
+
+/** Put this page in Discord's settings sidebar, or take it out */
+function listed(on: boolean) {
+    removeFromArray(SettingsPlugin.customEntries, entry => entry.key === KEY);
+
+    if (on) {
+        SettingsPlugin.customEntries.push({
+            key: KEY,
+            title: "Additional Settings",
+            Component: HubPage,
+            Icon: TuneIcon
+        });
+    }
+}
+
+/**
+ * A page listing everything that is hidden and faked is the last thing to have in the
+ * sidebar of a shared screen, so it is taken out while one is being shared.
+ */
+const onShared = (event: Event) => listed(!(event as CustomEvent).detail);
 
 export default definePlugin({
     name: "PluginHub",
@@ -82,12 +92,8 @@ export default definePlugin({
     ),
 
     start() {
-        SettingsPlugin.customEntries.push({
-            key: KEY,
-            title: "Additional Settings",
-            Component: HubPage,
-            Icon: TuneIcon
-        });
+        listed(true);
+        window.addEventListener("vc-screen-shared", onShared);
 
         // After this turn of the loop, by which time Vencord has started every plugin it is
         // going to - including the ones that are meant to be off.
@@ -101,6 +107,7 @@ export default definePlugin({
 
     stop() {
         stopProtection();
-        removeFromArray(SettingsPlugin.customEntries, entry => entry.key === KEY);
+        window.removeEventListener("vc-screen-shared", onShared);
+        listed(false);
     }
 });

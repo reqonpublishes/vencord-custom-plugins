@@ -26,6 +26,24 @@ const enabledAtLoad = !!Settings.plugins.Bookmarks?.enabled;
 
 let running = false;
 
+/** Whether the screen is being shared, as Plugin Hub's Screen Share Protection sees it */
+const shared = () => !!(window as any).vcScreenShared;
+
+/** A share starting or ending: the tab goes or comes back, and you are moved off it if you were on it */
+function onShared() {
+    leaveTab();
+    redrawFriends();
+}
+
+/** Standing on the tab as it goes would leave its page up with no tab selected */
+function leaveTab() {
+    try {
+        if (FriendsStore.getState?.()?.section === SECTION) {
+            FluxDispatcher.dispatch({ type: "FRIENDS_SET_SECTION", section: "ALL" } as any);
+        }
+    } catch { /* nothing open to move */ }
+}
+
 /** Have the Friends page look again at which tabs it has */
 function redrawFriends() {
     try {
@@ -48,6 +66,9 @@ function personOf(user?: User, channel?: Channel): any {
 }
 
 const menu: NavContextMenuPatchCallback = (children, { user, channel }: { user?: User; channel?: Channel; }) => {
+    // A shared screen should not show who is worth keeping within reach.
+    if (shared()) return;
+
     const person = personOf(user, channel);
     if (!person?.id || person.id === UserStore.getCurrentUser()?.id) return;
 
@@ -117,7 +138,7 @@ export default definePlugin({
      * lives, so switching the plugin off cannot take it out - it is asked each time instead.
      */
     tabShown() {
-        return running;
+        return running && !shared();
     },
 
     /** Whether Discord loaded with the tab in, which is the only time it can go in */
@@ -143,6 +164,7 @@ export default definePlugin({
 
     async start() {
         running = true;
+        window.addEventListener("vc-screen-shared", onShared);
         redrawFriends();
 
         await load();
@@ -151,13 +173,8 @@ export default definePlugin({
     stop() {
         running = false;
 
-        // Standing on the tab as it goes would leave its page up with no tab selected.
-        try {
-            if (FriendsStore.getState?.()?.section === SECTION) {
-                FluxDispatcher.dispatch({ type: "FRIENDS_SET_SECTION", section: "ALL" } as any);
-            }
-        } catch { /* nothing open to move */ }
-
+        window.removeEventListener("vc-screen-shared", onShared);
+        leaveTab();
         redrawFriends();
     }
 });

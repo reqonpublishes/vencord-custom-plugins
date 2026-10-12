@@ -15,15 +15,8 @@ const logger = new Logger("PluginHub");
 const ApplicationStreamingStore: any = findStoreLazy("ApplicationStreamingStore");
 const StreamerModeStore: any = findStoreLazy("StreamerModeStore");
 
-/**
- * The plugins switched for the length of a share, and which way they were switched - so
- * only those are switched back after it, and switched back the right way.
- */
+/** The plugins this switched on for a share, so only those are switched back off after it */
 let raised: string[] | null = null;
-let raisedTo = true;
-
-/** Which way a share switches things: every plugin on, or every plugin off */
-const turnsOn = () => Settings.plugins.PluginHub?.shareMode !== "off";
 
 const listeners = new Set<() => void>();
 
@@ -76,19 +69,18 @@ export function check() {
     // cannot be started from in there, and is a lot to do in one go at the moment a stream
     // is trying to start.
     if (want) {
-        // Whatever is not already the way the share wants it. Nothing is written down about
-        // these being switched: what you chose stays exactly as you left it.
-        raisedTo = turnsOn();
-        raised = usable().filter(entry => isView(entry) && isOn(entry.plugin) !== raisedTo).map(entry => entry.plugin);
-        spread(raised, raisedTo);
+        // The ones that are off. Nothing is written down about these being switched: what
+        // you chose stays exactly as you left it.
+        raised = usable().filter(entry => isView(entry) && !isOn(entry.plugin)).map(entry => entry.plugin);
+        spread(raised, true);
     } else {
         const mine = raised ?? [];
         raised = null;
 
-        // Back to how each was chosen to be. One switched by hand during the share was a
-        // decision, and is left as it was decided.
+        // Only the ones still meant to be off. Anything switched on by hand during the
+        // share was a decision, and is left alone.
         const off: string[] = Settings.plugins.PluginHub?.off ?? [];
-        spread(mine.filter(name => off.includes(name) === raisedTo), !raisedTo);
+        spread(mine.filter(name => off.includes(name)), false);
     }
 
     mark();
@@ -141,7 +133,16 @@ function spread(names: string[], on: boolean) {
  * this one being installed.
  */
 function mark() {
-    (window as any).vcScreenShared = isProtecting();
+    const shared = isProtecting();
+    if ((window as any).vcScreenShared === shared) return;
+
+    (window as any).vcScreenShared = shared;
+
+    // Told as well as left to be read: a plugin with something on screen has to take it
+    // down now, not the next time it happens to look.
+    try {
+        window.dispatchEvent(new CustomEvent("vc-screen-shared", { detail: shared }));
+    } catch { /* the flag is still there to be read */ }
 }
 
 export function startProtection() {
@@ -167,11 +168,8 @@ export function stopProtection() {
         raised = null;
 
         const off: string[] = Settings.plugins.PluginHub?.off ?? [];
-        for (const name of mine) if (off.includes(name) === raisedTo) force(name, !raisedTo);
+        for (const name of mine) if (off.includes(name)) force(name, false);
     }
 
     mark();
 }
-
-/** Which way things are being held right now, for the settings page to say */
-export const protectingTo = () => raisedTo;

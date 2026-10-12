@@ -15,7 +15,7 @@ import { React, showToast } from "@webpack/common";
 import { settings } from ".";
 import { applying, Entry, flipAll, installed, isEnabled, isOn, isView, needsRestart, pluginOf, SECTIONS, setOn, summaryOf, usable } from "./hub";
 import { CloudDownIcon, CloudUpIcon, EyeIcon, EyeOffIcon, GearIcon, RefreshIcon } from "./icons";
-import { isProtecting, onProtectionChange, protectingTo } from "./protect";
+import { isProtecting, onProtectionChange } from "./protect";
 import { cl, IconButton } from "./ui";
 
 const logger = new Logger("PluginHub");
@@ -123,8 +123,7 @@ function HubPage() {
     const [, redraw] = React.useState(0);
     const update = () => redraw(n => n + 1);
 
-    const { shareProtection, shareMode } = settings.use(["shareProtection", "shareMode"]);
-    const sharesOn = shareMode !== "off";
+    const { shareProtection } = settings.use(["shareProtection"]);
     const protecting = isProtecting();
 
     // A share starting or ending switches plugins behind this page's back.
@@ -183,22 +182,11 @@ function HubPage() {
                             <div className={cl("item-name")}>Screen Share Protection</div>
                             <div className={cl("item-detail")}>
                                 {protecting
-                                    ? `Your screen is being shared, so everything is switched ${protectingTo() ? "on" : "off"} until you stop.`
-                                    : `While you share your screen, every plugin here is switched ${sharesOn ? "on" : "off"}. They go back to how you had them when you stop.`}
+                                    ? "Your screen is being shared, so everything is switched on until you stop."
+                                    : "While you share your screen, everything here is switched on and its menu entries are hidden. It all goes back when you stop."}
                             </div>
                         </div>
-                        <div className={cl("actions")}>
-                            <Button
-                                size="small"
-                                variant="secondary"
-                                disabled={shareProtection === false}
-                                title="What sharing does to the plugins"
-                                onClick={() => void (settings.store.shareMode = sharesOn ? "off" : "on")}
-                            >
-                                {sharesOn ? "Turns On" : "Turns Off"}
-                            </Button>
-                            <Switch checked={shareProtection !== false} onChange={next => void (settings.store.shareProtection = next)} />
-                        </div>
+                        <Switch checked={shareProtection !== false} onChange={next => void (settings.store.shareProtection = next)} />
                     </div>
 
                     {waiting && (
