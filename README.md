@@ -20,6 +20,7 @@ Custom plugins for [Vencord](https://vencord.dev).
 | **[Fake&nbsp;Mod](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/fakeMod)** | Menu entries that look like moderator tools: review, flag, suspend, disable. None of them do anything. |
 | **[Fake&nbsp;Notifications](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/fakeNotifications)** | Choose what the badges say: friend requests and message requests. |
 | **[Plugin&nbsp;Hub](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/pluginHub)** | Adds **Additional Settings** under Vencord: every plugin here in one place with an on/off switch, and one button to see the real Discord. |
+| **[Bookmarks](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/bookmarks)** | Bookmark people so you can close their DM and still find them, in a Bookmarked tab on the Friends page. |
 | **[Quick&nbsp;Restart](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/quickRestart)** | Restart Discord in milliseconds instead of seconds, without losing your connection. |
 | **[Cloud&nbsp;Sync](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/cloudSync)** | Sync everything these plugins hold between this computer and your phone. One link joins them: **Sync to Cloud** uploads, **Sync from Cloud** downloads. |
 
