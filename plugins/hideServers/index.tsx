@@ -10,13 +10,14 @@ import { NavContextMenuPatchCallback } from "@api/ContextMenu";
 import { migratePluginSettings } from "@api/Settings";
 import definePlugin from "@utils/types";
 import { Guild } from "@vencord/discord-types";
-import { Menu } from "@webpack/common";
+import { FluxDispatcher, Menu } from "@webpack/common";
 
 import { EyeIcon, EyeOffIcon } from "./icons";
+import { knownList } from "./known";
 import { place } from "./menu";
 import { unwatchMutuals, watchMutuals } from "./mutuals";
 import { settings } from "./settings";
-import { count, hideServer, invalidate, isHidden, isLoaded, load, showServer, start, stop } from "./store";
+import { count, hideFresh, hideServer, invalidate, isHidden, isLoaded, listNow, load, showServer, start, stop } from "./store";
 import { About } from "./ui";
 
 const guildCtx: NavContextMenuPatchCallback = (children, { guild }: { guild?: Guild; }) => {
@@ -39,6 +40,23 @@ const guildCtx: NavContextMenuPatchCallback = (children, { guild }: { guild?: Gu
 
 /** Whether the plugin is meant to be on. Checked after waiting, in case it was switched off meanwhile */
 let alive = false;
+
+/** Which servers you were in the last time the plugin was on */
+const known = knownList("HideServers_Known", listNow);
+
+/** Put away what was joined while the plugin could not see, if asked to, and take the list down */
+function catchUp() {
+    known.catchUp(!!settings.store.hideNew, hideFresh);
+}
+
+/** Discord sends every server again on a reconnect, including any joined meanwhile */
+const afterConnect = () => {
+    known.cancel();
+    setTimeout(catchUp, 0);
+};
+
+/** A server joined or left while the plugin is on: seen, so not new next time */
+const onListChange = () => known.rememberSoon();
 
 migratePluginSettings("HideServers", "CustomPluginHideServers");
 
@@ -89,10 +107,20 @@ export default definePlugin({
         }
         start();
         watchMutuals();
+        FluxDispatcher.subscribe("CONNECTION_OPEN", afterConnect);
+        FluxDispatcher.subscribe("GUILD_CREATE", onListChange);
+        FluxDispatcher.subscribe("GUILD_DELETE", onListChange);
+
+        await known.load();
+        if (alive) catchUp();
     },
 
     stop() {
         alive = false;
+        known.leave();
+        FluxDispatcher.unsubscribe("CONNECTION_OPEN", afterConnect);
+        FluxDispatcher.unsubscribe("GUILD_CREATE", onListChange);
+        FluxDispatcher.unsubscribe("GUILD_DELETE", onListChange);
         unwatchMutuals();
         // The bar goes back to how Discord has it; the list of what was hidden is kept.
         stop();

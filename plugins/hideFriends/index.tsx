@@ -18,6 +18,7 @@ import {
     BlockIcon, EyeIcon, EyeOffIcon, IconComponent, PersonAddIcon, PersonIcon, PersonOffIcon, PersonRemoveIcon,
     SendIcon, UndoIcon
 } from "./icons";
+import { knownList } from "./known";
 import { place } from "./menu";
 import { unwatchMutuals, watchMutuals } from "./mutuals";
 import { setRunning, settings } from "./settings";
@@ -29,6 +30,7 @@ import {
     counts,
     dismissRequest,
     FRIEND,
+    hideFresh,
     hideFriend,
     invalidate,
     isBlocked,
@@ -41,6 +43,7 @@ import {
     noteReal,
     pause,
     PENDING_INCOMING,
+    realList,
     reapply,
     receiveRequest,
     removeFakeFriend,
@@ -224,11 +227,31 @@ function unguard() {
 }
 
 /** Discord rebuilds its relationships on every reconnect, so everything is said again */
+/** Who was a friend or had sent a request the last time the plugin was on */
+const known = knownList("HideFriends_Known", realList);
+
+/** Put away whoever turned up while the plugin could not see, if asked to, and take the list down */
+function catchUp() {
+    known.catchUp(!!settings.store.hideNew, hideFresh);
+}
+
 const afterConnect = () => {
+    // Nothing taken down between the reconnect and the catching up: that is the gap new
+    // people come in through.
+    known.cancel();
+
     // Out of the dispatch this is riding on: saying it again is dispatches of our own, and
     // none of those can happen inside another.
-    setTimeout(reapply, 0);
+    setTimeout(() => {
+        reapply();
+        catchUp();
+    }, 0);
 };
+
+/** Somebody added, removed or changed while the plugin is on: seen, so not new next time */
+const onRelationship = () => known.rememberSoon();
+
+const RELATIONSHIP_EVENTS = ["RELATIONSHIP_ADD", "RELATIONSHIP_UPDATE", "RELATIONSHIP_REMOVE"];
 
 /** Whether the real relationships are being listened for */
 let watching = false;
@@ -320,12 +343,18 @@ export default definePlugin({
 
         resume();
         FluxDispatcher.subscribe("CONNECTION_OPEN", afterConnect); watchMutuals();
+        for (const type of RELATIONSHIP_EVENTS) FluxDispatcher.subscribe(type, onRelationship);
         setRunning(true);
+
+        await known.load();
+        if (alive) catchUp();
 
     },
 
     stop() {
         alive = false;
+        known.leave();
+        for (const type of RELATIONSHIP_EVENTS) FluxDispatcher.unsubscribe(type, onRelationship);
         unwatchMutuals();
         setRunning(false);
         FluxDispatcher.unsubscribe("CONNECTION_OPEN", afterConnect);

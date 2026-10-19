@@ -17,6 +17,12 @@ export const settings = definePluginSettings({
         description: "Adds Hide Server to the menu when you right-click a server",
         default: true
     },
+    hideNew: {
+        type: OptionType.BOOLEAN,
+        displayName: "Hide new servers when turned back on",
+        description: "Servers you joined while this was off, or while Discord was closed, are hidden as soon as it is on again - so the bar looks the way you left it",
+        default: false
+    },
     persist: {
         type: OptionType.BOOLEAN,
         displayName: "Keep after restart",

@@ -5,7 +5,7 @@
  */
 
 import { del, get, set } from "@api/DataStore";
-import { GuildStore, IconUtils, SortedGuildStore } from "@webpack/common";
+import { GuildStore, IconUtils, SortedGuildStore, UserStore } from "@webpack/common";
 
 import { settings } from "./settings";
 
@@ -324,6 +324,29 @@ export function showAll(): number {
     hidden = new Map();
     save();
     paint();
+    return n;
+}
+
+/** Every server you are in, shown or hidden. Null until Discord has loaded them */
+export function listNow(): string[] | null {
+    if (!UserStore.getCurrentUser()) return null;
+    return Object.keys(GuildStore.getGuilds() ?? {});
+}
+
+/** Put away servers joined while the plugin was off */
+export function hideFresh(ids: string[]): number {
+    let n = 0;
+    for (const id of ids) {
+        if (hidden.has(id)) continue;
+        hidden.set(id, nameOf(id));
+        n++;
+    }
+
+    if (n) {
+        save();
+        paint();
+    }
+
     return n;
 }
 

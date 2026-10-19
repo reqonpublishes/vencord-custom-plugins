@@ -465,6 +465,44 @@ export function reapply() {
     });
 }
 
+/** Every conversation in the list, shown or hidden. Null until Discord has loaded the list */
+export function listNow(): string[] | null {
+    if (!UserStore.getCurrentUser()) return null;
+
+    try {
+        const shown: string[] = (ChannelStore as any).getSortedPrivateChannels?.().map((channel: any) => channel.id) ?? [];
+        return [...new Set([...shown, ...hidden.keys()])];
+    } catch (e) {
+        logger.error("Could not read the DM list", e);
+        return null;
+    }
+}
+
+/** Put away conversations that turned up while the plugin was off */
+export function hideFresh(ids: string[]): number {
+    let n = 0;
+
+    batched(() => {
+        for (const channelId of ids) {
+            if (hidden.has(channelId) || !ChannelStore.getChannel(channelId)) continue;
+
+            // The one you are in is put on the list now and hidden once you have left it,
+            // the same as when everything is hidden again on switching on.
+            if (inUse(channelId)) {
+                hidden.set(channelId, nameOf(channelId));
+                waiting.add(channelId);
+                save();
+                n++;
+                continue;
+            }
+
+            if (hideChat(channelId)) n++;
+        }
+    });
+
+    return n;
+}
+
 /** Hidden conversations left on screen for now because you are in them */
 const waiting = new Set<string>();
 

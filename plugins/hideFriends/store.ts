@@ -381,6 +381,45 @@ function unsay(id: string, type: number) {
     } as any);
 }
 
+/**
+ * Everybody who is really a friend or has really sent you a request, as `id:type`.
+ *
+ * The type is part of it so that a request accepted while the plugin was off counts as a new
+ * friend. Null until Discord has said who they are.
+ */
+export function realList(): string[] | null {
+    if (!UserStore.getCurrentUser()) return null;
+
+    learnTruth();
+    if (!truthKnown) return null;
+
+    const out: string[] = [];
+    for (const [id, was] of truth) {
+        if (was.type === FRIEND || was.type === PENDING_INCOMING) out.push(`${id}:${was.type}`);
+    }
+
+    return out;
+}
+
+/** Put away people who turned up while the plugin was off, as `id:type` from realList */
+export function hideFresh(keys: string[]): number {
+    let n = 0;
+
+    batched(() => {
+        for (const key of keys) {
+            const [id, type] = key.split(":");
+
+            if (Number(type) === FRIEND) {
+                if (!isHidden(id) && !isFriended(id) && hideFriend(id)) n++;
+            } else if (Number(type) === PENDING_INCOMING) {
+                if (dismissRequest(id)) n++;
+            }
+        }
+    });
+
+    return n;
+}
+
 /** Put the relationship back to whatever it really was */
 /**
  * Show somebody as they really are.

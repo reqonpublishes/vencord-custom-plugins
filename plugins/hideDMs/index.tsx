@@ -13,9 +13,10 @@ import { Channel, User } from "@vencord/discord-types";
 import { ChannelStore, FluxDispatcher, Menu } from "@webpack/common";
 
 import { EyeIcon, EyeOffIcon } from "./icons";
+import { knownList } from "./known";
 import { place } from "./menu";
 import { settings } from "./settings";
-import { count, hideChat, hideWaiting, hidJustNow, invalidate, isHidden, isLoaded, isWaiting, load, noteMessage, pause, reapply, resume, showAll, showChat } from "./store";
+import { count, hideChat, hideFresh, hideWaiting, hidJustNow, invalidate, isHidden, isLoaded, isWaiting, listNow, load, noteMessage, pause, reapply, resume, showAll, showChat } from "./store";
 import { About } from "./ui";
 
 /**
@@ -87,8 +88,23 @@ const afterCall = () => void setTimeout(hideWaiting, 0);
 /** Kept up with while hidden, so a conversation comes back where its newest message puts it */
 const onMessage = (action: any) => noteMessage(action?.channelId, action?.message?.id, action?.message?.author?.id);
 
+/** Which conversations were in the list the last time the plugin was on */
+const known = knownList("HideDMs_Known", listNow);
+
+/** Put away what turned up while the plugin could not see, if asked to, and take the list down */
+function catchUp() {
+    known.catchUp(!!settings.store.hideNew, hideFresh);
+}
+
 /** Discord rebuilds its conversations on every reconnect, so what was hidden is said again */
-const afterConnect = () => reapply();
+const afterConnect = () => {
+    known.cancel();
+    reapply();
+    catchUp();
+};
+
+/** A conversation opened or closed while the plugin is on: seen, so not new next time */
+const onListChange = () => known.rememberSoon();
 
 /** Whether the plugin is meant to be on. Checked after waiting, in case it was switched off meanwhile */
 let alive = false;
@@ -156,10 +172,19 @@ export default definePlugin({
         FluxDispatcher.subscribe("VOICE_CHANNEL_SELECT", afterCall);
         FluxDispatcher.subscribe("MESSAGE_CREATE", onMessage);
         FluxDispatcher.subscribe("CONNECTION_OPEN", afterConnect);
+        FluxDispatcher.subscribe("CHANNEL_CREATE", onListChange);
+        FluxDispatcher.subscribe("CHANNEL_DELETE", onListChange);
+
+        await known.load();
+        if (alive) catchUp();
     },
 
     stop() {
         alive = false;
+        // Before they come back on screen, while the hidden ones are still the hidden ones
+        known.leave();
+        FluxDispatcher.unsubscribe("CHANNEL_CREATE", onListChange);
+        FluxDispatcher.unsubscribe("CHANNEL_DELETE", onListChange);
         FluxDispatcher.unsubscribe("CHANNEL_SELECT", reopen);
         FluxDispatcher.unsubscribe("VOICE_CHANNEL_SELECT", afterCall);
         FluxDispatcher.unsubscribe("MESSAGE_CREATE", onMessage);

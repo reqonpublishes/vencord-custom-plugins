@@ -32,6 +32,12 @@ export const settings = definePluginSettings({
         description: "Adds Hide Friend and Fake Relationship to the menu when you right-click a person",
         default: true
     },
+    hideNew: {
+        type: OptionType.BOOLEAN,
+        displayName: "Hide new friends when turned back on",
+        description: "Friends added and friend requests received while this was off, or while Discord was closed, are hidden as soon as it is on again - so your list looks the way you left it",
+        default: false
+    },
     persist: {
         type: OptionType.BOOLEAN,
         displayName: "Keep after restart",
