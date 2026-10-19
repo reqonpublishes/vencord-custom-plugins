@@ -16,7 +16,7 @@ import { openAddMessage } from "./AddMessageModal";
 import { openForward } from "./ForwardModal";
 import { ChatAddIcon, PencilIcon, TrashIcon } from "./icons";
 import { place } from "./menu";
-import { editFake, startNative, stopNative } from "./native";
+import { editFake, startNative, stopNative } from "./discordActions";
 import { settings } from "./settings";
 import {
     chats,
