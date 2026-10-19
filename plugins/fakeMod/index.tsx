@@ -79,7 +79,7 @@ function NoteModal({ rootProps, power, name }: { rootProps: RenderModalProps; po
             variant: "primary",
             onClick: () => {
                 rootProps.onClose();
-                showToast(fill(power.done ?? "Saved", name), "success");
+                showToast({ text: fill(power.done ?? "Saved", name), variant: "success" });
             }
         },
         { text: "Cancel", variant: "secondary", onClick: rootProps.onClose }
@@ -117,7 +117,7 @@ function run(power: Power, name: string, length?: string) {
         body: fill(power.body, name, length),
         confirmText: power.confirm ?? "Confirm",
         cancelText: "Cancel",
-        onConfirm: () => showToast(fill(power.done ?? "Done", name, length), "success")
+        onConfirm: () => showToast({ text: fill(power.done ?? "Done", name, length), variant: "success" })
     });
 }
 

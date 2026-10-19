@@ -86,7 +86,7 @@ const menu: NavContextMenuPatchCallback = (children, { user, channel }: { user?:
                     if (saved) remove(person.id);
                     else add(person);
 
-                    showToast(saved ? "Bookmark removed" : "Bookmarked. Find them under Friends, in Bookmarked", "success");
+                    showToast({ text: saved ? "Bookmark removed" : "Bookmarked. Find them under Friends, in Bookmarked", variant: "success" });
                 }}
             />
         </Menu.MenuGroup>

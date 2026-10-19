@@ -6,13 +6,14 @@
 
 import "./shared.css";
 
-import { NavContextMenuPatchCallback } from "@api/ContextMenu";
+import { findGroupChildrenByChildId, NavContextMenuPatchCallback } from "@api/ContextMenu";
 import { migratePluginSettings } from "@api/Settings";
 import definePlugin from "@utils/types";
 import { Channel, Message } from "@vencord/discord-types";
-import { FluxDispatcher, Menu, SelectedChannelStore, showToast } from "@webpack/common";
+import { FluxDispatcher, Menu, MessageStore, React, SelectedChannelStore, showToast } from "@webpack/common";
 
 import { openAddMessage } from "./AddMessageModal";
+import { openForward } from "./ForwardModal";
 import { ChatAddIcon, PencilIcon, TrashIcon } from "./icons";
 import { place } from "./menu";
 import { settings } from "./settings";
@@ -58,10 +59,27 @@ const messageCtx: NavContextMenuPatchCallback = (children, { message }: { messag
                     const inspect = (window as any).Vencord?.Plugins?.plugins?.InspectMessages;
 
                     if (inspect?.started && typeof inspect.inspect === "function") inspect.inspect(message);
-                    else showToast("Turn on Inspect Messages to edit a fake message", "message");
+                    else showToast({ text: "Turn on Inspect Messages to edit a fake message", variant: "default" });
                 }}
             />
         );
+
+        // Discord's own Forward is right there in the same menu, and would send a request for
+        // a message Discord has never heard of. It is taken over for these: the same entry,
+        // in the same place, opening a forward that stays on this computer.
+        const group = findGroupChildrenByChildId("forward", children);
+        const at = group?.findIndex(item => item?.props?.id === "forward") ?? -1;
+        if (group && at !== -1) {
+            const live = MessageStore.getMessage(channelId, message.id) ?? message;
+            group[at] = React.cloneElement(group[at] as React.ReactElement<any>, {
+                action: () => openForward({
+                    channelId,
+                    messageId: message.id,
+                    content: live.content ?? "",
+                    sentAt: new Date(live.timestamp as any).getTime()
+                })
+            });
+        }
 
         place(children, 45,
             <Menu.MenuItem

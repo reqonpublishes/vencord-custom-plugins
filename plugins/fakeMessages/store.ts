@@ -28,6 +28,13 @@ export interface FakeMessage {
     edited?: boolean;
     /** paint it as though it had mentioned you */
     highlight?: boolean;
+    /** a forward of another message, shown the way Discord shows a forwarded message */
+    forward?: {
+        channelId: string;
+        messageId: string;
+        content: string;
+        sentAt: number;
+    };
 }
 
 /** channelId -> the messages invented in it, oldest first */
@@ -248,6 +255,29 @@ function rawMessage(one: FakeMessage) {
         tts: false,
         flags: 0
     };
+
+    // A forward, built the way one arrives from Discord: an empty message of its own, marked
+    // as carrying a snapshot, pointing at where the original sits, with the original inside.
+    if (one.forward) {
+        const raw2: any = raw;
+        raw2.content = "";
+        raw2.flags = 1 << 14;
+        raw2.message_reference = { type: 1, channel_id: one.forward.channelId, message_id: one.forward.messageId };
+        raw2.message_snapshots = [{
+            message: {
+                type: 0,
+                content: one.forward.content,
+                attachments: [],
+                embeds: [],
+                mentions: [],
+                mention_roles: [],
+                components: [],
+                timestamp: new Date(one.forward.sentAt).toISOString(),
+                edited_timestamp: null,
+                flags: 0
+            }
+        }];
+    }
 
     // If this one has been rewritten with Inspect Messages, it is handed over already
     // rewritten. Inspect only gets to messages as they load, and these are put in by hand,

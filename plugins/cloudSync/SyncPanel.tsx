@@ -80,19 +80,19 @@ export function SyncPanel() {
 
                 const text = sent.length ? "Synced to cloud: " + sent.join(", ") : "Nothing to sync yet";
                 setSaid({ text, kind: "good" });
-                showToast("Synced to cloud", "success");
+                showToast({ text: "Synced to cloud", variant: "success" });
             } else {
                 const { applied } = await bringDown();
                 settings.store.lastDown = { at: Date.now(), what: applied };
 
                 const text = applied.length ? "Synced from cloud: " + applied.join(", ") : "The cloud has nothing on this link yet";
                 setSaid({ text, kind: "good" });
-                showToast("Synced from cloud", "success");
+                showToast({ text: "Synced from cloud", variant: "success" });
             }
         } catch (e) {
             const why = e instanceof Error ? e.message : String(e);
             setSaid({ text: why, kind: "bad" });
-            showToast(why, "failure");
+            showToast({ text: why, variant: "critical" });
             logger.error("Sync failed", e);
         } finally {
             setBusy("");
@@ -102,9 +102,9 @@ export function SyncPanel() {
     const copy = async () => {
         try {
             await navigator.clipboard.writeText(held);
-            showToast("Link copied", "success");
+            showToast({ text: "Link copied", variant: "success" });
         } catch {
-            showToast("Could not copy. Select the link and copy it yourself.", "failure");
+            showToast({ text: "Could not copy. Select the link and copy it yourself.", variant: "critical" });
         }
     };
 

@@ -1,0 +1,26 @@
+/* ---------------------------------------------------------------- forward */
+
+.vc-cfm-forward-list {
+    flex-flow: column nowrap;
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.vc-cfm-forward-row {
+    flex: 0 0 auto;
+}
+
+.vc-cfm-tick {
+    flex: 0 0 auto;
+    width: 20px;
+    height: 20px;
+    margin-left: auto;
+    border: 2px solid var(--interactive-normal, rgb(128 128 128 / 60%));
+    border-radius: 6px;
+}
+
+.vc-cfm-tick-on {
+    border-color: var(--brand-500, #5865f2);
+    background: var(--brand-500, #5865f2);
+    box-shadow: inset 0 0 0 3px var(--background-base-low, #111);
+}

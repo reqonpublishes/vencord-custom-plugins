@@ -117,7 +117,7 @@ function quickRestart(): QuickResult | null {
 const BOTTOM = 1;
 
 const toast = (message: string, type: ToastKind) =>
-    showToast(message, type, { position: BOTTOM });
+    showToast({ text: message, variant: (type) === "failure" ? "critical" : (type) === "success" ? "success" : "default", position: "bottom" });
 
 type ToastKind = "success" | "failure" | "message";
 

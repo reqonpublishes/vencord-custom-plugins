@@ -58,8 +58,8 @@ function PluginRow({ entry, onChange }: { entry: Entry; onChange(): void; }) {
                 onChange={next => {
                     const result = setOn(plugin, next);
 
-                    if (result === "failed") showToast(`Could not turn ${label} ${next ? "on" : "off"}`, "failure");
-                    if (result === "restart") showToast(`${label} turns on when Discord restarts`, "message");
+                    if (result === "failed") showToast({ text: `Could not turn ${label} ${next ? "on" : "off"}`, variant: "critical" });
+                    if (result === "restart") showToast({ text: `${label} turns on when Discord restarts`, variant: "default" });
 
                     onChange();
                 }}
@@ -83,14 +83,14 @@ function SyncRow() {
             if (which === "up") {
                 const { sent } = await sync.sendUp();
                 Settings.plugins.CloudSync.lastUp = { at: Date.now(), what: sent };
-                showToast("Synced to cloud", "success");
+                showToast({ text: "Synced to cloud", variant: "success" });
             } else {
                 const { applied } = await sync.bringDown();
                 Settings.plugins.CloudSync.lastDown = { at: Date.now(), what: applied };
-                showToast("Synced from cloud", "success");
+                showToast({ text: "Synced from cloud", variant: "success" });
             }
         } catch (e) {
-            showToast(e instanceof Error ? e.message : String(e), "failure");
+            showToast({ text: e instanceof Error ? e.message : String(e), variant: "critical" });
             logger.error("Sync failed", e);
         } finally {
             setBusy("");
@@ -165,12 +165,9 @@ function HubPage() {
                                 settings.store.paused = result.remember;
                                 update();
 
-                                showToast(
-                                    result.on
+                                showToast({ text: result.on
                                         ? `${result.changed} turned back on${result.restart ? ", the rest after a restart" : ""}`
-                                        : `${result.changed} turned off. You are seeing the real Discord`,
-                                    "success"
-                                );
+                                        : `${result.changed} turned off. You are seeing the real Discord`, variant: "success" });
                             }}
                         >
                             {live ? "Show Real" : "Turn Back On"}
