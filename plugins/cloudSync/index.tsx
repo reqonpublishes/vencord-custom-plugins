@@ -19,7 +19,7 @@ migratePluginSettings("CloudSync", "CustomPluginSync");
 
 export default definePlugin({
     name: "CloudSync",
-    description: "Sync what these plugins hold between this computer and your phone. One link joins them: Sync to Cloud uploads what you have here, Sync from Cloud downloads what is there.",
+    description: "Sync these plugins between this computer and your phone through one private link. Nothing syncs until you press a button.",
     tags: ["Utility"],
     authors: [{ name: "reqon", id: 497562304498368513n }],
 

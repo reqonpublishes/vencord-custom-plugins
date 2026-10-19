@@ -152,10 +152,10 @@ function ShareOptions() {
         <div className={cl("sub")}>
             <div className={cl("sub-row", "sub-row-stack")}>
                 <div className={cl("item-text")}>
-                    <div className={cl("sub-name")}>Switched on while sharing</div>
-                    <div className={cl("item-detail")}>Only the ones that are off are switched on, and only for the share.</div>
+                    <div className={cl("sub-name")}>Turn on while sharing</div>
+                    <div className={cl("item-detail")}>Plugins you have off are turned on for the share only. Untick any to leave them alone.</div>
                 </div>
-                <div className={cl("chips")} role="group" aria-label="Switched on while sharing">
+                <div className={cl("menu-chips")} role="group" aria-label="Turn on while sharing">
                     {views.map(({ plugin, label, icon: Icon }) => {
                         const picked = !skip.includes(plugin);
 
@@ -163,7 +163,7 @@ function ShareOptions() {
                             <button
                                 key={plugin}
                                 type="button"
-                                className={cl("chip", picked ? "chip-on" : "")}
+                                className={cl("menu-chip", picked ? "menu-chip-on" : "")}
                                 aria-pressed={picked}
                                 onClick={() => toggle(plugin)}
                             >
@@ -175,11 +175,11 @@ function ShareOptions() {
                 </div>
             </div>
 
-            <ShareSwitch name="streamerMode" label="Also in Streamer Mode" detail="Counts Streamer Mode as sharing. Discord can turn it on by itself when it sees OBS." />
-            <ShareSwitch name="shareHideNew" label="Hide anything new" detail="Friends, requests, DMs and servers added since those plugins were last on are hidden too, and shown again after." />
-            <ShareSwitch name="shareHideMenus" label="Hide plugin menus" detail="Removes their right-click menu entries and the Bookmarked tab. Hold Shift to see the entries anyway." />
-            <ShareSwitch name="shareHidePage" label="Hide this page" detail="Takes Additional Settings out of the settings sidebar." />
-            <ShareSwitch name="shareRestore" label="Put everything back after" detail="Turns off again what the share turned on. Off leaves them on." />
+            <ShareSwitch name="streamerMode" label="Also when Streamer Mode is on" detail="Discord can turn Streamer Mode on by itself when it sees OBS or another recorder." />
+            <ShareSwitch name="shareHideNew" label="Hide new friends, DMs and servers" detail="Anything that appeared since those plugins were last on is hidden while you share, and shown again after. Your hidden lists don't change." />
+            <ShareSwitch name="shareHideMenus" label="Hide plugin menus" detail="Removes these plugins' right-click entries and the Bookmarked tab. Hold Shift to see the entries anyway." />
+            <ShareSwitch name="shareHidePage" label="Hide this page" detail="Removes Additional Settings from the settings sidebar." />
+            <ShareSwitch name="shareRestore" label="Turn them off when sharing stops" detail="Plugins turned on for the share go back off. Turn this off to keep them on." />
         </div>
     );
 }
@@ -248,8 +248,8 @@ function HubPage() {
                             <div className={cl("item-name")}>Screen Share Protection</div>
                             <div className={cl("item-detail")}>
                                 {protecting
-                                    ? "On now: your screen is being shared."
-                                    : "While you share your screen, the plugins picked below are switched on and their menus kept out of sight."}
+                                    ? "On now. Your screen is being shared."
+                                    : "When you share your screen, the plugins below turn on and their menus are hidden. Everything goes back when you stop."}
                             </div>
                         </div>
                         <Switch checked={shareProtection !== false} onChange={next => void (settings.store.shareProtection = next)} />

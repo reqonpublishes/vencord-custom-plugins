@@ -13,24 +13,24 @@ import { forgetSaved } from "./edits";
 export const settings = definePluginSettings({
     button: {
         type: OptionType.SELECT,
-        displayName: "Hover button",
-        description: "When the Inspect button appears in the bar over a message",
+        displayName: "Inspect button on hover",
+        description: "When the Inspect button shows in the bar above a message.",
         options: [
-            { label: "Only while Shift is held", value: "shift", default: true },
+            { label: "While holding Shift", value: "shift", default: true },
             { label: "Always", value: "always" },
             { label: "Never", value: "never" }
         ]
     },
     messageMenu: {
         type: OptionType.BOOLEAN,
-        displayName: "Show on messages",
-        description: "Show \"Inspect Message\" when you right-click a message",
+        displayName: "Show in the message menu",
+        description: "Inspect Message appears when you right-click a message.",
         default: true
     },
     persist: {
         type: OptionType.BOOLEAN,
         displayName: "Keep after restart",
-        description: "Changed messages stay changed when Discord restarts",
+        description: "Changed messages stay changed when Discord restarts.",
         default: true,
         // switching it off should not leave the old list sitting on disk
         onChange: (value: boolean) => void (value || forgetSaved())

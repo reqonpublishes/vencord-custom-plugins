@@ -42,36 +42,36 @@ export const settings = definePluginSettings({
     },
     streamerMode: {
         type: OptionType.BOOLEAN,
-        displayName: "Also protect in Streamer Mode",
-        description: "Counts Streamer Mode as sharing. Discord turns it on by itself when it detects OBS or another recorder, if you have that enabled in Streamer Mode's settings.",
+        displayName: "Also when Streamer Mode is on",
+        description: "Discord can turn Streamer Mode on by itself when it sees OBS or another recorder.",
         default: true,
         onChange: () => refresh()
     },
     shareHideNew: {
         type: OptionType.BOOLEAN,
-        displayName: "Hide anything new while sharing",
-        description: "Friends, requests, DMs and servers that turned up since those plugins were last on are hidden for the share too, and shown again after it.",
+        displayName: "Hide new friends, DMs and servers",
+        description: "Anything that appeared since those plugins were last on is hidden while you share, and shown again after. Your hidden lists don't change.",
         default: true,
         onChange: () => refresh()
     },
     shareHideMenus: {
         type: OptionType.BOOLEAN,
-        displayName: "Hide plugin menus while sharing",
-        description: "Takes these plugins' entries out of right-click menus, and the Bookmarked tab off the Friends page. Holding Shift still shows the menu entries.",
+        displayName: "Hide plugin menus",
+        description: "Removes these plugins' right-click entries and the Bookmarked tab while you share. Hold Shift to see the entries anyway.",
         default: true,
         onChange: () => refresh()
     },
     shareHidePage: {
         type: OptionType.BOOLEAN,
-        displayName: "Hide Additional Settings while sharing",
-        description: "Takes this page out of the settings sidebar while you share.",
+        displayName: "Hide this page",
+        description: "Removes Additional Settings from the settings sidebar while you share.",
         default: true,
         onChange: () => refresh()
     },
     shareRestore: {
         type: OptionType.BOOLEAN,
-        displayName: "Put everything back when sharing stops",
-        description: "Switches off again whatever was switched on for the share. Turn this off to leave them on afterwards.",
+        displayName: "Turn them off when sharing stops",
+        description: "Plugins turned on for the share go back off. Turn this off to keep them on.",
         default: true
     },
     // Plugins left alone during a share. Picked on the Additional Settings page.
@@ -107,7 +107,7 @@ let pending: ReturnType<typeof setTimeout> | null = null;
 
 export default definePlugin({
     name: "PluginHub",
-    description: "Adds Additional Settings under Vencord in Discord's settings: every one of these plugins in one place, each with an on/off switch, and one button to see the real Discord.",
+    description: "Adds Additional Settings under Vencord: every one of these plugins in one place, each with its own switch, plus one button to see the real Discord.",
     tags: ["Utility"],
     authors: [{ name: "reqon", id: 497562304498368513n }],
 

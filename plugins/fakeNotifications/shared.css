@@ -228,3 +228,66 @@
     line-height: 16px;
     text-transform: uppercase;
 }
+
+/* ---------------------------------------------------------------- where the menu entries show */
+
+.vc-cfn-menus {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 20px;
+}
+
+.vc-cfn-menus-title {
+    color: var(--header-primary, var(--text-default));
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 20px;
+}
+
+.vc-cfn-menus-detail {
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 18px;
+}
+
+.vc-cfn-menu-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.vc-cfn-menu-chip {
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+    padding: 6px 12px;
+    border: 1px solid var(--border-subtle, rgb(128 128 128 / 24%));
+    border-radius: 999px;
+    background: none;
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 18px;
+    cursor: pointer;
+}
+
+.vc-cfn-menu-chip:hover {
+    background: var(--background-mod-subtle, rgb(128 128 128 / 8%));
+    color: var(--text-default);
+}
+
+.vc-cfn-menu-chip:focus-visible {
+    outline: 2px solid var(--focus-primary, #00b0f4);
+    outline-offset: 2px;
+}
+
+.vc-cfn-menu-chip-on {
+    border-color: var(--brand-500, #5865f2);
+    background: color-mix(in srgb, var(--brand-500, #5865f2) 16%, transparent);
+    color: var(--text-default);
+}
+
+.vc-cfn-menu-chip-on:hover {
+    background: color-mix(in srgb, var(--brand-500, #5865f2) 24%, transparent);
+}

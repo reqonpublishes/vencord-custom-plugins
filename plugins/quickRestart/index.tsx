@@ -275,13 +275,13 @@ const settings = definePluginSettings({
     hotkey: {
         type: OptionType.STRING,
         displayName: "Restart shortcut",
-        description: "Modifiers and a key joined by +, like ctrl+r",
+        description: "The keys that restart your plugins, like ctrl+r.",
         default: "ctrl+r"
     },
     action: {
         type: OptionType.SELECT,
-        displayName: "What it does",
-        description: "What the restart shortcut does when you press it",
+        displayName: "Shortcut action",
+        description: "What happens when you press the restart shortcut.",
         options: [
             { label: "Restart plugins, reloading only if it has to", value: "smart", default: true },
             { label: "Restart plugins, never reload", value: "quick" },
@@ -292,7 +292,7 @@ const settings = definePluginSettings({
     reloadHotkey: {
         type: OptionType.STRING,
         displayName: "Reload shortcut",
-        description: "A second shortcut that always reloads the whole window",
+        description: "Keys that always reload the whole window, like ctrl+shift+r.",
         default: "ctrl+shift+r"
     },
     buttons: {
@@ -305,7 +305,7 @@ migratePluginSettings("QuickRestart", "CustomPluginQuickRestart", "CustomQuickRe
 
 export default definePlugin({
     name: SELF,
-    description: "A restart that takes milliseconds instead of seconds. Ctrl+R restarts every running plugin in place, keeping your connection and your half-typed message, and falls back to a real reload on the rare change that needs one. Ctrl+Shift+R always reloads.",
+    description: "Ctrl+R restarts your plugins in milliseconds, keeping your connection and anything you were typing. It only reloads the window when it has to. Ctrl+Shift+R always reloads.",
     tags: ["Utility"],
     authors: [{ name: "reqon", id: 497562304498368513n }],
 

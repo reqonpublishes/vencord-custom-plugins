@@ -9,38 +9,47 @@ import { OptionType } from "@utils/types";
 
 import { HiddenPanel } from "./HiddenPanel";
 import { forgetSaved } from "./store";
+import { menuChips } from "./ui";
 
 export const settings = definePluginSettings({
     button: {
         type: OptionType.SELECT,
-        displayName: "Hover button",
-        description: "When the Hide button appears in the bar over a message",
+        displayName: "Hide button on hover",
+        description: "When the Hide button shows in the bar above a message.",
         options: [
-            { label: "Only while Shift is held", value: "shift", default: true },
+            { label: "While holding Shift", value: "shift", default: true },
             { label: "Always", value: "always" },
             { label: "Never", value: "never" }
         ]
     },
+    menus: {
+        type: OptionType.COMPONENT,
+        component: menuChips(() => settings, "Show in menus", "Where Hide Message and Hide Messages appear when you right-click.", [{ key: "messageMenu", label: "Messages" }, { key: "channelMenu", label: "Conversations" }, { key: "userMenu", label: "People" }, { key: "profileMenu", label: "Profiles" }])
+    },
     messageMenu: {
         type: OptionType.BOOLEAN,
+        hidden: true,
         displayName: "Show on messages",
         description: "Show \"Hide Message\" when you right-click a message",
         default: true
     },
     channelMenu: {
         type: OptionType.BOOLEAN,
+        hidden: true,
         displayName: "Show on conversations",
         description: "Show \"Hide Messages\" when you right-click a DM or channel",
         default: true
     },
     userMenu: {
         type: OptionType.BOOLEAN,
+        hidden: true,
         displayName: "Show on people",
         description: "Show \"Hide Messages\" when you right-click a person",
         default: true
     },
     profileMenu: {
         type: OptionType.BOOLEAN,
+        hidden: true,
         displayName: "Show on profiles",
         description: "Show \"Hide Messages\" in the ... menu on a profile",
         default: true
@@ -48,7 +57,7 @@ export const settings = definePluginSettings({
     persist: {
         type: OptionType.BOOLEAN,
         displayName: "Keep after restart",
-        description: "Hidden messages stay hidden when Discord restarts",
+        description: "Hidden messages stay hidden when Discord restarts.",
         default: true,
         // switching it off should not leave the old list sitting on disk
         onChange: (value: boolean) => void (value || forgetSaved())

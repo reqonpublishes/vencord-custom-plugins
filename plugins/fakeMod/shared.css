@@ -451,3 +451,66 @@
 .vc-cfmod-footnote svg {
     flex: 0 0 auto;
 }
+
+/* ---------------------------------------------------------------- where the menu entries show */
+
+.vc-cfmod-menus {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 20px;
+}
+
+.vc-cfmod-menus-title {
+    color: var(--header-primary, var(--text-default));
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 20px;
+}
+
+.vc-cfmod-menus-detail {
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 18px;
+}
+
+.vc-cfmod-menu-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.vc-cfmod-menu-chip {
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+    padding: 6px 12px;
+    border: 1px solid var(--border-subtle, rgb(128 128 128 / 24%));
+    border-radius: 999px;
+    background: none;
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 18px;
+    cursor: pointer;
+}
+
+.vc-cfmod-menu-chip:hover {
+    background: var(--background-mod-subtle, rgb(128 128 128 / 8%));
+    color: var(--text-default);
+}
+
+.vc-cfmod-menu-chip:focus-visible {
+    outline: 2px solid var(--focus-primary, #00b0f4);
+    outline-offset: 2px;
+}
+
+.vc-cfmod-menu-chip-on {
+    border-color: var(--brand-500, #5865f2);
+    background: color-mix(in srgb, var(--brand-500, #5865f2) 16%, transparent);
+    color: var(--text-default);
+}
+
+.vc-cfmod-menu-chip-on:hover {
+    background: color-mix(in srgb, var(--brand-500, #5865f2) 24%, transparent);
+}

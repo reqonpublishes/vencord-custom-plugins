@@ -106,3 +106,50 @@ export function Empty({ icon: Icon, title, text }: { icon: IconComponent; title:
         </div>
     );
 }
+
+/** A small tick, drawn here so this file needs nothing from the plugin's own icons */
+function Tick() {
+    return (
+        <svg aria-hidden viewBox="0 0 24 24" height={14} width={14}>
+            <path fill="currentColor" d="M9 16.17L4.17 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+        </svg>
+    );
+}
+
+/**
+ * Where a plugin's right-click entries appear, as one row of toggles.
+ *
+ * Instead of a switch per menu, each with a sentence saying the same thing about a different
+ * place. The switches it stands for are still the settings underneath, only not drawn.
+ */
+export function menuChips(store: () => any, title: string, detail: string, items: { key: string; label: string; }[]) {
+    return function MenuChips() {
+        const settings = store();
+        const values = settings.use(items.map(item => item.key));
+
+        return (
+            <div className={cl("menus")}>
+                <div className={cl("menus-title")}>{title}</div>
+                <div className={cl("menus-detail")}>{detail}</div>
+                <div className={cl("menu-chips")} role="group" aria-label={title}>
+                    {items.map(({ key, label }) => {
+                        const on = values[key] !== false;
+
+                        return (
+                            <button
+                                key={key}
+                                type="button"
+                                className={cl("menu-chip", on ? "menu-chip-on" : "")}
+                                aria-pressed={on}
+                                onClick={() => void (settings.store[key] = !on)}
+                            >
+                                {on && <Tick />}
+                                <span>{label}</span>
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
+        );
+    };
+}

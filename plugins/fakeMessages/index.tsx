@@ -13,10 +13,10 @@ import { Channel, Message } from "@vencord/discord-types";
 import { FluxDispatcher, Menu, MessageStore, React, SelectedChannelStore } from "@webpack/common";
 
 import { openAddMessage } from "./AddMessageModal";
+import { editFake, startNative, stopNative } from "./discordActions";
 import { openForward } from "./ForwardModal";
 import { ChatAddIcon, PencilIcon, TrashIcon } from "./icons";
 import { place } from "./menu";
-import { editFake, startNative, stopNative } from "./discordActions";
 import { settings } from "./settings";
 import {
     chats,

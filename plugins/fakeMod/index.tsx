@@ -14,13 +14,13 @@ import { Alerts, Menu, Modal, openModal, showToast, TextArea, UserStore, useStat
 
 import { ShieldIcon } from "./icons";
 import { Power, POWERS, Rank, RANK_NAME, RANKS, reaches, Target } from "./powers";
-import { About, cl } from "./ui";
+import { About, cl, menuChips } from "./ui";
 
 const settings = definePluginSettings({
     rank: {
         type: OptionType.SELECT,
-        displayName: "Rank",
-        description: "Which moderator you appear to be. Lower ranks can use fewer of the actions",
+        displayName: "Your rank",
+        description: "Which moderator you appear as. Lower ranks have fewer actions.",
         options: [
             { label: "Trial Moderator", value: "trial", default: true },
             { label: "Moderator", value: "moderator" },
@@ -29,30 +29,38 @@ const settings = definePluginSettings({
     },
     showLocked: {
         type: OptionType.BOOLEAN,
-        displayName: "Show actions above your rank",
-        description: "Lists them greyed out with the rank they need, instead of leaving them out",
+        displayName: "Show locked actions",
+        description: "Actions above your rank show greyed out, with the rank they need.",
         default: true
+    },
+    menus: {
+        type: OptionType.COMPONENT,
+        component: menuChips(() => settings, "Show in menus", "Where the moderation entries appear.", [{ key: "profileMenu", label: "Profiles" }, { key: "userMenu", label: "People" }, { key: "serverMenu", label: "Servers" }, { key: "messageMenu", label: "Messages" }])
     },
     profileMenu: {
         type: OptionType.BOOLEAN,
+        hidden: true,
         displayName: "Show on profiles",
         description: "Show the moderation entries in the ... menu on a profile",
         default: true
     },
     userMenu: {
         type: OptionType.BOOLEAN,
+        hidden: true,
         displayName: "Show on people",
         description: "Show the moderation entries when you right-click a person",
         default: true
     },
     serverMenu: {
         type: OptionType.BOOLEAN,
+        hidden: true,
         displayName: "Show on servers",
         description: "Show the moderation entries when you right-click a server",
         default: true
     },
     messageMenu: {
         type: OptionType.BOOLEAN,
+        hidden: true,
         displayName: "Show on messages",
         description: "Show the moderation entries when you right-click a message",
         default: true
@@ -198,7 +206,7 @@ const messageCtx: NavContextMenuPatchCallback = (children, { message }: { messag
 
 export default definePlugin({
     name: "FakeMod",
-    description: "Adds moderation entries to people, servers and messages, as if you were a moderator. Pick a rank; a trial moderator can use fewer of them. None of them do anything.",
+    description: "Adds moderator-style entries to people, servers and messages. Your rank decides which ones work. None of them do anything.",
     tags: ["Fun", "Appearance"],
     authors: [{ name: "reqon", id: 497562304498368513n }],
 

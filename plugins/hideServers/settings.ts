@@ -13,20 +13,20 @@ import { forgetSaved } from "./store";
 export const settings = definePluginSettings({
     guildMenu: {
         type: OptionType.BOOLEAN,
-        displayName: "Show on servers",
-        description: "Show \"Hide Server\" when you right-click a server",
+        displayName: "Show in the server menu",
+        description: "Hide Server appears when you right-click a server.",
         default: true
     },
     hideNew: {
         type: OptionType.BOOLEAN,
-        displayName: "Hide new servers",
-        description: "When you turn this back on, servers joined while it was off are hidden too, so your server list stays how you left it.",
+        displayName: "Hide servers joined while off",
+        description: "When you turn Hide Servers back on, servers you joined while it was off are hidden too.",
         default: false
     },
     persist: {
         type: OptionType.BOOLEAN,
         displayName: "Keep after restart",
-        description: "Hidden servers stay hidden when Discord restarts",
+        description: "Hidden servers stay hidden when Discord restarts.",
         default: true,
         // switching it off should not leave the old list sitting on disk
         onChange: (value: boolean) => void (value || forgetSaved())
