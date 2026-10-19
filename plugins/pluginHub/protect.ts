@@ -8,12 +8,15 @@ import { Settings } from "@api/Settings";
 import { Logger } from "@utils/Logger";
 import { findStoreLazy } from "@webpack";
 
-import { force, isOn, isView, usable } from "./hub";
+import { force, isOn, isView, setOn, usable } from "./hub";
 
 const logger = new Logger("PluginHub");
 
 const ApplicationStreamingStore: any = findStoreLazy("ApplicationStreamingStore");
 const StreamerModeStore: any = findStoreLazy("StreamerModeStore");
+
+/** The protection settings, read fresh each time */
+const opt = (): any => Settings.plugins.PluginHub ?? {};
 
 /** The plugins this switched on for a share, so only those are switched back off after it */
 let raised: string[] | null = null;
@@ -42,7 +45,7 @@ function beingWatched(): boolean {
     } catch { /* not on this build: the other check still stands */ }
 
     try {
-        if (Settings.plugins.PluginHub?.streamerMode !== false && StreamerModeStore.enabled) return true;
+        if (opt().streamerMode !== false && StreamerModeStore.enabled) return true;
     } catch { /* same */ }
 
     return false;
@@ -61,7 +64,7 @@ function beingWatched(): boolean {
  * stream too.
  */
 export function check() {
-    const want = Settings.plugins.PluginHub?.shareProtection !== false && beingWatched();
+    const want = opt().shareProtection !== false && beingWatched();
     if (want === isProtecting()) return;
 
     // Decided here, done a moment later. This is called from inside Discord telling its
@@ -71,16 +74,30 @@ export function check() {
     if (want) {
         // The ones that are off. Nothing is written down about these being switched: what
         // you chose stays exactly as you left it.
-        raised = usable().filter(entry => isView(entry) && !isOn(entry.plugin)).map(entry => entry.plugin);
+        const skip: string[] = opt().shareSkip ?? [];
+        raised = usable().filter(entry => isView(entry) && !isOn(entry.plugin) && !skip.includes(entry.plugin)).map(entry => entry.plugin);
+
+        // Read by the hide plugins as they start: anything new since they were last on is
+        // hidden for the length of the share too, and handed back after it.
+        (window as any).vcShareHideNew = opt().shareHideNew !== false;
+
         spread(raised, true);
     } else {
         const mine = raised ?? [];
         raised = null;
+        (window as any).vcShareHideNew = false;
 
         // Only the ones still meant to be off. Anything switched on by hand during the
         // share was a decision, and is left alone.
-        const off: string[] = Settings.plugins.PluginHub?.off ?? [];
-        spread(mine.filter(name => off.includes(name)), false);
+        const off: string[] = opt().off ?? [];
+        const still = mine.filter(name => off.includes(name));
+
+        // Asked to leave them on: then they are on, as if switched on by hand.
+        if (opt().shareRestore === false) {
+            for (const name of still) setOn(name, true);
+        } else {
+            spread(still, false);
+        }
     }
 
     mark();
@@ -125,6 +142,16 @@ function spread(names: string[], on: boolean) {
     setTimeout(next, 0);
 }
 
+/** Whether this page is taken out of the settings sidebar right now */
+export const pageHidden = () => isProtecting() && opt().shareHidePage !== false;
+
+/** A protection setting changed: say again what is hidden, for a share already running */
+export function refresh() {
+    check();
+    mark();
+    for (const listener of listeners) listener();
+}
+
 /**
  * Say on the window whether the screen is shared, for the other plugins to read.
  *
@@ -133,7 +160,7 @@ function spread(names: string[], on: boolean) {
  * this one being installed.
  */
 function mark() {
-    const shared = isProtecting();
+    const shared = isProtecting() && opt().shareHideMenus !== false;
     if ((window as any).vcScreenShared === shared) return;
 
     (window as any).vcScreenShared = shared;
@@ -167,9 +194,12 @@ export function stopProtection() {
         const mine = raised;
         raised = null;
 
-        const off: string[] = Settings.plugins.PluginHub?.off ?? [];
+        (window as any).vcShareHideNew = false;
+
+        const off: string[] = opt().off ?? [];
         for (const name of mine) if (off.includes(name)) force(name, false);
     }
 
     mark();
+    for (const listener of listeners) listener();
 }

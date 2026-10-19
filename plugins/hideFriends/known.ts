@@ -11,7 +11,8 @@ import { get, set } from "@api/DataStore";
  *
  * Kept up to date for as long as the plugin is on, and left alone while it is off. So when it
  * comes back on, whatever is on the list now and was not then turned up while it was off -
- * and that is what "hide new ones" puts away, leaving the list as it was left.
+ * and that is what "hide new ones" puts away, leaving the list as it was left. Screen Share
+ * Protection asks for the same while a share lasts, and gets it back afterwards.
  *
  * `current` gives the list as it stands, or null while Discord has not loaded it yet: taking
  * down an empty list before it has loaded would make everything look new afterwards.
@@ -26,6 +27,10 @@ export function knownList(key: string, current: () => string[] | null) {
     // is how one left off in Additional Settings starts - never saw anything, and taking the
     // list down then would count what is new as seen.
     let seen = false;
+
+    // Hidden only because the screen was being shared, not because you asked for new ones to
+    // be. Handed back when the plugin goes off, so a share leaves the lists as it found them.
+    let lent: string[] = [];
 
     /** Read what was taken down last time. Only once: after that, memory is the copy */
     async function load() {
@@ -72,10 +77,17 @@ export function knownList(key: string, current: () => string[] | null) {
      * The plugin is on and the list is loaded: put away what is new, if asked to, and take
      * the list down. Does nothing while Discord has not loaded the list yet.
      */
-    function catchUp(hideNew: boolean, hide: (ids: string[]) => void) {
+    function catchUp(hideNew: boolean, hide: (ids: string[]) => string[]) {
         if (!current()) return;
 
-        if (hideNew) hide(fresh());
+        // Screen Share Protection says so on the window, so this works without it installed
+        const sharing = !!(window as any).vcShareHideNew;
+
+        if (hideNew || sharing) {
+            const done = hide(fresh());
+            if (!hideNew) lent.push(...done);
+        }
+
         remember();
         seen = true;
     }
@@ -88,5 +100,16 @@ export function knownList(key: string, current: () => string[] | null) {
         seen = false;
     }
 
-    return { load, rememberSoon, cancel, catchUp, leave };
+    /**
+     * After the plugin has put everything back on screen: take what a share hid off the
+     * hidden list, without a word to Discord - it is already showing again.
+     */
+    function giveBack(forget: (ids: string[]) => void) {
+        if (!lent.length) return;
+
+        forget(lent);
+        lent = [];
+    }
+
+    return { load, rememberSoon, cancel, catchUp, leave, giveBack };
 }

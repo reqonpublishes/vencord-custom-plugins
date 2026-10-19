@@ -17,7 +17,7 @@ import { knownList } from "./known";
 import { place } from "./menu";
 import { unwatchMutuals, watchMutuals } from "./mutuals";
 import { settings } from "./settings";
-import { count, hideFresh, hideServer, invalidate, isHidden, isLoaded, listNow, load, showServer, start, stop } from "./store";
+import { count, forgetFresh, hideFresh, hideServer, invalidate, isHidden, isLoaded, listNow, load, showServer, start, stop } from "./store";
 import { About } from "./ui";
 
 const guildCtx: NavContextMenuPatchCallback = (children, { guild }: { guild?: Guild; }) => {
@@ -124,5 +124,6 @@ export default definePlugin({
         unwatchMutuals();
         // The bar goes back to how Discord has it; the list of what was hidden is kept.
         stop();
+        known.giveBack(forgetFresh);
     }
 });

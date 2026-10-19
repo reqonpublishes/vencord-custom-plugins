@@ -93,3 +93,85 @@
     background: var(--background-mod-normal, rgb(128 128 128 / 16%));
     color: var(--icon-default, var(--text-default));
 }
+
+
+/* ---------------------------------------------------------------- Screen Share Protection's choices */
+
+/* the card above and its choices read as one: the choices hang off its bottom edge */
+.vc-hub-item-open {
+    border-bottom-right-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+.vc-hub-sub {
+    display: flex;
+    flex-direction: column;
+    margin-top: -6px;
+    border: 1px solid var(--border-subtle, rgb(128 128 128 / 16%));
+    border-top: none;
+    border-radius: 0 0 var(--radius-md, 12px) var(--radius-md, 12px);
+}
+
+.vc-hub-sub-row {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    padding: 12px 14px;
+}
+
+.vc-hub-sub-row + .vc-hub-sub-row {
+    border-top: 1px solid var(--border-subtle, rgb(128 128 128 / 16%));
+}
+
+.vc-hub-sub-row-stack {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+}
+
+.vc-hub-sub-name {
+    color: var(--text-default);
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 18px;
+}
+
+.vc-hub-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.vc-hub-chip {
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+    padding: 6px 12px;
+    border: 1px solid var(--border-subtle, rgb(128 128 128 / 24%));
+    border-radius: 999px;
+    background: none;
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 18px;
+    cursor: pointer;
+}
+
+.vc-hub-chip:hover {
+    background: var(--background-mod-subtle, rgb(128 128 128 / 8%));
+    color: var(--text-default);
+}
+
+.vc-hub-chip:focus-visible {
+    outline: 2px solid var(--focus-primary, #00b0f4);
+    outline-offset: 2px;
+}
+
+.vc-hub-chip-on {
+    border-color: var(--brand-500, #5865f2);
+    background: color-mix(in srgb, var(--brand-500, #5865f2) 16%, transparent);
+    color: var(--text-default);
+}
+
+.vc-hub-chip-on:hover {
+    background: color-mix(in srgb, var(--brand-500, #5865f2) 24%, transparent);
+}

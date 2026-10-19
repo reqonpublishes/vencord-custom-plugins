@@ -119,6 +119,67 @@ function SyncRow() {
     );
 }
 
+/** One switch of Screen Share Protection's, as a quieter row under it */
+function ShareSwitch({ name, label, detail }: { name: "streamerMode" | "shareHideNew" | "shareHideMenus" | "shareHidePage" | "shareRestore"; label: string; detail: string; }) {
+    const value = settings.use([name])[name];
+
+    return (
+        <div className={cl("sub-row")}>
+            <div className={cl("item-text")}>
+                <div className={cl("sub-name")}>{label}</div>
+                <div className={cl("item-detail")}>{detail}</div>
+            </div>
+            <Switch checked={value !== false} onChange={next => void (settings.store[name] = next)} />
+        </div>
+    );
+}
+
+/** What Screen Share Protection does, each part of it a choice */
+function ShareOptions() {
+    const { shareSkip } = settings.use(["shareSkip"]);
+    const skip: string[] = shareSkip ?? [];
+    const views = installed().filter(isView);
+
+    const toggle = (plugin: string) => {
+        settings.store.shareSkip = skip.includes(plugin) ? skip.filter(name => name !== plugin) : [...skip, plugin];
+    };
+
+    return (
+        <div className={cl("sub")}>
+            <div className={cl("sub-row", "sub-row-stack")}>
+                <div className={cl("item-text")}>
+                    <div className={cl("sub-name")}>Switched on while sharing</div>
+                    <div className={cl("item-detail")}>Only the ones that are off are switched on, and only for the share.</div>
+                </div>
+                <div className={cl("chips")} role="group" aria-label="Switched on while sharing">
+                    {views.map(({ plugin, label, icon: Icon }) => {
+                        const picked = !skip.includes(plugin);
+
+                        return (
+                            <button
+                                key={plugin}
+                                type="button"
+                                className={cl("chip", picked ? "chip-on" : "")}
+                                aria-pressed={picked}
+                                onClick={() => toggle(plugin)}
+                            >
+                                <Icon height={16} width={16} />
+                                <span>{label}</span>
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
+
+            <ShareSwitch name="streamerMode" label="Also in Streamer Mode" detail="Discord turns Streamer Mode on by itself when it sees OBS or another recorder, if you let it in Streamer Mode's settings." />
+            <ShareSwitch name="shareHideNew" label="Hide anything new" detail="Friends, requests, DMs and servers that turned up since those plugins were last on are hidden too, and shown again after." />
+            <ShareSwitch name="shareHideMenus" label="Hide plugin menus" detail="Takes these entries out of right-click menus and the Bookmarked tab off the Friends page. Hold Shift to see the menu entries anyway." />
+            <ShareSwitch name="shareHidePage" label="Hide this page" detail="Takes Additional Settings out of the settings sidebar." />
+            <ShareSwitch name="shareRestore" label="Put everything back after" detail="Switches off again what was switched on for the share. Off leaves them on." />
+        </div>
+    );
+}
+
 function HubPage() {
     const [, redraw] = React.useState(0);
     const update = () => redraw(n => n + 1);
@@ -174,17 +235,19 @@ function HubPage() {
                         </IconButton>
                     </div>
 
-                    <div className={cl("item")}>
+                    <div className={cl("item", shareProtection !== false ? "item-open" : "")}>
                         <div className={cl("item-text")}>
                             <div className={cl("item-name")}>Screen Share Protection</div>
                             <div className={cl("item-detail")}>
                                 {protecting
-                                    ? "Your screen is being shared, so everything is switched on until you stop."
-                                    : "While you share your screen, everything here is switched on and its menu entries are hidden. It all goes back when you stop."}
+                                    ? "Your screen is being shared, so protection is on until you stop."
+                                    : "While you share your screen, the plugins below are switched on and kept out of sight. It all goes back when you stop."}
                             </div>
                         </div>
                         <Switch checked={shareProtection !== false} onChange={next => void (settings.store.shareProtection = next)} />
                     </div>
+
+                    {shareProtection !== false && <ShareOptions />}
 
                     {waiting && (
                         <div className={cl("item")}>

@@ -27,6 +27,9 @@ let hidden = new Map<string, string>();
  */
 const kept = new Map<string, any>();
 
+/** Marks the opens and closes this plugin says, so they can be told from Discord's own */
+const OURS = "__vcHideDMs";
+
 /** When the last hide happened, so the moment after one can be told apart from a real open */
 let justHid = 0;
 export const hidJustNow = () => Date.now() - justHid < 2000;
@@ -332,7 +335,7 @@ function restoreRead(channelId: string, arrived: number) {
     }
 }
 
-export function hideChat(channelId: string): boolean {
+export function hideChat(channelId: string, quiet = false): boolean {
     const record = ChannelStore.getChannel(channelId) ?? kept.get(channelId);
     if (!record) return false;
 
@@ -348,10 +351,12 @@ export function hideChat(channelId: string): boolean {
     hidden.set(channelId, nameOf(channelId));
     save();
 
-    justHid = Date.now();
+    // Not for one put back out of sight by itself: selecting it straight after is you opening
+    // it on purpose, and has to be let through.
+    if (!quiet) justHid = Date.now();
 
     try {
-        FluxDispatcher.dispatch({ type: "CHANNEL_DELETE", channel: record } as any);
+        FluxDispatcher.dispatch({ type: "CHANNEL_DELETE", channel: record, [OURS]: true } as any);
     } catch (e) {
         logger.error("Could not hide the conversation", e);
         return false;
@@ -388,7 +393,7 @@ export function showChat(channelId: string, forget = true): boolean {
     }
 
     try {
-        FluxDispatcher.dispatch({ type: "CHANNEL_CREATE", channel: record } as any);
+        FluxDispatcher.dispatch({ type: "CHANNEL_CREATE", channel: record, [OURS]: true } as any);
 
         // Read as far as it was, with the same badge - not marked read, and not unread from
         // the top, which are the two things Discord would otherwise make of it.
@@ -479,8 +484,8 @@ export function listNow(): string[] | null {
 }
 
 /** Put away conversations that turned up while the plugin was off */
-export function hideFresh(ids: string[]): number {
-    let n = 0;
+export function hideFresh(ids: string[]): string[] {
+    const done: string[] = [];
 
     batched(() => {
         for (const channelId of ids) {
@@ -492,15 +497,57 @@ export function hideFresh(ids: string[]): number {
                 hidden.set(channelId, nameOf(channelId));
                 waiting.add(channelId);
                 save();
-                n++;
+                done.push(channelId);
                 continue;
             }
 
-            if (hideChat(channelId)) n++;
+            if (hideChat(channelId)) done.push(channelId);
         }
     });
 
-    return n;
+    return done;
+}
+
+/** Take conversations off the list again without saying anything. Only once they are back on screen */
+export function forgetFresh(ids: string[]) {
+    for (const channelId of ids) {
+        hidden.delete(channelId);
+        waiting.delete(channelId);
+    }
+
+    save();
+}
+
+/**
+ * Discord opening or closing a conversation by itself - not this plugin.
+ *
+ * Closed somewhere else while hidden - on the phone, say - it is closed: the copy kept to
+ * hand it back is dropped, so it is not brought back when the plugin goes off. It stays on
+ * the hidden list, so if it opens again it goes straight back out of sight.
+ *
+ * Opened while hidden - somebody messaging in a DM that was closed - it is hidden again
+ * as soon as Discord has finished putting it in, with the message still unread for later.
+ */
+export function noteReal(action: any) {
+    if (action?.[OURS]) return;
+
+    const channelId = action?.channel?.id;
+    if (!channelId || !hidden.has(channelId)) return;
+
+    if (action.type === "CHANNEL_DELETE") {
+        kept.delete(channelId);
+        waiting.delete(channelId);
+        return;
+    }
+
+    if (action.type === "CHANNEL_CREATE") {
+        setTimeout(() => {
+            if (!hidden.has(channelId) || !ChannelStore.getChannel(channelId)) return;
+
+            if (inUse(channelId)) waiting.add(channelId);
+            else hideChat(channelId, true);
+        }, 0);
+    }
 }
 
 /** Hidden conversations left on screen for now because you are in them */
@@ -546,7 +593,14 @@ export function hideWaiting() {
 
 /** Switched off: every hidden conversation back in the list, kept on the list, without a freeze */
 export function pause() {
-    sliced([...hidden.keys()].map(channelId => () => void showChat(channelId, false)));
+    sliced([...hidden.keys()].map(channelId => () => {
+        showChat(channelId, false);
+
+        // Back in Discord's list, it is Discord's again: closed while the plugin is off, it
+        // has to stay closed. A copy held on to here would open it again the next time the
+        // plugin went off. Switching on takes a fresh copy from the list.
+        if (ChannelStore.getChannel(channelId)) kept.delete(channelId);
+    }));
 }
 
 /** Switched back on: every one of them hidden again, without a freeze */

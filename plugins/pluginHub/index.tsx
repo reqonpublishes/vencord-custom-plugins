@@ -15,7 +15,7 @@ import definePlugin, { OptionType } from "@utils/types";
 import { applyOffList } from "./hub";
 import HubPage from "./HubPage";
 import { TuneIcon } from "./icons";
-import { check, startProtection, stopProtection } from "./protect";
+import { onProtectionChange, pageHidden, refresh, startProtection, stopProtection } from "./protect";
 import { About } from "./ui";
 
 const KEY = "vencord_additional_settings";
@@ -38,14 +38,45 @@ export const settings = definePluginSettings({
         displayName: "Screen Share Protection",
         description: "While you share your screen, every plugin is switched on, including the ones you turned off, and their menu entries and this page are kept out of sight. Everything goes back to how you had it when you stop.",
         default: true,
-        onChange: () => check()
+        onChange: () => refresh()
     },
     streamerMode: {
         type: OptionType.BOOLEAN,
         displayName: "Also protect in Streamer Mode",
         description: "Counts Streamer Mode as sharing. Discord turns it on by itself when it detects OBS or another recorder, if you have that enabled in Streamer Mode's settings.",
         default: true,
-        onChange: () => check()
+        onChange: () => refresh()
+    },
+    shareHideNew: {
+        type: OptionType.BOOLEAN,
+        displayName: "Hide anything new while sharing",
+        description: "Friends, requests, DMs and servers that turned up since those plugins were last on are hidden for the share too, and shown again after it.",
+        default: true
+    },
+    shareHideMenus: {
+        type: OptionType.BOOLEAN,
+        displayName: "Hide plugin menus while sharing",
+        description: "Takes these plugins' entries out of right-click menus, and the Bookmarked tab off the Friends page. Holding Shift still shows the menu entries.",
+        default: true,
+        onChange: () => refresh()
+    },
+    shareHidePage: {
+        type: OptionType.BOOLEAN,
+        displayName: "Hide Additional Settings while sharing",
+        description: "Takes this page out of the settings sidebar while you share.",
+        default: true,
+        onChange: () => refresh()
+    },
+    shareRestore: {
+        type: OptionType.BOOLEAN,
+        displayName: "Put everything back when sharing stops",
+        description: "Switches off again whatever was switched on for the share. Turn this off to leave them on afterwards.",
+        default: true
+    },
+    // Plugins left alone during a share. Picked on the Additional Settings page.
+    shareSkip: {
+        type: OptionType.CUSTOM,
+        default: [] as string[]
     }
 });
 
@@ -67,7 +98,7 @@ function listed(on: boolean) {
  * A page listing everything that is hidden and faked is the last thing to have in the
  * sidebar of a shared screen, so it is taken out while one is being shared.
  */
-const onShared = (event: Event) => listed(!(event as CustomEvent).detail);
+let unwatch: (() => void) | null = null;
 
 export default definePlugin({
     name: "PluginHub",
@@ -93,7 +124,7 @@ export default definePlugin({
 
     start() {
         listed(true);
-        window.addEventListener("vc-screen-shared", onShared);
+        unwatch = onProtectionChange(() => listed(!pageHidden()));
 
         // After this turn of the loop, by which time Vencord has started every plugin it is
         // going to - including the ones that are meant to be off.
@@ -107,7 +138,8 @@ export default definePlugin({
 
     stop() {
         stopProtection();
-        window.removeEventListener("vc-screen-shared", onShared);
+        unwatch?.();
+        unwatch = null;
         listed(false);
     }
 });

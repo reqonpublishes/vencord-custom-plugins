@@ -16,7 +16,7 @@ import { EyeIcon, EyeOffIcon } from "./icons";
 import { knownList } from "./known";
 import { place } from "./menu";
 import { settings } from "./settings";
-import { count, hideChat, hideFresh, hideWaiting, hidJustNow, invalidate, isHidden, isLoaded, isWaiting, listNow, load, noteMessage, pause, reapply, resume, showAll, showChat } from "./store";
+import { count, forgetFresh, hideChat, hideFresh, hideWaiting, hidJustNow, invalidate, isHidden, isLoaded, isWaiting, listNow, load, noteMessage, noteReal, pause, reapply, resume, showAll, showChat } from "./store";
 import { About } from "./ui";
 
 /**
@@ -104,7 +104,10 @@ const afterConnect = () => {
 };
 
 /** A conversation opened or closed while the plugin is on: seen, so not new next time */
-const onListChange = () => known.rememberSoon();
+const onListChange = (action: any) => {
+    noteReal(action);
+    known.rememberSoon();
+};
 
 /** Whether the plugin is meant to be on. Checked after waiting, in case it was switched off meanwhile */
 let alive = false;
@@ -193,5 +196,6 @@ export default definePlugin({
         // Back on screen, still on the list. Switching the plugin off should give the
         // conversations back without forgetting which ones you had put away.
         pause();
+        known.giveBack(forgetFresh);
     }
 });

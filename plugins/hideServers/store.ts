@@ -334,20 +334,26 @@ export function listNow(): string[] | null {
 }
 
 /** Put away servers joined while the plugin was off */
-export function hideFresh(ids: string[]): number {
-    let n = 0;
+export function hideFresh(ids: string[]): string[] {
+    const done: string[] = [];
     for (const id of ids) {
         if (hidden.has(id)) continue;
         hidden.set(id, nameOf(id));
-        n++;
+        done.push(id);
     }
 
-    if (n) {
+    if (done.length) {
         save();
         paint();
     }
 
-    return n;
+    return done;
+}
+
+/** Take servers off the list again. Only once the bar is showing everything */
+export function forgetFresh(ids: string[]) {
+    for (const id of ids) hidden.delete(id);
+    save();
 }
 
 /** Called after the list changed underneath - a fetch from the shelf, say */

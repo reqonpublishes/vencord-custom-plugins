@@ -402,22 +402,38 @@ export function realList(): string[] | null {
 }
 
 /** Put away people who turned up while the plugin was off, as `id:type` from realList */
-export function hideFresh(keys: string[]): number {
-    let n = 0;
+export function hideFresh(keys: string[]): string[] {
+    const done: string[] = [];
 
     batched(() => {
         for (const key of keys) {
             const [id, type] = key.split(":");
 
             if (Number(type) === FRIEND) {
-                if (!isHidden(id) && !isFriended(id) && hideFriend(id)) n++;
+                if (!isHidden(id) && !isFriended(id) && hideFriend(id)) done.push(key);
             } else if (Number(type) === PENDING_INCOMING) {
-                if (dismissRequest(id)) n++;
+                if (dismissRequest(id)) done.push(key);
             }
         }
     });
 
-    return n;
+    return done;
+}
+
+/** Take people off the lists again without saying anything. Only once they are back on screen */
+export function forgetFresh(keys: string[]) {
+    for (const key of keys) {
+        const [id, type] = key.split(":");
+
+        if (Number(type) === FRIEND) {
+            delete held.hidden[id];
+            delete held.hiddenWas[id];
+        } else if (Number(type) === PENDING_INCOMING) {
+            delete held.dismissed[id];
+        }
+    }
+
+    save();
 }
 
 /** Put the relationship back to whatever it really was */

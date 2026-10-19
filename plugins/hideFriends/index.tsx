@@ -29,6 +29,7 @@ import {
     clearRequest,
     counts,
     dismissRequest,
+    forgetFresh,
     FRIEND,
     hideFresh,
     hideFriend,
@@ -363,5 +364,6 @@ export default definePlugin({
         // Back as Discord has it, still on the list - switching the plugin off should give
         // everybody back without forgetting who you had put away.
         pause();
+        known.giveBack(forgetFresh);
     }
 });
