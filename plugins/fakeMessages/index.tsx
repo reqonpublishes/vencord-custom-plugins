@@ -10,21 +10,23 @@ import { findGroupChildrenByChildId, NavContextMenuPatchCallback } from "@api/Co
 import { migratePluginSettings } from "@api/Settings";
 import definePlugin from "@utils/types";
 import { Channel, Message } from "@vencord/discord-types";
-import { FluxDispatcher, Menu, MessageStore, React, SelectedChannelStore, showToast } from "@webpack/common";
+import { FluxDispatcher, Menu, MessageStore, React, SelectedChannelStore } from "@webpack/common";
 
 import { openAddMessage } from "./AddMessageModal";
 import { openForward } from "./ForwardModal";
 import { ChatAddIcon, PencilIcon, TrashIcon } from "./icons";
 import { place } from "./menu";
+import { editFake, startNative, stopNative } from "./native";
 import { settings } from "./settings";
 import {
     chats,
     clearChannel,
     countIn,
+    getFake,
     interceptor,
     invalidate,
     isFake,
-    isLoaded,
+    isRunning,
     load,
     removeMessage,
     setRunning,
@@ -55,12 +57,7 @@ const messageCtx: NavContextMenuPatchCallback = (children, { message }: { messag
                 label="Edit Fake Message"
                 icon={PencilIcon}
                 leadingAccessory={{ type: "icon", icon: PencilIcon }}
-                action={() => {
-                    const inspect = (window as any).Vencord?.Plugins?.plugins?.InspectMessages;
-
-                    if (inspect?.started && typeof inspect.inspect === "function") inspect.inspect(message);
-                    else showToast({ text: "Turn on Inspect Messages to edit a fake message", variant: "default" });
-                }}
+                action={() => editFake(message)}
             />
         );
 
@@ -71,12 +68,15 @@ const messageCtx: NavContextMenuPatchCallback = (children, { message }: { messag
         const at = group?.findIndex(item => item?.props?.id === "forward") ?? -1;
         if (group && at !== -1) {
             const live = MessageStore.getMessage(channelId, message.id) ?? message;
+            // A forward has no text of its own - what it says is the message inside it, and
+            // forwarding it on carries that, the way Discord's own does.
+            const inner = getFake(channelId, message.id)?.forward;
             group[at] = React.cloneElement(group[at] as React.ReactElement<any>, {
                 action: () => openForward({
                     channelId,
                     messageId: message.id,
-                    content: live.content ?? "",
-                    sentAt: new Date(live.timestamp as any).getTime()
+                    content: live.content || inner?.content || "",
+                    sentAt: inner && !live.content ? inner.sentAt : new Date(live.timestamp as any).getTime()
                 })
             });
         }
@@ -170,9 +170,9 @@ export default definePlugin({
             icon={ChatAddIcon}
             title="Add messages nobody sent"
             steps={[
-                <>Right-click a message and choose <strong>Add Fake Message Here</strong> to put one right after it.</>,
-                <>Or right-click a DM or channel and choose <strong>Add Fake Message</strong>.</>,
-                <>Right-click a fake message and choose <strong>Remove Fake Message</strong> to take it back.</>
+                <>Right-click a message and choose <strong>Add Fake Message Here</strong>, or right-click a DM or channel and choose <strong>Add Fake Message</strong>.</>,
+                <>Right-click a fake message for <strong>Edit Fake Message</strong>, <strong>Forward</strong> and <strong>Remove Fake Message</strong>. Editing needs Inspect Messages on.</>,
+                <>Discord's own Edit and Delete work on it too. A reply to it is sent as a normal message.</>
             ]}
         />
     ),
@@ -190,15 +190,19 @@ export default definePlugin({
 
     async start() {
         // Only the first start reads from disk. After that the list is already in memory,
-        // and not waiting is what lets switching back on happen at once.
+        // and not waiting is what lets switching back on happen at once. A start that comes
+        // while that first read is still going waits for the same read.
         alive = true;
-        if (!isLoaded()) {
-            await load();
+        const reading = load();
+        if (reading) {
+            await reading;
 
-            // Switched off again while the list was being read, so it stays off.
-            if (!alive) return;
+            // Switched off again while the list was being read, so it stays off - and if
+            // another start already finished in the meantime, there is nothing left to do.
+            if (!alive || isRunning()) return;
         }
         setRunning(true);
+        startNative();
 
         // Added once and left: Vencord has no way to take an interceptor back off, so a
         // second start would stack another copy and every page would be processed twice.
@@ -217,6 +221,7 @@ export default definePlugin({
         // Off the screen, still on the list - stopping should leave the conversation as
         // Discord has it, and starting again should bring them back.
         setRunning(false);
+        stopNative();
         takeAllOffScreen();
     }
 });

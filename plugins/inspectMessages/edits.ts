@@ -48,10 +48,10 @@ let edits = new Map<string, StoredEdit>();
 const save = () => void (settings.store.persist && set(KEY, edits));
 
 export async function loadEdits() {
-    if (!settings.store.persist) {
-        edits = new Map();
-        return edits;
-    }
+    // Nothing on disk to read, and what is in memory is the only copy there is - so it is
+    // kept. Switching off and on again, which a screen share or the hub does, must not
+    // throw away every change just because they are not being saved.
+    if (!settings.store.persist) return edits;
 
     type Stored = Map<string, StoredEdit> | Record<string, StoredEdit>;
 
@@ -84,6 +84,21 @@ export const hasEdits = () => edits.size > 0;
 export const countEdits = () => edits.size;
 export const isEdited = (id: string) => edits.has(id);
 export const getOriginal = (id: string) => edits.get(id)?.original;
+
+/**
+ * The text Discord's own Edit box should open with, for a message whose text was rewritten.
+ *
+ * The box is filled from the message as it is held, and that holds the rewritten text. Left
+ * that way, saving a real edit to one of your own messages would send the rewritten text to
+ * Discord for everybody to see. Only when the box is being filled with exactly that text: if
+ * Discord built it from something else, it is left as Discord built it.
+ */
+export function realTextFor(id: string, seeded: unknown): string | null {
+    const entry = edits.get(id);
+    if (!entry || entry.content === undefined || seeded !== entry.content) return null;
+
+    return entry.original.content;
+}
 
 /** The highlight choice already saved for this message, if one was made */
 export const getHighlight = (id: string) => edits.get(id)?.highlight;
@@ -148,7 +163,6 @@ const marked = new Set<string>();
 
 let styleEl: HTMLStyleElement | null = null;
 let observer: MutationObserver | null = null;
-let observed: Element | null = null;
 let passScheduled = false;
 
 function messageClasses() {
@@ -227,16 +241,19 @@ function schedulePass() {
     requestAnimationFrame(applyHighlights);
 }
 
-/** React rebuilds rows as you scroll, so the class has to be put back when it does */
+/**
+ * React rebuilds rows as you scroll, so the class has to be put back when it does.
+ *
+ * Watched from the top of the app rather than from the message list. The list is a new one
+ * in every channel, and one watched list went quiet the moment you switched away - coming
+ * back, the highlight was gone and nothing noticed. Each change only asks for one pass on
+ * the next frame, however many arrive, so watching more costs next to nothing.
+ */
 function startObserver() {
-    const row = document.querySelector('[id^="chat-messages-"]');
-    const list = row?.parentElement;
-    if (!list || observed === list) return;
+    if (observer) return;
 
-    observer?.disconnect();
-    observed = list;
     observer = new MutationObserver(schedulePass);
-    observer.observe(list, { childList: true });
+    observer.observe(document.getElementById("app-mount") ?? document.body, { childList: true, subtree: true });
 }
 
 export function startStyles() {
@@ -251,7 +268,6 @@ export function startStyles() {
 export function stopStyles() {
     observer?.disconnect();
     observer = null;
-    observed = null;
 
     highlights.clear();
     applyHighlights();

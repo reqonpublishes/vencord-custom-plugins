@@ -18,6 +18,9 @@ import { IpcMainInvokeEvent } from "electron";
  * can still only reach what Discord allows, and this will only ever speak to the one address
  * it is handed, over https, to read it or to write it.
  */
+/** How long a request is given before it counts as failed, so the buttons are never stuck */
+const TIMEOUT = 15_000;
+
 export async function request(_: IpcMainInvokeEvent, url: string, method: "GET" | "PUT", body?: string) {
     let target: URL;
     try {
@@ -33,11 +36,17 @@ export async function request(_: IpcMainInvokeEvent, url: string, method: "GET" 
         const answer = await fetch(target, {
             method,
             headers: body === undefined ? undefined : { "content-type": "application/json" },
-            body
+            body,
+            // Covers reading the answer as well as getting one.
+            signal: AbortSignal.timeout(TIMEOUT)
         });
 
         return { status: answer.status, text: await answer.text() };
     } catch (e) {
+        if (e instanceof Error && (e.name === "TimeoutError" || e.name === "AbortError")) {
+            return { status: 0, text: `no answer after ${TIMEOUT / 1000} seconds` };
+        }
+
         return { status: 0, text: e instanceof Error ? e.message : String(e) };
     }
 }

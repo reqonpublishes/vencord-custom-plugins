@@ -56,19 +56,41 @@ function save() {
  */
 let loaded = false;
 export const isLoaded = () => loaded;
-export const invalidate = () => void (loaded = false);
 
-export async function load() {
-    if (loaded) return;
-    loaded = true;
+/**
+ * The read in progress, so a second start while the first is still waiting on the disk waits
+ * for the same read instead of taking the list as loaded before it is. `reads` tells a read
+ * that was overtaken - a sync landing meanwhile - so it does not write over the newer one.
+ */
+let loading: Promise<void> | null = null;
+let reads = 0;
 
-    // Nothing on disk to read, and what is in memory is the only copy there is.
-    if (!settings.store.persist) return;
+export function invalidate() {
+    loaded = false;
+    loading = null;
+    reads++;
+}
 
-    const stored = await get<[string, string][] | Record<string, string>>(KEY);
-    if (!stored) return;
+export function load(): Promise<void> {
+    if (loaded) return Promise.resolve();
+    if (loading) return loading;
 
-    hidden = Array.isArray(stored) ? new Map(stored) : new Map(Object.entries(stored));
+    const mine = ++reads;
+    loading = (async () => {
+        try {
+            // Nothing on disk to read when it is not being kept, and what is in memory is
+            // the only copy there is.
+            const stored = settings.store.persist ? await get<[string, string][] | Record<string, string>>(KEY) : null;
+            if (mine !== reads) return;
+
+            if (stored) hidden = Array.isArray(stored) ? new Map(stored) : new Map(Object.entries(stored));
+            loaded = true;
+        } finally {
+            if (mine === reads) loading = null;
+        }
+    })();
+
+    return loading;
 }
 
 /** Called when the persist setting is switched off, so nothing is left behind on disk */
@@ -226,6 +248,9 @@ function watch() {
 }
 
 export function start() {
+    // Once: a second start would add a second sheet and a second timer, and stop only knows
+    // how to take away one of each.
+    if (running) return;
     running = true;
 
     styleEl = document.createElement("style");

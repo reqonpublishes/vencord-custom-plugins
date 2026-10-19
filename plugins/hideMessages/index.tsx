@@ -210,8 +210,9 @@ export default definePlugin({
         CONNECTION_OPEN() {
             // Discord refetches the open channel whenever the gateway comes up, including
             // the very first time, which is the same moment plugins are allowed to start.
-            // Re-applying here is what makes a restart come back already hidden.
-            catchUpAll();
+            // Re-applying here is what makes a restart come back already hidden. After this
+            // dispatch rather than inside it: reloading a chat is a dispatch of its own.
+            setTimeout(catchUpAll, 0);
         }
     },
 

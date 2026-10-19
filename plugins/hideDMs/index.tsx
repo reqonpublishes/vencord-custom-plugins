@@ -16,7 +16,7 @@ import { EyeIcon, EyeOffIcon } from "./icons";
 import { knownList } from "./known";
 import { place } from "./menu";
 import { settings } from "./settings";
-import { count, forgetFresh, hideChat, hideFresh, hideWaiting, hidJustNow, invalidate, isHidden, isLoaded, isWaiting, listNow, load, noteMessage, noteReal, pause, reapply, resume, showAll, showChat } from "./store";
+import { count, forgetFresh, hideChat, hideFresh, hideWaiting, hidJustNow, invalidate, isHidden, isLoaded, isWaiting, listNow, load, noteMessage, noteReal, pause, reapply, resume, setOn, showAll, showChat } from "./store";
 import { About } from "./ui";
 
 /**
@@ -79,7 +79,10 @@ const reopen = (action: any) => {
     // select another, and once that was this one coming straight back.
     if (hidJustNow()) return;
 
-    if (isHidden(action?.channelId)) showChat(action.channelId);
+    // Decided now, while the checks above still describe this select. Only the showing waits
+    // until the dispatch is over, because it is a dispatch of its own.
+    const channelId = action?.channelId;
+    if (isHidden(channelId)) setTimeout(() => void (isHidden(channelId) && showChat(channelId)), 0);
 };
 
 /** A call ending frees the conversation it was in, the same way leaving it does */
@@ -96,11 +99,32 @@ function catchUp() {
     known.catchUp(!!settings.store.hideNew, hideFresh);
 }
 
+/** The hiding-again booked by a reconnect, so switching off can call it off */
+let connectTimer: ReturnType<typeof setTimeout> | null = null;
+
+function cancelConnect() {
+    if (connectTimer) clearTimeout(connectTimer);
+    connectTimer = null;
+}
+
 /** Discord rebuilds its conversations on every reconnect, so what was hidden is said again */
 const afterConnect = () => {
+    // Nothing taken down between the reconnect and the catching up: that is the gap new
+    // conversations come in through.
     known.cancel();
-    reapply();
-    catchUp();
+
+    // Out of the dispatch this is riding on: hiding is a dispatch of its own, and none can
+    // happen inside another.
+    cancelConnect();
+    connectTimer = setTimeout(() => {
+        connectTimer = null;
+
+        // Switched off in the moment between, which has already put everything back.
+        if (!alive) return;
+
+        reapply();
+        catchUp();
+    }, 0);
 };
 
 /** A conversation opened or closed while the plugin is on: seen, so not new next time */
@@ -109,8 +133,15 @@ const onListChange = (action: any) => {
     known.rememberSoon();
 };
 
-/** Whether the plugin is meant to be on. Checked after waiting, in case it was switched off meanwhile */
+/** Whether the plugin is meant to be on */
 let alive = false;
+
+/**
+ * Goes up on every start and stop. A start that had to wait checks it is still the latest
+ * one: off and on again while the first was waiting is a second start, and only that one
+ * should carry on.
+ */
+let runs = 0;
 
 migratePluginSettings("HideDMs", "CustomPluginHideDMs");
 
@@ -136,8 +167,8 @@ export default definePlugin({
             title="Hide conversations from your DM list"
             steps={[
                 <>Right-click a DM or a person and choose <strong>Hide DM</strong>.</>,
-                <>Opening a hidden DM from search or a profile unhides it.</>,
-                <>Everything you have hidden is listed below, with a way back.</>
+                <>A new message keeps it hidden, unread for later. Opening it from search or a profile unhides it.</>,
+                <>Unhide any of them from the list below.</>
             ]}
         />
     ),
@@ -163,12 +194,16 @@ export default definePlugin({
         // Only the first start reads from disk. After that the list is already in memory,
         // and not waiting is what lets switching back on happen at once.
         alive = true;
+        const mine = ++runs;
         if (!isLoaded()) {
             await load();
 
-            // Switched off again while the list was being read, so it stays off.
-            if (!alive) return;
+            // Switched off again while the list was being read, or off and on again - in
+            // which case the newer start does this.
+            if (mine !== runs) return;
         }
+
+        setOn(true);
         resume();
 
         FluxDispatcher.subscribe("CHANNEL_SELECT", reopen);
@@ -179,11 +214,13 @@ export default definePlugin({
         FluxDispatcher.subscribe("CHANNEL_DELETE", onListChange);
 
         await known.load();
-        if (alive) catchUp();
+        if (mine === runs) catchUp();
     },
 
     stop() {
         alive = false;
+        runs++;
+        cancelConnect();
         // Before they come back on screen, while the hidden ones are still the hidden ones
         known.leave();
         FluxDispatcher.unsubscribe("CHANNEL_CREATE", onListChange);
@@ -195,6 +232,7 @@ export default definePlugin({
 
         // Back on screen, still on the list. Switching the plugin off should give the
         // conversations back without forgetting which ones you had put away.
+        setOn(false);
         pause();
         known.giveBack(forgetFresh);
     }

@@ -512,7 +512,23 @@ function writeNow() {
  * those sit in a window is how a hide you just clicked went missing when Discord closed.
  */
 
-async function load() {
+/**
+ * The read in progress, so a start that comes while an earlier one is still reading waits for
+ * that read rather than starting a second one beside it.
+ */
+let loading: Promise<void> | null = null;
+
+function load() {
+    loading ??= readSaved().finally(() => void (loading = null));
+    return loading;
+}
+
+/**
+ * Read the saved list, on every start - a sync from the cloud writes to it while the plugin
+ * is off and relies on this. Without "Keep after restart" there is nothing saved, and what is
+ * in memory is the only copy, so it is left as it is.
+ */
+async function readSaved() {
     if (!settings.store.persist) return;
 
     const stored = await get<Stored>(KEY);
@@ -839,12 +855,9 @@ export function showChannel(channelId: string) {
     writeNow();
 }
 
-function showEverything() {
+/** Take every hide off the screen, leaving the lists of what is hidden as they are */
+function unpaint() {
     for (const channelId of [...clamped]) releaseBackfill(channelId);
-
-    hiddenMessages.clear();
-    hiddenRanges.clear();
-    hiddenChannels.clear();
     blankPages.clear();
 
     appliedRules.clear();
@@ -852,22 +865,43 @@ function showEverything() {
     stopObserver();
 }
 
+function showEverything() {
+    hiddenMessages.clear();
+    hiddenRanges.clear();
+    hiddenChannels.clear();
+
+    unpaint();
+}
+
 /** Undo everything and wipe the saved list */
 export function clearAll() {
     const open = SelectedChannelStore.getChannelId();
 
     showEverything();
-    if (open) refresh(open);
+
+    // Off, the open chat is already showing all of it - switching off reloaded it - so
+    // there is nothing to reload, and nothing should be said to Discord.
+    if (open && enabled) refresh(open);
 
     if (settings.store.persist) writeNow();
 }
 
 // ---------------------------------------------------------------- lifecycle
 
+/**
+ * Goes up on every start and stop. A start still reading the list checks it is the latest one
+ * before catching up: off and on again meanwhile is a second start, and that one catches up.
+ */
+let runs = 0;
+
 export async function startStore() {
-    styleEl = document.createElement("style");
-    styleEl.id = "vc-custom-hide-messages";
-    document.head.appendChild(styleEl);
+    const mine = ++runs;
+
+    if (!styleEl) {
+        styleEl = document.createElement("style");
+        styleEl.id = "vc-custom-hide-messages";
+        document.head.appendChild(styleEl);
+    }
 
     /*
      * Switched on before the saved list is read, deliberately. Reading it is a trip to IndexedDB,
@@ -879,18 +913,20 @@ export async function startStore() {
     enabled = true;
 
     await load();
-    catchUpAll();
+    if (mine === runs) catchUpAll();
 }
 
 export function stopStore() {
     enabled = false;
+    runs++;
 
-    // Which chats were hidden whole, noted before the lists are emptied.
     const whole = [...hiddenChannels.keys()];
     const open = SelectedChannelStore.getChannelId();
 
-    showEverything();
-    stopObserver();
+    // Off the screen, but still on the lists: switching off and on again - by hand, by
+    // Screen Share Protection, or by a sync - should hide the same things again, and with
+    // "Keep after restart" off memory is the only place they are written down.
+    unpaint();
 
     // Switching off has to show the real chat now, not the next time it is opened. Single
     // messages and ranges were only ever hidden by a style, which is gone with the rest. A

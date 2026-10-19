@@ -24,25 +24,25 @@ export const settings = definePluginSettings({
     messageMenu: {
         type: OptionType.BOOLEAN,
         displayName: "Show on messages",
-        description: "Adds Hide Message to the menu when you right-click a message",
+        description: "Show \"Hide Message\" when you right-click a message",
         default: true
     },
     channelMenu: {
         type: OptionType.BOOLEAN,
         displayName: "Show on conversations",
-        description: "Adds Hide Messages to the menu when you right-click a DM or channel",
+        description: "Show \"Hide Messages\" when you right-click a DM or channel",
         default: true
     },
     userMenu: {
         type: OptionType.BOOLEAN,
         displayName: "Show on people",
-        description: "Adds Hide Messages to the menu when you right-click a person, including in your friends list",
+        description: "Show \"Hide Messages\" when you right-click a person",
         default: true
     },
     profileMenu: {
         type: OptionType.BOOLEAN,
         displayName: "Show on profiles",
-        description: "Adds Hide Messages to the ... menu on a profile",
+        description: "Show \"Hide Messages\" in the ... menu on a profile",
         default: true
     },
     persist: {

@@ -21,6 +21,17 @@ const opt = (): any => Settings.plugins.PluginHub ?? {};
 /** The plugins this switched on for a share, so only those are switched back off after it */
 let raised: string[] | null = null;
 
+/** The plugins left alone during the share running now, as they were when last looked at */
+let skipped: string[] = [];
+
+/**
+ * Whether Plugin Hub is running and so watching for shares.
+ *
+ * The settings below are told of changes whether or not it is, and a share must not be
+ * taken hold of by a plugin that is switched off.
+ */
+let watching = false;
+
 const listeners = new Set<() => void>();
 
 /** Told whenever protection starts or stops, so the settings page can say so */
@@ -31,6 +42,9 @@ export function onProtectionChange(listener: () => void) {
 
 /** Whether everything is being held on right now because the screen is being shown */
 export const isProtecting = () => raised !== null;
+
+/** What was switched on for the share running now, and nothing when there is none */
+export const raisedForShare = (): string[] => raised ?? [];
 
 /**
  * Whether somebody else can see this screen.
@@ -64,6 +78,8 @@ function beingWatched(): boolean {
  * stream too.
  */
 export function check() {
+    if (!watching) return;
+
     const want = opt().shareProtection !== false && beingWatched();
     if (want === isProtecting()) return;
 
@@ -75,6 +91,7 @@ export function check() {
         // The ones that are off. Nothing is written down about these being switched: what
         // you chose stays exactly as you left it.
         const skip: string[] = opt().shareSkip ?? [];
+        skipped = [...skip];
         raised = usable().filter(entry => isView(entry) && !isOn(entry.plugin) && !skip.includes(entry.plugin)).map(entry => entry.plugin);
 
         // Read by the hide plugins as they start: anything new since they were last on is
@@ -92,20 +109,42 @@ export function check() {
         const off: string[] = opt().off ?? [];
         const still = mine.filter(name => off.includes(name));
 
-        // Asked to leave them on: then they are on, as if switched on by hand.
-        if (opt().shareRestore === false) {
-            for (const name of still) setOn(name, true);
-        } else {
-            spread(still, false);
-        }
+        release(still);
     }
 
     mark();
     for (const listener of listeners) listener();
 }
 
+/**
+ * Let go of what was held on for a share that is over.
+ *
+ * Asked to leave them on: then they are on, as if switched on by hand, and anything still
+ * waiting to be started is started now rather than by a queue that has been called off.
+ */
+function release(names: string[], now = false) {
+    if (opt().shareRestore === false) {
+        cancel();
+        for (const name of names) setOn(name, true);
+    } else if (now) {
+        cancel();
+        for (const name of names) force(name, false);
+    } else {
+        spread(names, false);
+    }
+}
+
 /** Which run of switching is the current one, so a share that ends at once cancels its own start */
 let turn = 0;
+
+/** What the current run has still to switch, so more can join it rather than replace it */
+let waiting: string[] = [];
+
+/** Call off whatever run is part way through */
+function cancel() {
+    turn++;
+    waiting = [];
+}
 
 /** The order they are switched in: what gives most away goes first */
 const FIRST = ["HideDMs", "HideFriends", "HideServers", "FakeNotifications", "HideMessages"];
@@ -119,12 +158,12 @@ const FIRST = ["HideDMs", "HideFriends", "HideServers", "FakeNotifications", "Hi
  */
 function spread(names: string[], on: boolean) {
     const mine = ++turn;
-    const queue = [...names].sort((a, b) => (FIRST.indexOf(a) + 1 || 99) - (FIRST.indexOf(b) + 1 || 99));
+    waiting = [...names].sort((a, b) => (FIRST.indexOf(a) + 1 || 99) - (FIRST.indexOf(b) + 1 || 99));
 
     const next = () => {
         if (mine !== turn) return;
 
-        const name = queue.shift();
+        const name = waiting.shift();
         if (!name) {
             for (const listener of listeners) listener();
             return;
@@ -147,9 +186,45 @@ export const pageHidden = () => isProtecting() && opt().shareHidePage !== false;
 
 /** A protection setting changed: say again what is hidden, for a share already running */
 export function refresh() {
+    if (!watching) return;
+
     check();
+
+    if (isProtecting()) {
+        // Read by the hide plugins as they start, so this reaches the ones started from here
+        // on. What the running ones already hid stays hidden until the share ends.
+        (window as any).vcShareHideNew = opt().shareHideNew !== false;
+        widen();
+    }
+
     mark();
     for (const listener of listeners) listener();
+}
+
+/**
+ * A plugin taken off the skip list in the middle of a share is switched on for the rest of it.
+ *
+ * Only the ones just taken off, and only if they are off - so one you switched off by hand
+ * during the share is not overruled by an unrelated change. One just put on the skip list is
+ * left as it is until the share ends, which is when it would have been let go anyway.
+ */
+function widen() {
+    const skip: string[] = opt().shareSkip ?? [];
+    const freed = skipped.filter(name => !skip.includes(name));
+    skipped = [...skip];
+
+    const held = raised;
+    if (!held || !freed.length) return;
+
+    const more = usable()
+        .filter(entry => isView(entry) && freed.includes(entry.plugin) && !isOn(entry.plugin) && !held.includes(entry.plugin))
+        .map(entry => entry.plugin);
+    if (!more.length) return;
+
+    held.push(...more);
+
+    // Joined onto whatever the share's start has still to do, rather than calling it off.
+    spread([...waiting, ...more], true);
 }
 
 /**
@@ -173,6 +248,8 @@ function mark() {
 }
 
 export function startProtection() {
+    watching = true;
+
     try {
         ApplicationStreamingStore.addChangeListener(check);
         StreamerModeStore.addChangeListener(check);
@@ -184,12 +261,19 @@ export function startProtection() {
 }
 
 export function stopProtection() {
+    watching = false;
+
     try {
         ApplicationStreamingStore.removeChangeListener(check);
         StreamerModeStore.removeChangeListener(check);
     } catch { /* never attached */ }
 
-    // let go of whatever is being held, as if the share had ended
+    // Whatever a share's start has still to switch on is called off, so nothing is started
+    // after this plugin has gone.
+    cancel();
+
+    // let go of whatever is being held, as if the share had ended - at once, since nothing of
+    // this plugin's is left running to finish it later
     if (raised) {
         const mine = raised;
         raised = null;
@@ -197,7 +281,7 @@ export function stopProtection() {
         (window as any).vcShareHideNew = false;
 
         const off: string[] = opt().off ?? [];
-        for (const name of mine) if (off.includes(name)) force(name, false);
+        release(mine.filter(name => off.includes(name)), true);
     }
 
     mark();

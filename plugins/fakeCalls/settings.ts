@@ -14,13 +14,13 @@ export const settings = definePluginSettings({
     messageMenu: {
         type: OptionType.BOOLEAN,
         displayName: "Show on messages",
-        description: "Adds Add Fake Call Here to the menu when you right-click a message in a DM",
+        description: "Show \"Add Fake Call Here\" when you right-click a message in a DM",
         default: true
     },
     channelMenu: {
         type: OptionType.BOOLEAN,
         displayName: "Show on conversations",
-        description: "Adds Add Fake Call to the menu when you right-click a DM or a person",
+        description: "Show \"Add Fake Call\" when you right-click a DM or a person",
         default: true
     },
     persist: {

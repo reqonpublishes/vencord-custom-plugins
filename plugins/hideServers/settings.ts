@@ -14,13 +14,13 @@ export const settings = definePluginSettings({
     guildMenu: {
         type: OptionType.BOOLEAN,
         displayName: "Show on servers",
-        description: "Adds Hide Server to the menu when you right-click a server",
+        description: "Show \"Hide Server\" when you right-click a server",
         default: true
     },
     hideNew: {
         type: OptionType.BOOLEAN,
-        displayName: "Hide new servers when turned back on",
-        description: "Servers you joined while this was off, or while Discord was closed, are hidden as soon as it is on again - so the bar looks the way you left it",
+        displayName: "Hide new servers",
+        description: "When you turn this back on, servers joined while it was off are hidden too, so your server list stays how you left it.",
         default: false
     },
     persist: {

@@ -15,7 +15,16 @@ import { SyncPanel } from "./SyncPanel";
  */
 export const isPluginEnabled = (name: string) => !!Settings.plugins[name]?.enabled;
 
-const off = (name: string) => () => !isPluginEnabled(name);
+/**
+ * Whether a plugin keeps what it holds on disk, which is the only place this reads and writes.
+ *
+ * With its "Keep after restart" off a plugin reads nothing back and writes nothing down, so a
+ * fetch would land somewhere it never looks and a send would find nothing. Plugins without
+ * that setting always keep theirs.
+ */
+export const isKept = (name: string) => (Settings.plugins[name] as any)?.persist !== false;
+
+const off = (name: string) => () => !isPluginEnabled(name) || !isKept(name);
 
 /** When a sync last went each way, and what it carried */
 export interface Last {

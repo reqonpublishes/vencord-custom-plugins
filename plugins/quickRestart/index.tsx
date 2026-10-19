@@ -6,7 +6,7 @@
 
 import "./shared.css";
 
-import { definePluginSettings, migratePluginSettings } from "@api/Settings";
+import { definePluginSettings, migratePluginSettings, Settings } from "@api/Settings";
 import { Logger } from "@utils/Logger";
 import { relaunch } from "@utils/native";
 import definePlugin, { OptionType } from "@utils/types";
@@ -18,6 +18,30 @@ import { About, IconButton, Panel } from "./ui";
 const logger = new Logger("QuickRestart");
 
 const SELF = "QuickRestart";
+const HUB = "PluginHub";
+
+/**
+ * Whether a plugin that is enabled but not running can only be brought in by a reload.
+ *
+ * Enabled and stopped is not enough to say so. Additional Settings stops plugins it has
+ * switched off while Vencord still has them enabled, and those are off on purpose - a reload
+ * starts them and they are stopped again straight after. What a reload really answers is a
+ * plugin whose patches never went in, so only that is counted.
+ */
+function unpatched(name: string, plugin: any): boolean {
+    const off: unknown = (Settings.plugins[HUB] as any)?.off;
+    if (Array.isArray(off) && off.includes(name)) return false;
+
+    if (!plugin.patches?.length) return false;
+
+    try {
+        // Plugins that know whether their patches went in say so; anything else with patches
+        // that is not running is taken to be waiting on them.
+        return plugin.patchesLive ? !plugin.patchesLive() : true;
+    } catch {
+        return true;
+    }
+}
 
 // ---------------------------------------------------------------- the restarts
 
@@ -75,8 +99,13 @@ function quickRestart(): QuickResult | null {
         // there's no reason to: every setting here is read fresh at the keypress.
         if (name === SELF) continue;
 
+        // Plugin Hub holds Screen Share Protection. Stopping it lets go of everything held on
+        // for a share and starting it takes hold again a moment later - long enough for the
+        // real lists to be on the stream in between. Its settings are read fresh as well.
+        if (name === HUB) continue;
+
         if (plugin.started) running.push(plugin);
-        else if (PM.isPluginEnabled(name)) needsReload.push(name);
+        else if (PM.isPluginEnabled(name) && unpatched(name, plugin)) needsReload.push(name);
     }
 
     // Stopped in reverse and started in order - the order Vencord itself uses - so nothing
@@ -107,15 +136,7 @@ function quickRestart(): QuickResult | null {
     };
 }
 
-/**
- * Bottom of the screen, out of the way of whatever you were doing when you hit the key.
- *
- * The position is a plain number because Vencord stopped exporting the enum it used to
- * name - the toast module is mapped by shape now, and only show and pop come back from it.
- * Discord counts from the top, so one is the bottom.
- */
-const BOTTOM = 1;
-
+/** Bottom of the screen, out of the way of whatever you were doing when you hit the key */
 const toast = (message: string, type: ToastKind) =>
     showToast({ text: message, variant: (type) === "failure" ? "critical" : (type) === "success" ? "success" : "default", position: "bottom" });
 
@@ -147,7 +168,8 @@ function runQuick(fallBackToReload: boolean) {
     }
 
     if (result.needsReload.length) {
-        toast(`Restarted ${result.restarted} - ${plural(result.needsReload.length, "plugin")} still needs a reload`, "message");
+        const waiting = result.needsReload.length;
+        toast(`Restarted ${plural(result.restarted, "plugin")} - ${plural(waiting, "plugin")} still ${waiting === 1 ? "needs" : "need"} a reload`, "message");
         return;
     }
 

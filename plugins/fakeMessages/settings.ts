@@ -14,13 +14,13 @@ export const settings = definePluginSettings({
     messageMenu: {
         type: OptionType.BOOLEAN,
         displayName: "Show on messages",
-        description: "Adds Add Fake Message Here to the menu when you right-click a message",
+        description: "Show \"Add Fake Message Here\" when you right-click a message",
         default: true
     },
     channelMenu: {
         type: OptionType.BOOLEAN,
         displayName: "Show on conversations",
-        description: "Adds Add Fake Message to the menu when you right-click a DM or channel",
+        description: "Show \"Add Fake Message\" when you right-click a DM or channel",
         default: true
     },
     persist: {

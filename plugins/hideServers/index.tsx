@@ -38,8 +38,15 @@ const guildCtx: NavContextMenuPatchCallback = (children, { guild }: { guild?: Gu
     );
 };
 
-/** Whether the plugin is meant to be on. Checked after waiting, in case it was switched off meanwhile */
+/** Whether the plugin is meant to be on */
 let alive = false;
+
+/**
+ * Goes up on every start and stop. A start that had to wait checks it is still the latest
+ * one: off and on again while the first was waiting is a second start, and only that one
+ * should carry on.
+ */
+let runs = 0;
 
 /** Which servers you were in the last time the plugin was on */
 const known = knownList("HideServers_Known", listNow);
@@ -49,10 +56,25 @@ function catchUp() {
     known.catchUp(!!settings.store.hideNew, hideFresh);
 }
 
+/** The catching up booked by a reconnect, so switching off can call it off */
+let connectTimer: ReturnType<typeof setTimeout> | null = null;
+
+function cancelConnect() {
+    if (connectTimer) clearTimeout(connectTimer);
+    connectTimer = null;
+}
+
 /** Discord sends every server again on a reconnect, including any joined meanwhile */
 const afterConnect = () => {
     known.cancel();
-    setTimeout(catchUp, 0);
+
+    cancelConnect();
+    connectTimer = setTimeout(() => {
+        connectTimer = null;
+
+        // Switched off in the moment between: nothing is new to an off plugin.
+        if (alive) catchUp();
+    }, 0);
 };
 
 /** A server joined or left while the plugin is on: seen, so not new next time */
@@ -82,8 +104,8 @@ export default definePlugin({
             title="Hide servers from your server list"
             steps={[
                 <>Right-click a server and choose <strong>Hide Server</strong>.</>,
-                <>You stay a member and still get everything from it. It is only not drawn on the bar.</>,
-                <>Everything you have hidden is listed below, with a way back.</>
+                <>You stay in it and still get its messages. It is just not shown in your server list.</>,
+                <>Unhide any of them from the list below.</>
             ]}
         />
     ),
@@ -99,11 +121,13 @@ export default definePlugin({
         // Only the first start reads from disk. After that the list is already in memory,
         // and not waiting is what lets switching back on happen at once.
         alive = true;
+        const mine = ++runs;
         if (!isLoaded()) {
             await load();
 
-            // Switched off again while the list was being read, so it stays off.
-            if (!alive) return;
+            // Switched off again while the list was being read, or off and on again - in
+            // which case the newer start does this.
+            if (mine !== runs) return;
         }
         start();
         watchMutuals();
@@ -112,11 +136,13 @@ export default definePlugin({
         FluxDispatcher.subscribe("GUILD_DELETE", onListChange);
 
         await known.load();
-        if (alive) catchUp();
+        if (mine === runs) catchUp();
     },
 
     stop() {
         alive = false;
+        runs++;
+        cancelConnect();
         known.leave();
         FluxDispatcher.unsubscribe("CONNECTION_OPEN", afterConnect);
         FluxDispatcher.unsubscribe("GUILD_CREATE", onListChange);

@@ -51,7 +51,8 @@ export const settings = definePluginSettings({
         type: OptionType.BOOLEAN,
         displayName: "Hide anything new while sharing",
         description: "Friends, requests, DMs and servers that turned up since those plugins were last on are hidden for the share too, and shown again after it.",
-        default: true
+        default: true,
+        onChange: () => refresh()
     },
     shareHideMenus: {
         type: OptionType.BOOLEAN,
@@ -76,7 +77,8 @@ export const settings = definePluginSettings({
     // Plugins left alone during a share. Picked on the Additional Settings page.
     shareSkip: {
         type: OptionType.CUSTOM,
-        default: [] as string[]
+        default: [] as string[],
+        onChange: () => refresh()
     }
 });
 
@@ -99,6 +101,9 @@ function listed(on: boolean) {
  * sidebar of a shared screen, so it is taken out while one is being shared.
  */
 let unwatch: (() => void) | null = null;
+
+/** The wait before the off list is applied, kept so stopping first can call it off */
+let pending: ReturnType<typeof setTimeout> | null = null;
 
 export default definePlugin({
     name: "PluginHub",
@@ -128,7 +133,8 @@ export default definePlugin({
 
         // After this turn of the loop, by which time Vencord has started every plugin it is
         // going to - including the ones that are meant to be off.
-        setTimeout(() => {
+        pending = setTimeout(() => {
+            pending = null;
             applyOffList();
             // After the off list, so a share already running when Discord loads is seen with
             // the plugins in the state they are meant to be in.
@@ -137,6 +143,10 @@ export default definePlugin({
     },
 
     stop() {
+        // Stopped before it got going: nothing is to start watching for shares afterwards.
+        if (pending) clearTimeout(pending);
+        pending = null;
+
         stopProtection();
         unwatch?.();
         unwatch = null;

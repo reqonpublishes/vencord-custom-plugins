@@ -6,7 +6,7 @@
 
 import { del, get, set } from "@api/DataStore";
 import { Logger } from "@utils/Logger";
-import { Flux, FluxDispatcher, MessageCache, MessageStore, UserStore } from "@webpack/common";
+import { Flux, FluxDispatcher, MessageCache, MessageStore, SelectedChannelStore, UserStore } from "@webpack/common";
 
 import { settings } from "./settings";
 
@@ -52,6 +52,11 @@ export const isLive = (channelId: string, messageId: string) =>
 export const isFake = (channelId: string, messageId: string) =>
     !!added.get(channelId)?.some(one => one.id === messageId);
 
+/** Whether the plugin is on. The interceptor outlives a stop, so it has to ask */
+let running = false;
+export const setRunning = (on: boolean) => void (running = on);
+export const isRunning = () => running;
+
 export const countIn = (channelId: string) => added.get(channelId)?.length ?? 0;
 
 export const total = () => {
@@ -94,10 +99,24 @@ let loaded = false;
 export const isLoaded = () => loaded;
 export const invalidate = () => void (loaded = false);
 
-export async function load() {
-    if (loaded) return;
-    loaded = true;
+/** The read still in progress, if there is one - see the same note in Fake Messages */
+let reading: Promise<void> | null = null;
 
+/** Read the list from disk if it has not been, and hand back anything still being read */
+export function load(): Promise<void> | null {
+    if (!loaded) {
+        loaded = true;
+
+        const mine: Promise<void> = read().finally(() => {
+            if (reading === mine) reading = null;
+        });
+        reading = mine;
+    }
+
+    return reading;
+}
+
+async function read() {
     // Nothing on disk to read, and what is in memory is the only copy there is.
     if (!settings.store.persist) return;
 
@@ -141,8 +160,15 @@ export function addCall(call: Omit<FakeCall, "id">): FakeCall {
     added.set(one.channelId, list);
 
     save();
-    showNow(one);
-    settle(one.channelId);
+
+    // Only the conversation on screen is told a call arrived; anywhere else it would mark
+    // the chat unread and move it up the list. See the same note in Fake Messages.
+    if (one.channelId === SelectedChannelStore.getChannelId()) {
+        showNow(one);
+        settle(one.channelId);
+    } else {
+        slipIn(one.channelId, [one]);
+    }
 
     return one;
 }
@@ -343,6 +369,9 @@ export function interceptor(action: any) {
     if (action?.type !== "LOAD_MESSAGES_SUCCESS") return false;
     if (action[SYNTHETIC]) return false;
 
+    // Switched off: a chat that reloads now should come back exactly as Discord has it.
+    if (!running) return false;
+
     try {
         const { channelId } = action;
         const list = added.get(channelId);
@@ -350,15 +379,19 @@ export function interceptor(action: any) {
 
         const ids = new Set(action.messages.map((m: any) => String(m?.id)));
 
+        // Only the ones inside the stretch being loaded, at either end - see Fake Messages.
         let oldest: string | null = null;
+        let newest: string | null = null;
         for (const m of action.messages) {
             if (!m?.id) continue;
             if (oldest === null || BigInt(m.id) < BigInt(oldest)) oldest = String(m.id);
+            if (newest === null || BigInt(m.id) > BigInt(newest)) newest = String(m.id);
         }
 
         const mine = list.filter(one => {
             if (ids.has(one.id)) return false;
             if (action.hasMoreBefore && oldest !== null && BigInt(one.id) < BigInt(oldest)) return false;
+            if (action.hasMoreAfter && newest !== null && BigInt(one.id) > BigInt(newest)) return false;
             return true;
         });
         if (!mine.length) return false;
@@ -386,29 +419,35 @@ export function interceptor(action: any) {
  */
 export function showLoaded(open?: string | null) {
     for (const [channelId, list] of added) {
-        if (channelId === open) {
-            showIn(channelId);
-            continue;
+        if (channelId === open) showIn(channelId);
+        else slipIn(channelId, list);
+    }
+}
+
+/**
+ * Put some into a conversation you are not looking at, without telling anything they arrived.
+ *
+ * Only where its messages are already loaded. Where they are not, the interceptor adds them
+ * when the conversation is opened.
+ */
+function slipIn(channelId: string, list: FakeCall[]) {
+    try {
+        let cache: any = (MessageCache as any).get?.(channelId);
+        if (!cache?.ready) return;
+
+        let put = false;
+        for (const one of list) {
+            if (cache.has(one.id)) continue;
+
+            cache = cache.receiveMessage(rawCall(one));
+            put = true;
         }
+        if (!put) return;
 
-        try {
-            let cache: any = (MessageCache as any).get?.(channelId);
-            if (!cache?.ready) continue;
-
-            let put = false;
-            for (const one of list) {
-                if (cache.has(one.id)) continue;
-
-                cache = cache.receiveMessage(rawCall(one));
-                put = true;
-            }
-            if (!put) continue;
-
-            MessageCache.commit(cache);
-            settle(channelId);
-            MessageStore.emitChange();
-        } catch (e) {
-            logger.error("Could not add to a conversation that was already loaded", e);
-        }
+        MessageCache.commit(cache);
+        settle(channelId);
+        MessageStore.emitChange();
+    } catch (e) {
+        logger.error("Could not add to a conversation that was already loaded", e);
     }
 }

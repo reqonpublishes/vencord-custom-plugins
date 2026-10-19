@@ -34,7 +34,14 @@ export function openDM(userId?: string) {
 
         if (source.includes("recipientIds")) actions.openPrivateChannel({ recipientIds: [userId] });
         else if (typeof actions.getOrEnsurePrivateChannel === "function") {
-            actions.getOrEnsurePrivateChannel(userId).then((channelId: string) => actions.selectPrivateChannel?.(channelId) ?? actions.openPrivateChannel(userId));
+            // One or the other, never both. Selecting answers nothing, so chaining the two
+            // with ?? would make the old-shape call every time - the empty group above.
+            actions.getOrEnsurePrivateChannel(userId)
+                .then((channelId: string) => {
+                    if (typeof actions.selectPrivateChannel === "function") actions.selectPrivateChannel(channelId);
+                    else actions.openPrivateChannel(userId);
+                })
+                .catch((e: unknown) => logger.error("Could not open the DM", e));
         } else logger.warn("Could not tell how this build opens a DM, so nothing was opened");
     } catch (e) {
         logger.error("Could not open the DM", e);

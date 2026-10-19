@@ -51,6 +51,7 @@ import {
     restoreEverything,
     resume,
     sendRequest,
+    setOn,
     showFriend,
     unblockUser
 } from "./store";
@@ -236,6 +237,14 @@ function catchUp() {
     known.catchUp(!!settings.store.hideNew, hideFresh);
 }
 
+/** The saying-again booked by a reconnect, so switching off can call it off */
+let connectTimer: ReturnType<typeof setTimeout> | null = null;
+
+function cancelConnect() {
+    if (connectTimer) clearTimeout(connectTimer);
+    connectTimer = null;
+}
+
 const afterConnect = () => {
     // Nothing taken down between the reconnect and the catching up: that is the gap new
     // people come in through.
@@ -243,7 +252,13 @@ const afterConnect = () => {
 
     // Out of the dispatch this is riding on: saying it again is dispatches of our own, and
     // none of those can happen inside another.
-    setTimeout(() => {
+    cancelConnect();
+    connectTimer = setTimeout(() => {
+        connectTimer = null;
+
+        // Switched off in the moment between, which has already put everybody back.
+        if (!alive) return;
+
         reapply();
         catchUp();
     }, 0);
@@ -257,8 +272,15 @@ const RELATIONSHIP_EVENTS = ["RELATIONSHIP_ADD", "RELATIONSHIP_UPDATE", "RELATIO
 /** Whether the real relationships are being listened for */
 let watching = false;
 
-/** Whether the plugin is meant to be on. Checked after waiting, in case it was switched off meanwhile */
+/** Whether the plugin is meant to be on */
 let alive = false;
+
+/**
+ * Goes up on every start and stop. A start that had to wait checks it is still the latest
+ * one: off and on again while the first was waiting is a second start, and only that one
+ * should carry on.
+ */
+let runs = 0;
 
 migratePluginSettings("HideFriends", "CustomPluginHideFriends");
 
@@ -290,9 +312,9 @@ export default definePlugin({
             icon={PersonOffIcon}
             title="Hide friends, or fake a relationship"
             steps={[
-                <>Right-click a friend and choose <strong>Hide Friend</strong>. They read as not added until you unhide them.</>,
-                <><strong>Fake Relationship</strong> in the same menu can fake a block, an incoming or outgoing friend request, or a friendship.</>,
-                <>Accept, Decline and Unblock on anything fake are answered here and never reach Discord.</>
+                <>Right-click a friend and choose <strong>Hide Friend</strong>. They show as not added until you unhide them.</>,
+                <><strong>Fake Relationship</strong> in the same menu fakes a block, a friend request or a friendship, or hides a real request.</>,
+                <>Accept, Decline and Unblock on anything fake stay on this computer and never reach Discord.</>
             ]}
         />
     ),
@@ -329,11 +351,13 @@ export default definePlugin({
         // Only the first start reads from disk. After that the list is already in memory,
         // and not waiting is what lets switching back on happen at once.
         alive = true;
+        const mine = ++runs;
         if (!isLoaded()) {
             await load();
 
-            // Switched off again while the list was being read, so it stays off.
-            if (!alive) return;
+            // Switched off again while the list was being read, or off and on again - in
+            // which case the newer start does this.
+            if (mine !== runs) return;
         }
 
         try {
@@ -342,18 +366,20 @@ export default definePlugin({
             logger.error("Could not guard the relationship actions", e);
         }
 
+        setOn(true);
         resume();
         FluxDispatcher.subscribe("CONNECTION_OPEN", afterConnect); watchMutuals();
         for (const type of RELATIONSHIP_EVENTS) FluxDispatcher.subscribe(type, onRelationship);
         setRunning(true);
 
         await known.load();
-        if (alive) catchUp();
-
+        if (mine === runs) catchUp();
     },
 
     stop() {
         alive = false;
+        runs++;
+        cancelConnect();
         known.leave();
         for (const type of RELATIONSHIP_EVENTS) FluxDispatcher.unsubscribe(type, onRelationship);
         unwatchMutuals();
@@ -363,6 +389,7 @@ export default definePlugin({
 
         // Back as Discord has it, still on the list - switching the plugin off should give
         // everybody back without forgetting who you had put away.
+        setOn(false);
         pause();
         known.giveBack(forgetFresh);
     }

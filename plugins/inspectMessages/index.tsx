@@ -22,6 +22,7 @@ import {
     patchRawMessage,
     patchRawMessages,
     patchSearch,
+    realTextFor,
     reapplyLoaded,
     restoreVisuals,
     startStyles,
@@ -75,6 +76,13 @@ function interceptor(action: any) {
         case "MESSAGE_UPDATE":
             patchRawMessage(action.message);
             break;
+        // Discord's own Edit, opened on a message that was rewritten here. It starts from the
+        // real text, so saving it never sends the rewritten one to Discord.
+        case "MESSAGE_START_EDIT": {
+            const real = realTextFor(action.messageId, action.content);
+            if (real !== null) action.content = real;
+            break;
+        }
     }
 
     return false;
@@ -130,7 +138,7 @@ export default definePlugin({
             steps={[
                 <>Hold <kbd>Shift</kbd> and hover a message, or right-click it, and choose <strong>Inspect Message</strong>.</>,
                 <>Change the text, the time it was sent, the edited tag or the mention highlight.</>,
-                <>Open it again and press <strong>Revert</strong> to put the real message back.</>
+                <>Open it again and press <strong>Revert</strong> to show the real message.</>
             ]}
         />
     ),

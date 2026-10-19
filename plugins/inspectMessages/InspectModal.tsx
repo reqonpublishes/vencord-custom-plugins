@@ -210,12 +210,12 @@ function InspectModal({ rootProps, message }: { rootProps: RenderModalProps; mes
 
     function apply() {
         const date = fromInputValue(timestamp);
-        if (!date) return setError("That's not a date I can parse. Expected format: 2026-09-08 14:30:00");
+        if (!date) return setError("Pick a valid date and time.");
 
         let edited: Date | null = null;
         if (showEdited) {
             edited = fromInputValue(editedAt);
-            if (!edited) return setError("The edited time isn't a date I can parse.");
+            if (!edited) return setError("Pick a valid edited date and time.");
         }
 
         applyEdit(message, { content, timestamp: date, editedTimestamp: edited, highlight });

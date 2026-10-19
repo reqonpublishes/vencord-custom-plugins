@@ -61,6 +61,16 @@ const blank = (): Stored => ({
 
 let held: Stored = blank();
 
+/**
+ * Whether the plugin is on, and so whether anything should be said to the client.
+ *
+ * While it is off the client shows everybody as Discord has them, and nothing is running to
+ * take back a change made from the settings page. So a change made then only changes the
+ * lists, and the next start says all of it.
+ */
+let on = false;
+export const setOn = (value: boolean) => void (on = value);
+
 // ---------------------------------------------------------------- reading
 
 export const isHidden = (id?: string | null) => !!id && id in held.hidden;
@@ -144,17 +154,41 @@ function save() {
  */
 let loaded = false;
 export const isLoaded = () => loaded;
-export const invalidate = () => void (loaded = false);
 
-export async function load() {
-    if (loaded) return;
-    loaded = true;
+/**
+ * The read in progress, so a second start while the first is still waiting on the disk waits
+ * for the same read instead of taking the list as loaded before it is. `reads` tells a read
+ * that was overtaken - a sync landing meanwhile - so it does not write over the newer one.
+ */
+let loading: Promise<void> | null = null;
+let reads = 0;
 
-    // Nothing on disk to read, and what is in memory is the only copy there is.
-    if (!settings.store.persist) return;
+export function invalidate() {
+    loaded = false;
+    loading = null;
+    reads++;
+}
 
-    const stored = await get<Partial<Stored>>(KEY);
-    if (stored) held = { ...blank(), ...stored };
+export function load(): Promise<void> {
+    if (loaded) return Promise.resolve();
+    if (loading) return loading;
+
+    const mine = ++reads;
+    loading = (async () => {
+        try {
+            // Nothing on disk to read when it is not being kept, and what is in memory is
+            // the only copy there is.
+            const stored = settings.store.persist ? await get<Partial<Stored>>(KEY) : null;
+            if (mine !== reads) return;
+
+            if (stored) held = { ...blank(), ...stored };
+            loaded = true;
+        } finally {
+            if (mine === reads) loading = null;
+        }
+    })();
+
+    return loading;
 }
 
 /** Called when the persist setting is switched off, so nothing is left behind on disk */
@@ -169,7 +203,7 @@ export function replaceAll(next: Partial<Stored>) {
     restoreEverything(false);
     held = { ...blank(), ...next };
     save();
-    reapply();
+    if (on) reapply();
 }
 
 /**
@@ -319,6 +353,8 @@ export function noteReal(action: any) {
                 if (id) truth.set(id, { type: one.type, nickname: one.nickname ?? null, since: one.since ?? null });
             }
             truthKnown = true;
+
+            for (const id of Object.keys(held.dismissed)) dropAnswered(id);
             return;
 
         case "RELATIONSHIP_ADD":
@@ -327,7 +363,10 @@ export function noteReal(action: any) {
 
             const one = action.relationship;
             const id = idOf(one);
-            if (id) truth.set(id, { type: one.type, nickname: one.nickname ?? truth.get(id)?.nickname ?? null, since: one.since ?? truth.get(id)?.since ?? null });
+            if (!id) return;
+
+            truth.set(id, { type: one.type, nickname: one.nickname ?? truth.get(id)?.nickname ?? null, since: one.since ?? truth.get(id)?.since ?? null });
+            dropAnswered(id);
             return;
         }
 
@@ -335,10 +374,31 @@ export function noteReal(action: any) {
             if (action[OURS]) return;
 
             const id = idOf(action.relationship);
-            if (id) truth.delete(id);
+            if (!id) return;
+
+            truth.delete(id);
+            dropAnswered(id);
             return;
         }
     }
+}
+
+/**
+ * Whether Discord still has somebody as `type` - the thing a hide of them is hiding.
+ *
+ * A hide is of one thing: a friendship, or a request. Once that has changed for real - the
+ * request accepted on the phone, say - saying the hide again would take away whatever it has
+ * become, and go on doing so on every reconnect. Taken as yes while the truth is not known,
+ * which is how it behaved before there was one.
+ */
+const stillIs = (id: string, type: number) => !truthKnown || truth.get(id)?.type === type;
+
+/** A hidden request that is not a request any more - answered or withdrawn - has nothing left to hide */
+function dropAnswered(id: string) {
+    if (!(id in held.dismissed) || stillIs(id, PENDING_INCOMING)) return;
+
+    delete held.dismissed[id];
+    save();
 }
 
 function snapshot(id: string): Was {
@@ -454,6 +514,27 @@ function putBack(id: string, was?: Was) {
     say(real.type, id, real.since, real.nickname);
 }
 
+/**
+ * Show somebody as whatever is still pretended about them, now that one thing has stopped.
+ *
+ * Somebody can be on more than one list at once - a hidden friend sent a fake request, say -
+ * and taking one away has to leave the others showing, not the friendship the hide is there
+ * to cover. Checked in the order reapply says them, so what shows now is what a reconnect
+ * would show. Only once nothing is left is it the truth.
+ */
+function settle(id: string, was?: Was) {
+    if (!on) return;
+
+    if (isIncoming(id)) return say(PENDING_INCOMING, id);
+    if (isPending(id)) return say(PENDING_OUTGOING, id);
+    if (isBlocked(id)) return say(BLOCKED, id);
+    if (isFriended(id)) return say(FRIEND, id);
+    if (isHidden(id) && stillIs(id, FRIEND)) return unsay(id, FRIEND);
+    if (isDismissed(id) && stillIs(id, PENDING_INCOMING)) return unsay(id, PENDING_INCOMING);
+
+    putBack(id, was);
+}
+
 // ---------------------------------------------------------------- the pretences
 
 /** Show somebody as not added. The friendship itself is untouched. */
@@ -464,7 +545,7 @@ export function hideFriend(id: string): boolean {
     held.hidden[id] = nameOf(id);
     save();
 
-    unsay(id, FRIEND);
+    if (on) unsay(id, FRIEND);
     return true;
 }
 
@@ -476,7 +557,7 @@ export function showFriend(id: string): boolean {
     delete held.hiddenWas[id];
     save();
 
-    putBack(id, was);
+    settle(id, was);
     return true;
 }
 
@@ -518,7 +599,7 @@ export function blockUser(id: string): boolean {
 
     // Said as a real block, so the client does everything it does for one: their messages
     // collapse, their calls do not ring, and it all stops when it is lifted again.
-    say(BLOCKED, id);
+    if (on) say(BLOCKED, id);
     return true;
 }
 
@@ -530,7 +611,7 @@ export function unblockUser(id: string): boolean {
     delete held.blockedWas[id];
     save();
 
-    putBack(id, was);
+    settle(id, was);
     return true;
 }
 
@@ -541,7 +622,7 @@ export function sendRequest(id: string): boolean {
     held.pending[id] = Date.now();
     save();
 
-    say(PENDING_OUTGOING, id);
+    if (on) say(PENDING_OUTGOING, id);
     return true;
 }
 
@@ -552,7 +633,7 @@ export function receiveRequest(id: string): boolean {
     held.incoming[id] = nameOf(id);
     save();
 
-    say(PENDING_INCOMING, id);
+    if (on) say(PENDING_INCOMING, id);
     return true;
 }
 
@@ -566,10 +647,10 @@ export function clearRequest(id: string): boolean {
     delete held.incoming[id];
     save();
 
-    // Not simply taken away: if there is a real request or friendship underneath, that is
-    // what should be left showing.
-    if (truthKnown) putBack(id);
-    else unsay(id, incoming ? PENDING_INCOMING : PENDING_OUTGOING);
+    // Not simply taken away: if anything else is pretended about them, or there is a real
+    // request or friendship underneath, that is what should be left showing.
+    if (truthKnown) settle(id);
+    else if (on) unsay(id, incoming ? PENDING_INCOMING : PENDING_OUTGOING);
     return true;
 }
 
@@ -585,7 +666,7 @@ export function addFakeFriend(id: string): boolean {
     held.friended[id] = nameOf(id);
     save();
 
-    say(FRIEND, id);
+    if (on) say(FRIEND, id);
     return true;
 }
 
@@ -595,7 +676,7 @@ export function removeFakeFriend(id: string): boolean {
     delete held.friended[id];
     save();
 
-    putBack(id);
+    settle(id);
     return true;
 }
 
@@ -606,7 +687,7 @@ export function dismissRequest(id: string): boolean {
     held.dismissed[id] = nameOf(id);
     save();
 
-    unsay(id, PENDING_INCOMING);
+    if (on) unsay(id, PENDING_INCOMING);
     return true;
 }
 
@@ -619,7 +700,7 @@ export function restoreRequest(id: string): boolean {
     // Handed back as Discord has it, when that is known. Otherwise nothing is said: the
     // request is real, so it returns on the next reconnect, and inventing one now would be
     // this client making it up.
-    if (truthKnown) putBack(id);
+    if (truthKnown) settle(id);
     return true;
 }
 
@@ -654,14 +735,17 @@ export function reapply() {
     learnTruth();
 
     batched(() => {
-        for (const id of Object.keys(held.hidden)) unsay(id, FRIEND);
-        for (const id of Object.keys(held.blocked)) say(BLOCKED, id);
+        // A hide only while Discord still has what was hidden: a friend since blocked for
+        // real, or a request since accepted on the phone, is something else now and stays.
+        for (const id of Object.keys(held.hidden)) if (stillIs(id, FRIEND)) unsay(id, FRIEND);
         for (const id of Object.keys(held.friended)) say(FRIEND, id);
+        for (const id of Object.keys(held.blocked)) say(BLOCKED, id);
         for (const id of Object.keys(held.pending)) say(PENDING_OUTGOING, id);
-        for (const id of Object.keys(held.dismissed)) unsay(id, PENDING_INCOMING);
+        for (const id of Object.keys(held.dismissed)) if (stillIs(id, PENDING_INCOMING)) unsay(id, PENDING_INCOMING);
 
         // Last: hiding somebody takes them out, and a pretended request puts them back as a
         // request - so for anybody who is both, the request is the one that should survive.
+        // The order is the one settle reads them in, so a reconnect shows what it showed.
         for (const id of Object.keys(held.incoming)) say(PENDING_INCOMING, id);
     });
 }
@@ -684,11 +768,11 @@ export function resume() {
     learnTruth();
 
     sliced([
-        ...Object.keys(held.hidden).map(id => () => unsay(id, FRIEND)),
-        ...Object.keys(held.blocked).map(id => () => say(BLOCKED, id)),
+        ...Object.keys(held.hidden).filter(id => stillIs(id, FRIEND)).map(id => () => unsay(id, FRIEND)),
         ...Object.keys(held.friended).map(id => () => say(FRIEND, id)),
+        ...Object.keys(held.blocked).map(id => () => say(BLOCKED, id)),
         ...Object.keys(held.pending).map(id => () => say(PENDING_OUTGOING, id)),
-        ...Object.keys(held.dismissed).map(id => () => unsay(id, PENDING_INCOMING)),
+        ...Object.keys(held.dismissed).filter(id => stillIs(id, PENDING_INCOMING)).map(id => () => unsay(id, PENDING_INCOMING)),
         ...Object.keys(held.incoming).map(id => () => say(PENDING_INCOMING, id))
     ]);
 }

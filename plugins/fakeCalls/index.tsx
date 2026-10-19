@@ -24,9 +24,10 @@ import {
     interceptor,
     invalidate,
     isFake,
-    isLoaded,
+    isRunning,
     load,
     removeCall,
+    setRunning,
     showLoaded,
     takeAllOffScreen,
     total
@@ -146,8 +147,8 @@ export default definePlugin({
             icon={PhoneAddIcon}
             title="Add calls that never happened"
             steps={[
-                <>Right-click a message in a DM and choose <strong>Add Fake Call Here</strong> to put one right after it.</>,
-                <>Or right-click a DM or a person and choose <strong>Add Fake Call</strong>.</>,
+                <>Right-click a message in a DM and choose <strong>Add Fake Call Here</strong>, or right-click a DM or a person and choose <strong>Add Fake Call</strong>.</>,
+                <>Turn on <strong>Still going</strong> for a live timer. Its Join button does nothing.</>,
                 <>Right-click a fake call and choose <strong>Remove Fake Call</strong> to take it back.</>
             ]}
         />
@@ -167,12 +168,15 @@ export default definePlugin({
         // Only the first start reads from disk. After that the list is already in memory,
         // and not waiting is what lets switching back on happen at once.
         alive = true;
-        if (!isLoaded()) {
-            await load();
+        const reading = load();
+        if (reading) {
+            await reading;
 
-            // Switched off again while the list was being read, so it stays off.
-            if (!alive) return;
+            // Switched off again while the list was being read, so it stays off - and if
+            // another start already finished in the meantime, there is nothing left to do.
+            if (!alive || isRunning()) return;
         }
+        setRunning(true);
 
         // Added once and left: there is no taking an interceptor back off, so a second
         // start would stack another copy and every page would be processed twice.
@@ -188,6 +192,7 @@ export default definePlugin({
 
     stop() {
         alive = false;
+        setRunning(false);
         stopLive();
         takeAllOffScreen();
     }

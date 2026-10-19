@@ -24,7 +24,7 @@ export const settings = definePluginSettings({
     messageMenu: {
         type: OptionType.BOOLEAN,
         displayName: "Show on messages",
-        description: "Adds Inspect Message to the menu when you right-click a message",
+        description: "Show \"Inspect Message\" when you right-click a message",
         default: true
     },
     persist: {

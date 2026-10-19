@@ -19,7 +19,7 @@ import { get, set } from "@api/DataStore";
  */
 export function knownList(key: string, current: () => string[] | null) {
     let known: Set<string> | null = null;
-    let loaded = false;
+    let loading: Promise<void> | null = null;
     let timer: ReturnType<typeof setTimeout> | null = null;
 
     // Whether the plugin has looked at the list since it came on. Only then is the list worth
@@ -32,13 +32,18 @@ export function knownList(key: string, current: () => string[] | null) {
     // be. Handed back when the plugin goes off, so a share leaves the lists as it found them.
     let lent: string[] = [];
 
-    /** Read what was taken down last time. Only once: after that, memory is the copy */
-    async function load() {
-        if (loaded) return;
-        loaded = true;
+    /**
+     * Read what was taken down last time. Only once: after that, memory is the copy. A start
+     * that comes while the read is still going waits for the same one, rather than finding
+     * nothing taken down and counting everything as new.
+     */
+    function load() {
+        loading ??= (async () => {
+            const stored = await get<string[]>(key);
+            if (Array.isArray(stored) && !known) known = new Set(stored);
+        })();
 
-        const stored = await get<string[]>(key);
-        if (Array.isArray(stored) && !known) known = new Set(stored);
+        return loading;
     }
 
     function cancel() {
@@ -53,7 +58,10 @@ export function knownList(key: string, current: () => string[] | null) {
         const now = current();
         if (!now) return;
 
-        known = new Set(now);
+        // Not what a share hid: those were never seen with the screen to yourself, so they
+        // stay new - hidden again if the plugin restarts mid-share, and still new after it.
+        const borrowed = new Set(lent);
+        known = new Set(now.filter(id => !borrowed.has(id)));
         set(key, [...known]);
     }
 

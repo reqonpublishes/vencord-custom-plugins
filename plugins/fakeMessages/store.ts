@@ -6,7 +6,7 @@
 
 import { del, get, set } from "@api/DataStore";
 import { Logger } from "@utils/Logger";
-import { ChannelStore, Flux, FluxDispatcher, MessageCache, MessageStore, UserStore } from "@webpack/common";
+import { ChannelStore, Flux, FluxDispatcher, MessageCache, MessageStore, SelectedChannelStore, UserStore } from "@webpack/common";
 
 import { settings } from "./settings";
 
@@ -60,6 +60,15 @@ function idAt(sentAt: number): string {
 export const isFake = (channelId: string, messageId: string) =>
     !!added.get(channelId)?.some(one => one.id === messageId);
 
+/** The stored one behind a message on screen, for when the record alone does not say enough */
+export const getFake = (channelId: string, messageId: string) =>
+    added.get(channelId)?.find(one => one.id === messageId);
+
+/** Whether the plugin is on. The interceptor outlives a stop, so it has to ask */
+let running = false;
+export const setRunning = (on: boolean) => void (running = on);
+export const isRunning = () => running;
+
 export const countIn = (channelId: string) => added.get(channelId)?.length ?? 0;
 
 /** How many conversations have at least one */
@@ -102,10 +111,30 @@ let loaded = false;
 export const isLoaded = () => loaded;
 export const invalidate = () => void (loaded = false);
 
-export async function load() {
-    if (loaded) return;
-    loaded = true;
+/**
+ * The read still in progress, if there is one.
+ *
+ * `loaded` is set the moment reading begins, so a start that comes while the first one is
+ * still waiting on disk would otherwise take the list as read and show an empty one. Every
+ * start waits on this instead.
+ */
+let reading: Promise<void> | null = null;
 
+/** Read the list from disk if it has not been, and hand back anything still being read */
+export function load(): Promise<void> | null {
+    if (!loaded) {
+        loaded = true;
+
+        const mine: Promise<void> = read().finally(() => {
+            if (reading === mine) reading = null;
+        });
+        reading = mine;
+    }
+
+    return reading;
+}
+
+async function read() {
     // Nothing on disk to read, and what is in memory is the only copy there is.
     if (!settings.store.persist) return;
 
@@ -159,8 +188,17 @@ export function addMessage(message: Omit<FakeMessage, "id">): FakeMessage {
     added.set(one.channelId, list);
 
     save();
-    showNow(one);
-    settle(one.channelId);
+
+    // Only the conversation you are looking at is told a message arrived. Telling any other
+    // would mark it unread, move it up the DM list and could ping - and opening it then would
+    // tell Discord you had read a message it has never heard of. Anywhere else it is slipped
+    // into what is loaded, or left for the interceptor to add when the chat is opened.
+    if (one.channelId === SelectedChannelStore.getChannelId()) {
+        showNow(one);
+        settle(one.channelId);
+    } else {
+        slipIn(one.channelId, [one]);
+    }
 
     return one;
 }
@@ -290,7 +328,6 @@ function rawMessage(one: FakeMessage) {
     return raw;
 }
 
-/** Show one straight away, rather than waiting for the channel to be opened again */
 /** Whether two ids are in the order the conversation is, oldest first */
 function inOrder(a: string, b: string) {
     try {
@@ -338,6 +375,7 @@ function settle(channelId: string) {
     }
 }
 
+/** Show one straight away, rather than waiting for the channel to be opened again */
 function showNow(one: FakeMessage) {
     try {
         FluxDispatcher.dispatch({
@@ -376,10 +414,6 @@ function hideNow(channelId: string, messageId: string) {
  * screen came from the list as it was; if the list is about to change, the screen has to stop
  * showing the old one first or the two disagree until the channel is opened again.
  */
-/** Whether the plugin is on. The interceptor outlives a stop, so it has to ask */
-let running = false;
-export const setRunning = (on: boolean) => void (running = on);
-
 export function takeAllOffScreen() {
     batched(() => {
         for (const [channelId, list] of added) {
@@ -419,6 +453,9 @@ export function interceptor(action: any) {
     if (action?.type !== "LOAD_MESSAGES_SUCCESS") return false;
     if (action[SYNTHETIC]) return false;
 
+    // Switched off: a chat that reloads now should come back exactly as Discord has it.
+    if (!running) return false;
+
     try {
         const { channelId } = action;
         const list = added.get(channelId);
@@ -428,16 +465,21 @@ export function interceptor(action: any) {
 
         // Only the ones belonging to the stretch being loaded. Paging back asks for older
         // messages, and an invented one older than the page would arrive again on every
-        // page until it was reached - the same message, over and over.
+        // page until it was reached - the same message, over and over. Jumping to an old
+        // message loads the stretch around it, with more after it, and one newer than that
+        // stretch belongs further down rather than in the middle of last year.
         let oldest: string | null = null;
+        let newest: string | null = null;
         for (const m of action.messages) {
             if (!m?.id) continue;
             if (oldest === null || BigInt(m.id) < BigInt(oldest)) oldest = String(m.id);
+            if (newest === null || BigInt(m.id) > BigInt(newest)) newest = String(m.id);
         }
 
         const mine = list.filter(one => {
             if (ids.has(one.id)) return false;
             if (action.hasMoreBefore && oldest !== null && BigInt(one.id) < BigInt(oldest)) return false;
+            if (action.hasMoreAfter && newest !== null && BigInt(one.id) > BigInt(newest)) return false;
             return true;
         });
         if (!mine.length) return false;
@@ -466,6 +508,25 @@ const UNDERSTOOD = new Set([
 const listOf = (value: any): string[] => value == null ? [] : (Array.isArray(value) ? value : [value]).map(String);
 
 /**
+ * What a message says on screen, which is not always what it was added with.
+ *
+ * One rewritten with Inspect Messages reads as rewritten everywhere else, so a search should
+ * find it by the words it shows - not miss it for those and turn it up for the old ones.
+ */
+function shownText(message: { id: string; content: string; }): string {
+    try {
+        const inspect = (window as any).Vencord?.Plugins?.plugins?.InspectMessages;
+        if (!inspect?.started) return message.content;
+
+        const shown = { id: message.id, content: message.content };
+        inspect.patchRaw?.(shown);
+        return typeof shown.content === "string" ? shown.content : message.content;
+    } catch {
+        return message.content;
+    }
+}
+
+/**
  * Whether a message would have been found by a search, had the server known about it.
  *
  * Discord matches words rather than a run of letters, so every word asked for has to be in
@@ -480,7 +541,7 @@ function wouldMatch(query: any, message: { id: string; channelId: string; author
     }
 
     const words = String(query.content ?? "").toLowerCase().split(/\s+/).filter(Boolean);
-    const text = message.content.toLowerCase();
+    const text = shownText(message).toLowerCase();
     if (!words.every(word => text.includes(word))) return false;
 
     const authors = listOf(query.author_id);
@@ -629,29 +690,35 @@ function addToSearch(action: any) {
  */
 export function showLoaded(open?: string | null) {
     for (const [channelId, list] of added) {
-        if (channelId === open) {
-            showIn(channelId);
-            continue;
+        if (channelId === open) showIn(channelId);
+        else slipIn(channelId, list);
+    }
+}
+
+/**
+ * Put some into a conversation you are not looking at, without telling anything they arrived.
+ *
+ * Only where its messages are already loaded. Where they are not, there is nothing to put them
+ * in, and nothing needed: the interceptor adds them when the conversation is opened.
+ */
+function slipIn(channelId: string, list: FakeMessage[]) {
+    try {
+        let cache: any = (MessageCache as any).get?.(channelId);
+        if (!cache?.ready) return;
+
+        let put = false;
+        for (const one of list) {
+            if (cache.has(one.id)) continue;
+
+            cache = cache.receiveMessage(rawMessage(one));
+            put = true;
         }
+        if (!put) return;
 
-        try {
-            let cache: any = (MessageCache as any).get?.(channelId);
-            if (!cache?.ready) continue;
-
-            let put = false;
-            for (const one of list) {
-                if (cache.has(one.id)) continue;
-
-                cache = cache.receiveMessage(rawMessage(one));
-                put = true;
-            }
-            if (!put) continue;
-
-            MessageCache.commit(cache);
-            settle(channelId);
-            MessageStore.emitChange();
-        } catch (e) {
-            logger.error("Could not add to a conversation that was already loaded", e);
-        }
+        MessageCache.commit(cache);
+        settle(channelId);
+        MessageStore.emitChange();
+    } catch (e) {
+        logger.error("Could not add to a conversation that was already loaded", e);
     }
 }

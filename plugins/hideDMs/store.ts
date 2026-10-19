@@ -38,6 +38,16 @@ export const isHidden = (channelId?: string | null) => !!channelId && hidden.has
 export const count = () => hidden.size;
 export const names = () => [...hidden.entries()];
 
+/**
+ * Whether the plugin is on, and so whether a hide should close anything.
+ *
+ * While it is off every conversation is in Discord's list, and nothing is running to bring
+ * back one closed from the settings page. So a hide then only goes on the list, and the next
+ * start hides it with the rest.
+ */
+let on = false;
+export const setOn = (value: boolean) => void (on = value);
+
 // ---------------------------------------------------------------- persistence
 
 let saveQueued = false;
@@ -67,19 +77,41 @@ function save() {
  */
 let loaded = false;
 export const isLoaded = () => loaded;
-export const invalidate = () => void (loaded = false);
 
-export async function load() {
-    if (loaded) return;
-    loaded = true;
+/**
+ * The read in progress, so a second start while the first is still waiting on the disk waits
+ * for the same read instead of taking the list as loaded before it is. `loadRound` tells a read
+ * that was overtaken - a sync landing meanwhile - so it does not write over the newer one.
+ */
+let loading: Promise<void> | null = null;
+let loadRound = 0;
 
-    // Nothing on disk to read, and what is in memory is the only copy there is.
-    if (!settings.store.persist) return;
+export function invalidate() {
+    loaded = false;
+    loading = null;
+    loadRound++;
+}
 
-    const stored = await get<[string, string][] | Record<string, string>>(KEY);
-    if (!stored) return;
+export function load(): Promise<void> {
+    if (loaded) return Promise.resolve();
+    if (loading) return loading;
 
-    hidden = Array.isArray(stored) ? new Map(stored) : new Map(Object.entries(stored));
+    const mine = ++loadRound;
+    loading = (async () => {
+        try {
+            // Nothing on disk to read when it is not being kept, and what is in memory is
+            // the only copy there is.
+            const stored = settings.store.persist ? await get<[string, string][] | Record<string, string>>(KEY) : null;
+            if (mine !== loadRound) return;
+
+            if (stored) hidden = Array.isArray(stored) ? new Map(stored) : new Map(Object.entries(stored));
+            loaded = true;
+        } finally {
+            if (mine === loadRound) loading = null;
+        }
+    })();
+
+    return loading;
 }
 
 /** Called when the persist setting is switched off, so nothing is left behind on disk */
@@ -338,6 +370,14 @@ function restoreRead(channelId: string, arrived: number) {
 export function hideChat(channelId: string, quiet = false): boolean {
     const record = ChannelStore.getChannel(channelId) ?? kept.get(channelId);
     if (!record) return false;
+
+    // Off: on the list and nothing more. Switching on hides everything on it, from the copy
+    // in Discord's list at that moment.
+    if (!on) {
+        hidden.set(channelId, nameOf(channelId));
+        save();
+        return true;
+    }
 
     // Only when it is really on screen: one being hidden again from its kept record has
     // nothing new to say about whether it was read.

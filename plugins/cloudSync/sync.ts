@@ -7,7 +7,7 @@
 import { Logger } from "@utils/Logger";
 
 import { Adapter, ADAPTERS, overlay } from "./adapters";
-import { isPluginEnabled, settings } from "./settings";
+import { isKept, isPluginEnabled, settings } from "./settings";
 import { fetchShelf, looksLikeLink, sendShelf, Shelf } from "./shelf";
 
 const logger = new Logger("CloudSync");
@@ -20,9 +20,20 @@ const logger = new Logger("CloudSync");
  * other device left it. One that is only paused from Additional Settings still counts - it
  * is still yours, just not being applied.
  */
-function chosen(): Adapter[] {
+function picked(): Adapter[] {
     return ADAPTERS.filter(adapter => settings.store[adapter.shelfKey] !== false && isPluginEnabled(adapter.plugin));
 }
+
+/**
+ * The picked ones that keep what they hold on disk.
+ *
+ * One with "Keep after restart" off is left out both ways, and said to be: it never reads
+ * the disk, so what was fetched for it would be reported as synced while nothing changed.
+ */
+const chosen = () => picked().filter(adapter => isKept(adapter.plugin));
+
+/** Picked, but left out because "Keep after restart" is off for them */
+const notKept = () => picked().filter(adapter => !isKept(adapter.plugin)).map(adapter => adapter.label);
 
 function link(): string {
     const held = String(settings.store.link ?? "").trim();
@@ -39,7 +50,7 @@ function link(): string {
  * something unhidden here does not come back on the next fetch - and everything it does not
  * own is left exactly as the phone wrote it.
  */
-export async function sendUp(): Promise<{ at: string | null; sent: string[]; }> {
+export async function sendUp(): Promise<{ at: string | null; sent: string[]; skipped: string[]; }> {
     const where = link();
     const { shelf } = await fetchShelf(where);
 
@@ -55,7 +66,7 @@ export async function sendUp(): Promise<{ at: string | null; sent: string[]; }> 
     }
 
     const at = await sendShelf(where, next);
-    return { at, sent };
+    return { at, sent, skipped: notKept() };
 }
 
 /**
@@ -66,24 +77,31 @@ export async function sendUp(): Promise<{ at: string | null; sent: string[]; }> 
  * the way up and everything it registered on the way down is rebuilt. Without it the new
  * data sits on disk while the old data is still on screen.
  */
-export async function bringDown(): Promise<{ at: string | null; applied: string[]; }> {
+export async function bringDown(): Promise<{ at: string | null; applied: string[]; skipped: string[]; }> {
     const where = link();
     const { at, shelf } = await fetchShelf(where);
 
     const applied: string[] = [];
     const touched: string[] = [];
 
-    for (const adapter of chosen()) {
-        const held = shelf.plugins?.[adapter.shelfKey];
-        if (!held || typeof held !== "object") continue;
+    try {
+        for (const adapter of chosen()) {
+            const held = shelf.plugins?.[adapter.shelfKey];
+            if (!held || typeof held !== "object") continue;
 
-        await adapter.write(held);
-        applied.push(adapter.label);
-        touched.push(adapter.plugin);
+            // Counted before the write finishes: one that fails part way may still have
+            // changed what is on disk, and has to be restarted onto it all the same.
+            touched.push(adapter.plugin);
+            await adapter.write(held);
+            applied.push(adapter.label);
+        }
+    } finally {
+        // Even when a write fails, the ones already replaced are told - otherwise they keep
+        // showing the old data over a disk that now holds the new.
+        restart(touched);
     }
 
-    restart(touched);
-    return { at, applied };
+    return { at, applied, skipped: notKept() };
 }
 
 function restart(names: string[]) {

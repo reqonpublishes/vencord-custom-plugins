@@ -36,25 +36,25 @@ const settings = definePluginSettings({
     profileMenu: {
         type: OptionType.BOOLEAN,
         displayName: "Show on profiles",
-        description: "Adds the moderation entries to the ... menu on a profile",
+        description: "Show the moderation entries in the ... menu on a profile",
         default: true
     },
     userMenu: {
         type: OptionType.BOOLEAN,
         displayName: "Show on people",
-        description: "Adds the moderation entries to the menu when you right-click a person",
+        description: "Show the moderation entries when you right-click a person",
         default: true
     },
     serverMenu: {
         type: OptionType.BOOLEAN,
         displayName: "Show on servers",
-        description: "Adds the moderation entries to the menu when you right-click a server",
+        description: "Show the moderation entries when you right-click a server",
         default: true
     },
     messageMenu: {
         type: OptionType.BOOLEAN,
         displayName: "Show on messages",
-        description: "Adds the moderation entries to the menu when you right-click a message",
+        description: "Show the moderation entries when you right-click a message",
         default: true
     }
 });

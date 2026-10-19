@@ -8,18 +8,26 @@ import "./shared.css";
 import "./styles.css";
 
 import { NavContextMenuPatchCallback } from "@api/ContextMenu";
-import { Settings } from "@api/Settings";
-import definePlugin from "@utils/types";
+import { definePluginSettings, Settings } from "@api/Settings";
+import definePlugin, { OptionType } from "@utils/types";
 import { Channel, User } from "@vencord/discord-types";
 import { findStoreLazy } from "@webpack";
 import { FluxDispatcher, Menu, RelationshipStore, showToast, UserStore } from "@webpack/common";
 
+import { BookmarkList } from "./BookmarkList";
 import BookmarksPage from "./BookmarksPage";
 import { BookmarkAddIcon, BookmarkIcon } from "./icons";
 import { add, count, isBookmarked, load, remove } from "./store";
 import { About } from "./ui";
 
 const FriendsStore: any = findStoreLazy("FriendsStore");
+
+const settings = definePluginSettings({
+    people: {
+        type: OptionType.COMPONENT,
+        component: BookmarkList
+    }
+});
 
 /** Whether Vencord had this switched on when Discord loaded, which is when the tab is put in */
 const enabledAtLoad = !!Settings.plugins.Bookmarks?.enabled;
@@ -98,6 +106,8 @@ export default definePlugin({
     description: "Bookmark people so you can close their DM and still find them. Adds a Bookmarked tab to the Friends page, next to Pending.",
     tags: ["Friends", "Organisation", "Utility"],
     authors: [{ name: "reqon", id: 497562304498368513n }],
+
+    settings,
 
     settingsAboutComponent: () => (
         <About

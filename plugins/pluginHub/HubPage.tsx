@@ -15,7 +15,7 @@ import { React, showToast } from "@webpack/common";
 import { settings } from ".";
 import { applying, Entry, flipAll, installed, isEnabled, isOn, isView, needsRestart, pluginOf, SECTIONS, setOn, summaryOf, usable } from "./hub";
 import { CloudDownIcon, CloudUpIcon, EyeIcon, EyeOffIcon, GearIcon, RefreshIcon } from "./icons";
-import { isProtecting, onProtectionChange } from "./protect";
+import { isProtecting, onProtectionChange, raisedForShare } from "./protect";
 import { cl, IconButton } from "./ui";
 
 const logger = new Logger("PluginHub");
@@ -68,6 +68,10 @@ function PluginRow({ entry, onChange }: { entry: Entry; onChange(): void; }) {
     );
 }
 
+/** Cloud Sync leaves out plugins whose "Keep after restart" is off, and says which */
+const skippedNote = (skipped?: string[]) =>
+    skipped?.length ? `. Skipped ${skipped.join(", ")}: "Keep after restart" is off` : "";
+
 /** Sync without going to find its settings: the two buttons, for whoever already has a link */
 function SyncRow() {
     const sync = pluginOf("CloudSync");
@@ -81,13 +85,13 @@ function SyncRow() {
 
         try {
             if (which === "up") {
-                const { sent } = await sync.sendUp();
+                const { sent, skipped } = await sync.sendUp();
                 Settings.plugins.CloudSync.lastUp = { at: Date.now(), what: sent };
-                showToast({ text: "Synced to cloud", variant: "success" });
+                showToast({ text: "Synced to cloud" + skippedNote(skipped), variant: "success" });
             } else {
-                const { applied } = await sync.bringDown();
+                const { applied, skipped } = await sync.bringDown();
                 Settings.plugins.CloudSync.lastDown = { at: Date.now(), what: applied };
-                showToast({ text: "Synced from cloud", variant: "success" });
+                showToast({ text: "Synced from cloud" + skippedNote(skipped), variant: "success" });
             }
         } catch (e) {
             showToast({ text: e instanceof Error ? e.message : String(e), variant: "critical" });
@@ -171,11 +175,11 @@ function ShareOptions() {
                 </div>
             </div>
 
-            <ShareSwitch name="streamerMode" label="Also in Streamer Mode" detail="Discord turns Streamer Mode on by itself when it sees OBS or another recorder, if you let it in Streamer Mode's settings." />
-            <ShareSwitch name="shareHideNew" label="Hide anything new" detail="Friends, requests, DMs and servers that turned up since those plugins were last on are hidden too, and shown again after." />
-            <ShareSwitch name="shareHideMenus" label="Hide plugin menus" detail="Takes these entries out of right-click menus and the Bookmarked tab off the Friends page. Hold Shift to see the menu entries anyway." />
+            <ShareSwitch name="streamerMode" label="Also in Streamer Mode" detail="Counts Streamer Mode as sharing. Discord can turn it on by itself when it sees OBS." />
+            <ShareSwitch name="shareHideNew" label="Hide anything new" detail="Friends, requests, DMs and servers added since those plugins were last on are hidden too, and shown again after." />
+            <ShareSwitch name="shareHideMenus" label="Hide plugin menus" detail="Removes their right-click menu entries and the Bookmarked tab. Hold Shift to see the entries anyway." />
             <ShareSwitch name="shareHidePage" label="Hide this page" detail="Takes Additional Settings out of the settings sidebar." />
-            <ShareSwitch name="shareRestore" label="Put everything back after" detail="Switches off again what was switched on for the share. Off leaves them on." />
+            <ShareSwitch name="shareRestore" label="Put everything back after" detail="Turns off again what the share turned on. Off leaves them on." />
         </div>
     );
 }
@@ -223,7 +227,11 @@ function HubPage() {
                             disabled={!views.length}
                             onClick={() => {
                                 const result = flipAll(settings.store.paused ?? []);
-                                settings.store.paused = result.remember;
+
+                                // Not the ones a share switched on. You had those off, and Turn
+                                // Back On should not be what turns them on for good.
+                                const lent = raisedForShare();
+                                settings.store.paused = result.remember.filter(name => !lent.includes(name));
                                 update();
 
                                 showToast({ text: result.on
@@ -240,8 +248,8 @@ function HubPage() {
                             <div className={cl("item-name")}>Screen Share Protection</div>
                             <div className={cl("item-detail")}>
                                 {protecting
-                                    ? "Your screen is being shared, so protection is on until you stop."
-                                    : "While you share your screen, the plugins below are switched on and kept out of sight. It all goes back when you stop."}
+                                    ? "On now: your screen is being shared."
+                                    : "While you share your screen, the plugins picked below are switched on and their menus kept out of sight."}
                             </div>
                         </div>
                         <Switch checked={shareProtection !== false} onChange={next => void (settings.store.shareProtection = next)} />
@@ -254,7 +262,7 @@ function HubPage() {
                             <div className={cl("item-text")}>
                                 <div className={cl("item-name")}>A restart is needed</div>
                                 <div className={cl("item-detail")}>
-                                    One plugin was disabled in Vencord when Discord loaded, and can only turn on as it loads.
+                                    A plugin enabled since Discord loaded can only turn on after a reload.
                                 </div>
                             </div>
                             <IconButton icon={RefreshIcon} variant="secondary" onClick={() => location.reload()}>Reload Now</IconButton>

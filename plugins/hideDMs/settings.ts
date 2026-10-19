@@ -14,19 +14,19 @@ export const settings = definePluginSettings({
     channelMenu: {
         type: OptionType.BOOLEAN,
         displayName: "Show on conversations",
-        description: "Adds Hide DM to the menu when you right-click a conversation in your DM list",
+        description: "Show \"Hide DM\" when you right-click a conversation",
         default: true
     },
     userMenu: {
         type: OptionType.BOOLEAN,
         displayName: "Show on people",
-        description: "Adds Hide DM to the menu when you right-click a person, including in your friends list",
+        description: "Show \"Hide DM\" when you right-click a person",
         default: true
     },
     hideNew: {
         type: OptionType.BOOLEAN,
-        displayName: "Hide new DMs when turned back on",
-        description: "Conversations that appeared in your DM list while this was off, or while Discord was closed, are hidden as soon as it is on again - so the list looks the way you left it",
+        displayName: "Hide new DMs",
+        description: "When you turn this back on, conversations opened while it was off are hidden too, so your DM list stays how you left it.",
         default: false
     },
     persist: {

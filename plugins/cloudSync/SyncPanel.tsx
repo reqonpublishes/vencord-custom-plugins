@@ -30,6 +30,10 @@ function ago(at: number) {
 const lastLine = (last: Last | null, never: string) =>
     last ? `Last synced ${ago(last.at)}` : never;
 
+/** What was left out of a sync, said after it: nothing, when nothing was */
+const skippedLine = (skipped: string[]) =>
+    skipped.length ? ` Skipped ${skipped.join(", ")}: "Keep after restart" is off.` : "";
+
 /** One of the two directions, as a card you press */
 function Way({ icon: Icon, name, detail, disabled, onClick }: {
     icon: IconComponent;
@@ -75,17 +79,17 @@ export function SyncPanel() {
 
         try {
             if (which === "up") {
-                const { sent } = await sendUp();
+                const { sent, skipped } = await sendUp();
                 settings.store.lastUp = { at: Date.now(), what: sent };
 
-                const text = sent.length ? "Synced to cloud: " + sent.join(", ") : "Nothing to sync yet";
+                const text = (sent.length ? "Synced to cloud: " + sent.join(", ") + "." : "Nothing to sync yet.") + skippedLine(skipped);
                 setSaid({ text, kind: "good" });
                 showToast({ text: "Synced to cloud", variant: "success" });
             } else {
-                const { applied } = await bringDown();
+                const { applied, skipped } = await bringDown();
                 settings.store.lastDown = { at: Date.now(), what: applied };
 
-                const text = applied.length ? "Synced from cloud: " + applied.join(", ") : "The cloud has nothing on this link yet";
+                const text = (applied.length ? "Synced from cloud: " + applied.join(", ") + "." : "The cloud has nothing on this link yet.") + skippedLine(skipped);
                 setSaid({ text, kind: "good" });
                 showToast({ text: "Synced from cloud", variant: "success" });
             }
@@ -161,24 +165,20 @@ export function SyncPanel() {
                 <Way
                     icon={CloudUpIcon}
                     name={busy === "up" ? "Syncing..." : "Sync to Cloud"}
-                    detail={ready ? lastLine(lastUp, "Uploads what this computer has") : "Needs a link first"}
+                    detail={ready ? lastLine(lastUp, "Upload from here") : "Needs a link first"}
                     disabled={!ready || !!busy}
                     onClick={() => run("up")}
                 />
                 <Way
                     icon={CloudDownIcon}
                     name={busy === "down" ? "Syncing..." : "Sync from Cloud"}
-                    detail={ready ? lastLine(lastDown, "Replaces what this computer has") : "Needs a link first"}
+                    detail={ready ? lastLine(lastDown, "Replace what is here") : "Needs a link first"}
                     disabled={!ready || !!busy}
                     onClick={() => run("down")}
                 />
             </div>
 
-            <div className={cl("said", said ? "said-" + said.kind : "")}>
-                {said
-                    ? said.text
-                    : "Sync to Cloud uploads this computer's copy. Sync from Cloud replaces this computer's copy with the cloud's."}
-            </div>
+            {said && <div className={cl("said", "said-" + said.kind)}>{said.text}</div>}
 
             <div className={cl("group-title")}>What to sync</div>
         </Panel>
