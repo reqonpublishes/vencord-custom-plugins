@@ -66,38 +66,8 @@ function unpatched(name: string, plugin: any): boolean {
 
 // ---------------------------------------------------------------- the three kinds of restart
 
-/** When Discord drew itself after this window loaded, or 0 while it has not yet */
-let drawnAt = 0;
-
-function noteWhenDrawn() {
-    const drawn = () => !!document.querySelector('[data-list-id="guildsnav"]');
-    if (drawn()) {
-        drawnAt = Date.now();
-        return;
-    }
-    const watcher = new MutationObserver(() => {
-        if (!drawn()) return;
-        drawnAt = Date.now();
-        watcher.disconnect();
-    });
-    watcher.observe(document, { childList: true, subtree: true });
-}
-
-/**
- * Whether a restart now would be wanted rather than an extra press: Discord has drawn itself,
- * and not in the last moment - a key pressed over and over lands one press just after it is
- * back, and that one should not start it all again.
- */
-const settled = () => drawnAt > 0 && Date.now() - drawnAt > 1500;
-
-/** Set once a reload has been asked for: this window is on its way out */
-let restarting = false;
-
 /** Discord's own reload, the same one its Ctrl+R does - new code, every plugin, everything */
-const reload = () => {
-    restarting = true;
-    location.reload();
-};
+const reload = () => location.reload();
 
 /**
  * Restart every running plugin in place. Measured at under ten milliseconds for eighty-odd.
@@ -243,80 +213,6 @@ async function softRestart(withResync: boolean) {
     toast(`Restarted ${plural(result.restarted, "plugin")} in ${ms(result.ms)} and resynced Discord in ${ms(took)}`, "success");
 }
 
-/** When Ctrl+R was last pressed during a call, so a second press can confirm it */
-let warnedInCall = 0;
-
-/**
- * What the shortcut does: a real restart of Discord, the plain reload, once.
- *
- * Pressing again while Discord is still loading would throw that load away and start another,
- * so a restart already under way swallows any more presses until Discord has drawn itself and
- * a moment has passed - pressed five times, it restarts once. A picture of the window laid over the reload was tried
- * and dropped: it made nothing quicker, only hid it.
- *
- * A reload leaves a call, so during one the first press only says so and a second press within
- * a few seconds goes ahead.
- */
-function restart() {
-    if (restarting || !settled()) return;
-
-    if (inCall() && Date.now() - warnedInCall > 4000) {
-        warnedInCall = Date.now();
-        toast("You're in a call. Press Ctrl+R again to restart, which leaves the call", "default");
-        return;
-    }
-    reload();
-}
-
-const runAction = () => restart();
-
-// ---------------------------------------------------------------- hotkeys
-
-interface Combo {
-    key: string;
-    ctrl: boolean;
-    shift: boolean;
-    alt: boolean;
-    meta: boolean;
-}
-
-function parseHotkey(value: string): Combo {
-    const parts = value.toLowerCase().split("+").map(part => part.trim()).filter(Boolean);
-    const key = parts.pop() ?? "";
-
-    return {
-        key,
-        ctrl: parts.includes("ctrl") || parts.includes("control"),
-        shift: parts.includes("shift"),
-        alt: parts.includes("alt"),
-        meta: parts.includes("meta") || parts.includes("cmd") || parts.includes("super")
-    };
-}
-
-const cache = new Map<string, Combo>();
-function hotkey(raw: string) {
-    let combo = cache.get(raw);
-    if (!combo) cache.set(raw, combo = parseHotkey(raw));
-    return combo;
-}
-
-function matches(e: KeyboardEvent, raw: string) {
-    const combo = hotkey(raw);
-    if (!combo.key || e.key.toLowerCase() !== combo.key) return false;
-
-    // every modifier has to match exactly, so Ctrl+R does not also fire on Ctrl+Shift+R
-    return e.ctrlKey === combo.ctrl && e.shiftKey === combo.shift && e.altKey === combo.alt && e.metaKey === combo.meta;
-}
-
-/** Listened for first, so the shortcut works wherever you are - mid-message, in a modal, in settings */
-function onKeyDown(e: KeyboardEvent) {
-    if (matches(e, settings.store.hotkey)) {
-        e.preventDefault();
-        e.stopPropagation();
-        if (!e.repeat) void runAction();
-    }
-}
-
 // ---------------------------------------------------------------- settings
 
 function LastRestart() {
@@ -373,12 +269,6 @@ function RestartButtons() {
 }
 
 const settings = definePluginSettings({
-    hotkey: {
-        type: OptionType.STRING,
-        displayName: "Restart shortcut",
-        description: "Ctrl+R by default, replacing Discord's own reload.",
-        default: "ctrl+r"
-    },
     buttons: {
         type: OptionType.COMPONENT,
         component: RestartButtons
@@ -389,38 +279,31 @@ migratePluginSettings("QuickRestart", "CustomPluginQuickRestart", "CustomQuickRe
 
 export default definePlugin({
     name: "QuickRestart",
-    description: "Ctrl+R restarts Discord for real, once: pressing it again while Discord loads no longer starts the load over. In a call it asks you to press again first, so you are not hung up by accident.",
+    description: "Buttons to restart only the plugins in a few milliseconds, refresh Discord's data, reload, or quit and reopen Discord. Ctrl+R is left to Discord: its own reload is already the quickest real restart there is.",
     tags: ["Utility"],
     authors: [{ name: "reqon", id: 497562304498368513n }],
 
     settings,
 
-    // At once, rather than when Discord's code is ready: Ctrl+R pressed while Discord is still
-    // loading has to be caught, or it reloads from the start again.
+    // At once, so a picture left by the old helper (see start) goes before Discord has drawn.
     startAt: StartAt.Init,
 
     settingsAboutComponent: () => (
         <About
             icon={BoltIcon}
-            title="Ctrl+R, done right"
+            title="Restart, your way"
             note={false}
             steps={[
-                <>Press <kbd>Ctrl</kbd>+<kbd>R</kbd> once. Discord restarts for real - new updates, every plugin, everything. Pressing it again while it loads does nothing, so it never starts over.</>,
-                <>In a call the first press only warns you, because restarting leaves the call. Press again to go ahead.</>,
-                <>The buttons below can restart just the plugins in a few milliseconds, or quit and reopen Discord.</>
+                <><kbd>Ctrl</kbd>+<kbd>R</kbd> is Discord's own reload. Nothing here gets in its way: it is already the quickest real restart there is.</>,
+                <><b>Plugins Only</b> restarts every plugin in a few milliseconds, without reloading anything.</>,
+                <><b>Restart and Resync</b> also has Discord fetch everything again, in about two seconds, while the window stays usable.</>
             ]}
         />
     ),
 
     start() {
-        window.addEventListener("keydown", onKeyDown, true);
-        noteWhenDrawn();
         // An earlier version laid a picture over the window while it reloaded, from a helper
         // that lives until Discord is fully quit. Any picture it left is taken away at once.
         (VencordNative as any).pluginHelpers?.QuickRestart?.uncover?.()?.catch?.(() => { });
-    },
-
-    stop() {
-        window.removeEventListener("keydown", onKeyDown, true);
     }
 });

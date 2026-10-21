@@ -1,16 +1,13 @@
 # Quick Restart
 
-Ctrl+R restarts Discord for real, once.
+Ways to restart, from Quick Restart's settings. **Ctrl+R is left to Discord**: its own reload
+is already the quickest real restart there is, and taking the key over only ever got in its way.
 
-| You press | What happens |
-| --- | --- |
-| `Ctrl+R` | Discord's own reload: new updates, every plugin, everything |
-| `Ctrl+R` again while it loads | Nothing. Discord's normal Ctrl+R would throw the load away and start over |
-| `Ctrl+R` in a call | A warning first, because restarting leaves the call. Press again within a few seconds to go ahead |
-
-## Settings
-
-| Setting | Default | What it does |
+| Button | What it does | How long |
 | --- | --- | --- |
-| Restart shortcut | `ctrl+r` | Modifiers and a key joined by `+` |
-| Restart now | | **Restart and Resync**, **Plugins Only** (a few milliseconds, no reload), **Reload** and **Restart Discord**, with the times of the last restart |
+| Plugins Only | Every plugin stopped and started again, nothing reloaded | A few milliseconds |
+| Restart and Resync | The same, then Discord fetches your servers, DMs and friends again, as it does when it opens. The window stays usable | About two seconds |
+| Reload | Discord's own reload, the same as Ctrl+R | A few seconds |
+| Restart Discord | Quits Discord and opens it again | Longer |
+
+The settings page also shows how long the last restart took.
