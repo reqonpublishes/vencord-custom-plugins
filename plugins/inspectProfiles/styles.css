@@ -233,9 +233,11 @@
 }
 
 .vc-cip-scroller {
-    height: min(500px, 60vh);
-    padding-right: 8px;
-    overflow: hidden auto;
+    height: min(520px, 60vh);
+}
+
+.vc-cip-scroll-inner {
+    padding: 4px 12px 8px 4px;
 }
 
 .vc-cip-tab {
@@ -303,59 +305,43 @@
 
 /* ---------------------------------------------------------------- pictures and colours */
 
-.vc-cip-pic {
-    display: flex;
-    gap: 16px;
-    align-items: center;
-}
-
-.vc-cip-pic-banner {
-    flex-direction: column;
-    align-items: stretch;
-}
-
-.vc-cip-pic-side {
-    display: flex;
-    flex: 1 1 auto;
-    flex-direction: column;
-    gap: 8px;
-    min-width: 0;
-}
-
-.vc-cip-pic-buttons {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-}
-
-/* the picture itself, drawn large: click to pick a file, drop one on it, or paste */
-.vc-cip-drop {
+/* the banner with the avatar over its bottom edge, as a profile draws them */
+.vc-cip-hero {
     position: relative;
+    margin-bottom: 44px;
+}
+
+.vc-cip-hero-banner,
+.vc-cip-hero-avatar {
     display: flex;
-    flex: 0 0 auto;
     align-items: center;
     justify-content: center;
     overflow: hidden;
     padding: 0;
-    border: 2px dashed transparent;
     background: var(--background-mod-normal) center / cover no-repeat;
     color: var(--text-muted);
     cursor: pointer;
 }
 
-.vc-cip-drop-avatar {
-    width: 96px;
-    height: 96px;
+.vc-cip-hero-banner {
+    position: relative;
+    width: 100%;
+    height: 132px;
+    border: 2px solid transparent;
+    border-radius: 10px;
+}
+
+.vc-cip-hero-avatar {
+    position: absolute;
+    bottom: -44px;
+    left: 16px;
+    width: 92px;
+    height: 92px;
+    border: 6px solid var(--modal-background, var(--background-base-low));
     border-radius: 50%;
 }
 
-.vc-cip-drop-banner {
-    width: 100%;
-    height: 120px;
-    border-radius: 8px;
-}
-
-.vc-cip-drop-empty {
+.vc-cip-hero-empty {
     font-size: 13px;
 }
 
@@ -376,13 +362,50 @@
 }
 
 .vc-cip-drop-over .vc-cip-drop-hover,
-.vc-cip-drop:hover .vc-cip-drop-hover,
-.vc-cip-drop:focus-visible .vc-cip-drop-hover {
+.vc-cip-hero-banner:hover .vc-cip-drop-hover,
+.vc-cip-hero-avatar:hover .vc-cip-drop-hover,
+.vc-cip-hero-banner:focus-visible .vc-cip-drop-hover,
+.vc-cip-hero-avatar:focus-visible .vc-cip-drop-hover {
     opacity: 1;
 }
 
-.vc-cip-drop-over {
+.vc-cip-hero-banner.vc-cip-drop-over {
     border-color: var(--brand-500, #5865f2);
+}
+
+.vc-cip-hero-avatar.vc-cip-drop-over {
+    border-color: var(--brand-500, #5865f2);
+}
+
+/* a picture's controls, one line each */
+.vc-cip-pc {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: var(--background-mod-subtle);
+}
+
+.vc-cip-pc-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.vc-cip-pc-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.vc-cip-pc-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
 }
 
 .vc-cip-swatches {
@@ -663,12 +686,129 @@
 /* ---------------------------------------------------------------- keyboard */
 
 .vc-cip-tab-button:focus-visible,
-.vc-cip-drop:focus-visible,
 .vc-cip-badge:focus-visible,
 .vc-cip-segment:focus-visible,
 .vc-cip-action:focus-visible,
 .vc-cip-icon-button:focus-visible,
 .vc-cip-link:focus-visible {
+    outline: 2px solid var(--focus-primary, #00b0f4);
+    outline-offset: 2px;
+}
+
+/* ---------------------------------------------------------------- dates and times */
+
+.vc-cip-date {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.vc-cip-date-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.vc-cip-date-button {
+    display: inline-flex;
+    gap: 10px;
+    align-items: center;
+    min-height: 40px;
+    padding: 0 12px;
+    border: 1px solid var(--input-border, var(--border-subtle));
+    border-radius: 8px;
+    background: var(--input-background, var(--background-mod-subtle));
+    color: var(--text-default);
+    font-size: 15px;
+    cursor: pointer;
+}
+
+.vc-cip-date-button:hover {
+    border-color: var(--input-border-hover, var(--border-normal, var(--border-subtle)));
+}
+
+.vc-cip-date-open {
+    border-color: var(--brand-500, #5865f2);
+}
+
+.vc-cip-date-chevron {
+    color: var(--interactive-normal, var(--text-muted));
+    transition: transform .15s ease;
+}
+
+.vc-cip-date-open .vc-cip-date-chevron {
+    transform: rotate(180deg);
+}
+
+.vc-cip-calendar {
+    align-self: flex-start;
+    overflow: hidden;
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    background: var(--background-surface-high, var(--modal-background));
+    box-shadow: var(--shadow-high, none);
+}
+
+.vc-cip-time {
+    display: inline-flex;
+    gap: 2px;
+    align-items: center;
+    min-height: 40px;
+    padding: 0 6px 0 10px;
+    border: 1px solid var(--input-border, var(--border-subtle));
+    border-radius: 8px;
+    background: var(--input-background, var(--background-mod-subtle));
+}
+
+.vc-cip-time-num {
+    width: 28px;
+    padding: 4px 0;
+    border: none;
+    border-radius: 4px;
+    background: none;
+    color: var(--text-default);
+    font-size: 15px;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+}
+
+.vc-cip-time-num:focus {
+    outline: none;
+    background: var(--background-mod-normal);
+}
+
+.vc-cip-time-colon {
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.vc-cip-time-ampm {
+    display: flex;
+    gap: 2px;
+    margin-left: 8px;
+    padding: 2px;
+    border-radius: 6px;
+    background: var(--background-mod-subtle);
+}
+
+.vc-cip-ampm {
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: none;
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.vc-cip-ampm-on {
+    background: var(--brand-500, #5865f2);
+    color: var(--white, #fff);
+}
+
+.vc-cip-date-button:focus-visible,
+.vc-cip-ampm:focus-visible {
     outline: 2px solid var(--focus-primary, #00b0f4);
     outline-offset: 2px;
 }

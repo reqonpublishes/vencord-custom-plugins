@@ -12,7 +12,7 @@ import { Logger } from "@utils/Logger";
 import { relaunch } from "@utils/native";
 import definePlugin, { OptionType, PluginNative } from "@utils/types";
 import { findByPropsLazy } from "@webpack";
-import { FluxDispatcher, React, SelectedChannelStore, showToast } from "@webpack/common";
+import { FluxDispatcher, React, SelectedChannelStore, showToast, UserStore } from "@webpack/common";
 
 import { BoltIcon, PowerIcon, PuzzleIcon, RefreshIcon } from "./icons";
 import { About, IconButton, Panel } from "./ui";
@@ -89,7 +89,35 @@ function unpatched(name: string, plugin: any): boolean {
 // ---------------------------------------------------------------- the three kinds of restart
 
 /** Reload the window: the only thing that brings in new code. About five seconds */
-const reload = () => location.reload();
+const reload = () => {
+    // With the helper in place the window reloads under a picture of itself, so there is no
+    // blank screen and no loading screen - see native.ts. Without it, a plain reload.
+    if (Native?.reloadCovered) void Native.reloadCovered().catch(() => location.reload());
+    else location.reload();
+};
+
+/**
+ * Take the picture away once this window has drawn Discord again.
+ *
+ * Called as the plugin starts on every load: after a covered reload it is what reveals the new
+ * window, and the rest of the time there is nothing to take away. Waited for until there is a
+ * signed-in user and the server list or DM list is on screen, then one more frame so it has
+ * been painted rather than only put in place.
+ */
+function uncoverWhenDrawn() {
+    if (!Native?.uncover) return;
+
+    const began = Date.now();
+    const look = () => {
+        const drawn = !!UserStore.getCurrentUser() && !!document.querySelector('[data-list-id="guildsnav"], nav[aria-label] [class*="privateChannels"]');
+        if (drawn || Date.now() - began > 15000) {
+            requestAnimationFrame(() => requestAnimationFrame(() => void Native.uncover().catch(() => { })));
+            return;
+        }
+        setTimeout(look, 100);
+    };
+    look();
+}
 
 /**
  * Restart every running plugin in place. Measured at under ten milliseconds for eighty-odd.
@@ -258,14 +286,8 @@ async function smartRestart() {
     await softRestart(true);
 }
 
-function runAction() {
-    switch (settings.store.action) {
-        case "plugins": return softRestart(false);
-        case "reload": return reload();
-        case "full": return relaunch();
-        default: return smartRestart();
-    }
-}
+/** What the shortcut does: the right restart, every time */
+const runAction = () => smartRestart();
 
 // ---------------------------------------------------------------- hotkeys
 
@@ -307,13 +329,6 @@ function matches(e: KeyboardEvent, raw: string) {
 
 /** Listened for first, so the shortcut works wherever you are - mid-message, in a modal, in settings */
 function onKeyDown(e: KeyboardEvent) {
-    if (matches(e, settings.store.reloadHotkey)) {
-        e.preventDefault();
-        e.stopPropagation();
-        reload();
-        return;
-    }
-
     if (matches(e, settings.store.hotkey)) {
         e.preventDefault();
         e.stopPropagation();
@@ -380,25 +395,8 @@ const settings = definePluginSettings({
     hotkey: {
         type: OptionType.STRING,
         displayName: "Restart shortcut",
-        description: "The keys for a quick restart, like ctrl+r.",
+        description: "Replaces Discord's own reload. Ctrl+R by default.",
         default: "ctrl+r"
-    },
-    action: {
-        type: OptionType.SELECT,
-        displayName: "Shortcut action",
-        description: "What the restart shortcut does.",
-        options: [
-            { label: "Restart plugins and resync Discord, reloading only for a new build", value: "smart", default: true },
-            { label: "Restart plugins only", value: "plugins" },
-            { label: "Reload the window", value: "reload" },
-            { label: "Restart Discord completely", value: "full" }
-        ]
-    },
-    reloadHotkey: {
-        type: OptionType.STRING,
-        displayName: "Reload shortcut",
-        description: "Keys that always reload the whole window, like ctrl+shift+r.",
-        default: "ctrl+shift+r"
     },
     buttons: {
         type: OptionType.COMPONENT,
@@ -410,7 +408,7 @@ migratePluginSettings("QuickRestart", "CustomPluginQuickRestart", "CustomQuickRe
 
 export default definePlugin({
     name: "QuickRestart",
-    description: "Ctrl+R restarts every plugin in milliseconds and has Discord fetch everything again, without reloading the window. When there is a new Vencord build it reloads instead, so updates always arrive. Ctrl+Shift+R always reloads.",
+    description: "Makes Ctrl+R a much faster restart: plugins restart in milliseconds and Discord fetches everything again without reloading the window. When a reload is really needed, for a new Vencord build, it happens behind a picture of the window so nothing flashes.",
     tags: ["Utility"],
     authors: [{ name: "reqon", id: 497562304498368513n }],
 
@@ -419,19 +417,19 @@ export default definePlugin({
     settingsAboutComponent: () => (
         <About
             icon={BoltIcon}
-            title="Restart Discord without restarting it"
+            title="Ctrl+R, only faster"
             note={false}
             steps={[
-                <><kbd>Ctrl</kbd>+<kbd>R</kbd> restarts every plugin (a few milliseconds), then has Discord fetch your servers, DMs and friends again (a couple of seconds). The window stays open and you keep what you were typing.</>,
-                <>When a new Vencord build is on disk, it reloads instead, since that is the only way new code loads.</>,
-                <>In a call, only the plugins restart, so you are not hung up.</>,
-                <><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd> always reloads the whole window.</>
+                <>Press <kbd>Ctrl</kbd>+<kbd>R</kbd> like always. Every plugin restarts in a few milliseconds and Discord fetches your servers, DMs and friends again, without the window reloading.</>,
+                <>When a new Vencord build is waiting it reloads instead, behind a picture of the window, so there is no flash.</>,
+                <>In a call only the plugins restart, so you are not hung up.</>
             ]}
         />
     ),
 
     async start() {
         window.addEventListener("keydown", onKeyDown, true);
+        uncoverWhenDrawn();
 
         if (!loadedBuild && Native) {
             try {

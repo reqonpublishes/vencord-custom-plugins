@@ -8,9 +8,10 @@ import "./styles.css";
 
 import { ModalAction, RenderModalProps } from "@vencord/discord-types";
 import { findByCodeLazy, findByPropsLazy } from "@webpack";
-import { ColorPicker, Modal, openModal, SearchableSelect, showToast, TextArea, TextInput, useEffect, useRef, UserStore, useState } from "@webpack/common";
+import { ColorPicker, Modal, openModal, ScrollerThin, SearchableSelect, showToast, TextArea, TextInput, useEffect, useRef, UserStore, useState } from "@webpack/common";
 
 import { Badge, BADGES, badgesFor, GROUPS, realKeys, withBadge } from "./badges";
+import { DateField } from "./DateField";
 import { BookmarkIcon, CheckIcon, CloseIcon, CopyIcon, ImageIcon, LinkIcon, MasksIcon, PersonIcon, StarIcon, TrashIcon } from "./icons";
 import { keep } from "./images";
 import { pictureUrl, realProfile, realUser, wholeLookOf } from "./rewrite";
@@ -185,22 +186,16 @@ const RealLink = ({ show, onClick }: { show: boolean; onClick(): void; }) =>
     show ? <button className={cl("link")} onClick={onClick}>Use real</button> : null;
 
 /**
- * An avatar or banner, chosen the way it is on a computer: drop a file on it, pick one, paste
- * one, or give a link. What is showing is drawn large, so the choice is made by looking.
+ * Choosing one picture: from a file, dropped on it, pasted, or from a link.
+ *
+ * Shared by the banner and the avatar, which are drawn together the way a profile draws them
+ * and each get the same row of controls.
  */
-function Picture({ label, kind, value, real, onChange }: {
-    label: string;
-    kind: "avatar" | "banner";
-    value?: string;
-    real: string | null;
-    onChange(next?: string): void;
-}) {
+function usePicture(kind: "avatar" | "banner", value: string | undefined, onChange: (next?: string) => void) {
     const [linking, setLinking] = useState(isLink(value));
     const [busy, setBusy] = useState(false);
     const [over, setOver] = useState(false);
     const picker = useRef<HTMLInputElement>(null);
-    const shown = value === NOTHING ? null : pictureUrl(value) ?? real;
-    const word = label.toLowerCase();
 
     const take = async (file?: File | null) => {
         if (!file) return;
@@ -220,76 +215,125 @@ function Picture({ label, kind, value, real, onChange }: {
         }
     };
 
-    // A copied picture, or a copied link to one
-    const fromClipboard = (event: any) => {
-        const file = [...(event.clipboardData?.files ?? [])].find((f: File) => f.type.startsWith("image/"));
-        if (file) {
-            event.preventDefault();
-            void take(file);
-            return;
-        }
-
-        const text = event.clipboardData?.getData("text")?.trim();
-        if (isLink(text)) {
-            event.preventDefault();
-            onChange(text);
-        }
+    // the area itself: click to pick a file, drop one on it, or paste a picture or a link
+    const target = {
+        onClick: () => picker.current?.click(),
+        onPaste: (event: any) => {
+            const file = [...(event.clipboardData?.files ?? [])].find((f: File) => f.type.startsWith("image/"));
+            const text = event.clipboardData?.getData("text")?.trim();
+            if (file) {
+                event.preventDefault();
+                void take(file);
+            } else if (isLink(text)) {
+                event.preventDefault();
+                onChange(text);
+            }
+        },
+        onDragOver: (e: any) => { e.preventDefault(); setOver(true); },
+        onDragLeave: () => setOver(false),
+        onDrop: (e: any) => {
+            e.preventDefault();
+            setOver(false);
+            void take(e.dataTransfer.files?.[0]);
+        },
     };
 
-    return (
-        <Field label={label} action={<RealLink show={value !== undefined} onClick={() => { onChange(undefined); setLinking(false); }} />}>
-            <div className={cl("pic", `pic-${kind}`)}>
-                <button
-                    className={cl("drop", `drop-${kind}`, over ? "drop-over" : "")}
-                    style={shown ? { backgroundImage: `url("${shown}")` } : undefined}
-                    aria-label={`Change ${word}`}
-                    onClick={() => picker.current?.click()}
-                    onPaste={fromClipboard}
-                    onDragOver={e => { e.preventDefault(); setOver(true); }}
-                    onDragLeave={() => setOver(false)}
-                    onDrop={e => {
-                        e.preventDefault();
-                        setOver(false);
-                        void take(e.dataTransfer.files?.[0]);
-                    }}
-                >
-                    {!shown && <span className={cl("drop-empty")}>No {word}</span>}
-                    <span className={cl("drop-hover")}>{busy ? "Saving..." : over ? "Drop to use" : "Change"}</span>
-                </button>
+    const input = (
+        <input
+            ref={picker}
+            type="file"
+            accept="image/png,image/jpeg,image/gif,image/webp"
+            hidden
+            onChange={e => {
+                void take(e.currentTarget.files?.[0]);
+                e.currentTarget.value = "";
+            }}
+        />
+    );
 
-                <div className={cl("pic-side")}>
-                    <div className={cl("pic-buttons")}>
-                        <IconButton icon={ImageIcon} variant="primary" disabled={busy} onClick={() => picker.current?.click()}>Upload image</IconButton>
-                        <IconButton icon={LinkIcon} variant="secondary" onClick={() => setLinking(!linking)}>Paste link</IconButton>
-                        {value !== NOTHING && (
-                            <IconButton icon={CloseIcon} variant="secondary" onClick={() => { onChange(NOTHING); setLinking(false); }}>Remove</IconButton>
-                        )}
-                    </div>
-                    {linking && (
-                        <TextInput
-                            autoFocus
-                            value={isLink(value) ? value : ""}
-                            placeholder="https://"
-                            onChange={(next: string) => onChange(next.trim() || undefined)}
-                        />
+    return { linking, setLinking, busy, over, target, input, pick: () => picker.current?.click() };
+}
+
+/** One picture's controls, on a line of their own under the header */
+function PictureControls({ label, value, onChange, picture }: {
+    label: string;
+    value?: string;
+    onChange(next?: string): void;
+    picture: ReturnType<typeof usePicture>;
+}) {
+    const state = value === NOTHING ? "None" : value ? (isLink(value) ? "From a link" : "Uploaded") : "Real";
+
+    return (
+        <div className={cl("pc")}>
+            <div className={cl("pc-row")}>
+                <div className={cl("pc-text")}>
+                    <span className={cl("item-name")}>{label}</span>
+                    <span className={cl("item-detail")}>{picture.busy ? "Saving..." : state}</span>
+                </div>
+                <div className={cl("pc-buttons")}>
+                    <IconButton icon={ImageIcon} variant="primary" disabled={picture.busy} onClick={picture.pick}>Upload</IconButton>
+                    <IconButton icon={LinkIcon} variant="secondary" onClick={() => picture.setLinking(!picture.linking)}>Link</IconButton>
+                    {value !== NOTHING && (
+                        <IconButton icon={CloseIcon} variant="secondary" onClick={() => { onChange(NOTHING); picture.setLinking(false); }}>Remove</IconButton>
                     )}
-                    <span className={cl("f-hint")}>
-                        {value === NOTHING ? `No ${word} will show.` : "Drop a picture on it, or click it and paste. GIFs keep moving."}
-                    </span>
+                    {value !== undefined && (
+                        <button className={cl("link")} onClick={() => { onChange(undefined); picture.setLinking(false); }}>Use real</button>
+                    )}
                 </div>
             </div>
+            {picture.linking && (
+                <TextInput
+                    autoFocus
+                    value={isLink(value) ? value : ""}
+                    placeholder="Paste an image link"
+                    onChange={(next: string) => onChange(next.trim() || undefined)}
+                />
+            )}
+            {picture.input}
+        </div>
+    );
+}
 
-            <input
-                ref={picker}
-                type="file"
-                accept="image/png,image/jpeg,image/gif,image/webp"
-                hidden
-                onChange={e => {
-                    void take(e.currentTarget.files?.[0]);
-                    e.currentTarget.value = "";
-                }}
-            />
-        </Field>
+/**
+ * The banner with the avatar over its bottom edge, as a profile has them - each one a place to
+ * click, drop or paste a picture. Below, a line of controls for each.
+ */
+function Header({ look, real, set }: { look: Look; real: ReturnType<typeof realOf>; set: Set; }) {
+    const banner = usePicture("banner", look.banner, v => set({ banner: v }));
+    const avatar = usePicture("avatar", look.avatar, v => set({ avatar: v }));
+
+    const bannerShown = look.banner === NOTHING ? null : pictureUrl(look.banner) ?? real.banner;
+    const avatarShown = look.avatar === NOTHING ? null : pictureUrl(look.avatar) ?? real.avatar;
+
+    return (
+        <div className={cl("f")}>
+            <span className={cl("f-label")}>Banner and avatar</span>
+            <div className={cl("hero")}>
+                <button
+                    className={cl("hero-banner", banner.over ? "drop-over" : "")}
+                    style={bannerShown ? { backgroundImage: `url("${bannerShown}")` } : undefined}
+                    aria-label="Change banner"
+                    {...banner.target}
+                >
+                    {!bannerShown && <span className={cl("hero-empty")}>No banner</span>}
+                    <span className={cl("drop-hover")}>{banner.busy ? "Saving..." : banner.over ? "Drop to use" : "Change banner"}</span>
+                </button>
+                <button
+                    className={cl("hero-avatar", avatar.over ? "drop-over" : "")}
+                    style={avatarShown ? { backgroundImage: `url("${avatarShown}")` } : undefined}
+                    aria-label="Change avatar"
+                    {...avatar.target}
+                >
+                    {!avatarShown && <span className={cl("hero-empty")}>None</span>}
+                    <span className={cl("drop-hover")}>{avatar.busy ? "..." : avatar.over ? "Drop" : "Change"}</span>
+                </button>
+            </div>
+            <div className={cl("rows")}>
+                <PictureControls label="Banner" value={look.banner} onChange={v => set({ banner: v })} picture={banner} />
+                <PictureControls label="Avatar" value={look.avatar} onChange={v => set({ avatar: v })} picture={avatar} />
+            </div>
+            <span className={cl("f-hint")}>Click or drop a picture on the banner or avatar, or click one and paste. GIFs keep moving.</span>
+        </div>
     );
 }
 
@@ -339,11 +383,7 @@ function ProfileTab({ userId, look, set }: { userId: string; look: Look; set: Se
             </Field>
 
             <Field label="Member since" action={<RealLink show={look.memberSince !== undefined} onClick={() => set({ memberSince: undefined })} />}>
-                <TextInput
-                    type="date"
-                    value={since.toISOString().slice(0, 10)}
-                    onChange={(next: string) => set({ memberSince: next ? new Date(next + "T12:00:00").getTime() : undefined })}
-                />
+                <DateField value={since.getTime()} onChange={ms => set({ memberSince: ms })} />
             </Field>
 
             <Field label="Connections" action={<RealLink show={look.connections !== undefined} onClick={() => set({ connections: undefined })} />}>
@@ -396,8 +436,7 @@ function PicturesTab({ userId, look, set }: { userId: string; look: Look; set: S
 
     return (
         <div className={cl("tab")}>
-            <Picture label="Avatar" kind="avatar" value={look.avatar} real={real.avatar} onChange={v => set({ avatar: v })} />
-            <Picture label="Banner" kind="banner" value={look.banner} real={real.banner} onChange={v => set({ banner: v })} />
+            <Header look={look} real={real} set={set} />
 
             <Field
                 label="Profile colours"
@@ -655,12 +694,14 @@ function InspectModal({ rootProps, userId, startOn }: { rootProps: RenderModalPr
                         ))}
                     </div>
                     {/* One height for every tab, scrolling inside, so switching tabs never moves the window */}
-                    <div className={cl("scroller")}>
-                        {tab === "profile" && <ProfileTab userId={userId} look={look} set={set} />}
-                        {tab === "pictures" && <PicturesTab userId={userId} look={look} set={set} />}
-                        {tab === "badges" && <BadgesTab userId={userId} look={look} set={set} />}
-                        {tab === "presets" && <PresetsTab userId={userId} look={look} replace={next => setDraft(next)} />}
-                    </div>
+                    <ScrollerThin className={cl("scroller")} fade>
+                        <div className={cl("scroll-inner")}>
+                            {tab === "profile" && <ProfileTab userId={userId} look={look} set={set} />}
+                            {tab === "pictures" && <PicturesTab userId={userId} look={look} set={set} />}
+                            {tab === "badges" && <BadgesTab userId={userId} look={look} set={set} />}
+                            {tab === "presets" && <PresetsTab userId={userId} look={look} replace={next => setDraft(next)} />}
+                        </div>
+                    </ScrollerThin>
                 </div>
             </div>
         </Modal>
