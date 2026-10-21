@@ -10,7 +10,7 @@ import "./styles.css";
 import { definePluginSettings, migratePluginSettings, Settings } from "@api/Settings";
 import { Logger } from "@utils/Logger";
 import { relaunch } from "@utils/native";
-import definePlugin, { OptionType, PluginNative, StartAt } from "@utils/types";
+import definePlugin, { OptionType, StartAt } from "@utils/types";
 import { findByPropsLazy } from "@webpack";
 import { FluxDispatcher, React, SelectedChannelStore, showToast } from "@webpack/common";
 
@@ -22,8 +22,6 @@ const logger = new Logger("QuickRestart");
 const SELF = "QuickRestart";
 const HUB = "PluginHub";
 
-/** Present once Discord has been fully restarted with this plugin in it - see native.ts */
-const Native = (VencordNative as any).pluginHelpers?.QuickRestart as PluginNative<typeof import("./native")> | undefined;
 
 /** Discord's own connection to its servers */
 const Gateway = findByPropsLazy("getSocket");
@@ -68,49 +66,38 @@ function unpatched(name: string, plugin: any): boolean {
 
 // ---------------------------------------------------------------- the three kinds of restart
 
-/** Reload the window: the only thing that brings in new code. About five seconds */
-const reload = () => {
-    // With the helper in place the window reloads under a picture of itself, so there is no
-    // blank screen and no loading screen - see native.ts. Without it, a plain reload.
-    if (Native?.reloadCovered) void Native.reloadCovered().catch(() => location.reload());
-    else location.reload();
-};
+/** When Discord drew itself after this window loaded, or 0 while it has not yet */
+let drawnAt = 0;
+
+function noteWhenDrawn() {
+    const drawn = () => !!document.querySelector('[data-list-id="guildsnav"]');
+    if (drawn()) {
+        drawnAt = Date.now();
+        return;
+    }
+    const watcher = new MutationObserver(() => {
+        if (!drawn()) return;
+        drawnAt = Date.now();
+        watcher.disconnect();
+    });
+    watcher.observe(document, { childList: true, subtree: true });
+}
 
 /**
- * Take the picture away once this window has drawn Discord again.
- *
- * Called as the plugin starts on every load: after a covered reload it is what reveals the new
- * window, and the rest of the time there is nothing to take away. Waited for until the server
- * list is on screen.
+ * Whether a restart now would be wanted rather than an extra press: Discord has drawn itself,
+ * and not in the last moment - a key pressed over and over lands one press just after it is
+ * back, and that one should not start it all again.
  */
-function uncoverWhenDrawn() {
-    if (!Native?.uncover) return;
+const settled = () => drawnAt > 0 && Date.now() - drawnAt > 1500;
 
-    // Only the page is asked. Asking for the signed-in user this early failed or came back
-    // empty, and the picture then stayed up until the main process gave up on it at fifteen
-    // seconds - measured: Discord drawn at 5.5 s, picture gone at 15.2 s.
-    //
-    // Told the moment the list is added rather than looking every so often: Discord is busiest
-    // drawing its first screen, and a timer then fired well over a second late.
-    let done = false;
-    const reveal = () => {
-        if (done) return;
-        done = true;
-        watcher.disconnect();
-        clearTimeout(giveUp);
-        // At once, not after the next frames or a timer: the picture covers the window, and
-        // Windows does not draw a covered window, so frames may not come; and timers run late
-        // while Discord draws its first screen. The request crosses to the main process, by
-        // which time the list has been painted.
-        void Native.uncover().catch(() => { });
-    };
-    const drawn = () => !!document.querySelector('[data-list-id="guildsnav"]');
+/** Set once a reload has been asked for: this window is on its way out */
+let restarting = false;
 
-    const watcher = new MutationObserver(() => drawn() && reveal());
-    const giveUp = setTimeout(reveal, 15000);
-    if (drawn()) reveal();
-    else watcher.observe(document, { childList: true, subtree: true });
-}
+/** Discord's own reload, the same one its Ctrl+R does - new code, every plugin, everything */
+const reload = () => {
+    restarting = true;
+    location.reload();
+};
 
 /**
  * Restart every running plugin in place. Measured at under ten milliseconds for eighty-odd.
@@ -260,17 +247,19 @@ async function softRestart(withResync: boolean) {
 let warnedInCall = 0;
 
 /**
- * What the shortcut does: a real restart of Discord, every time - new code, plugins and all -
- * under a picture of the window so it never goes blank.
+ * What the shortcut does: a real restart of Discord, the plain reload, once.
  *
- * It used to restart only the plugins when it judged nothing new was waiting, which was quick
- * but looked like nothing happened, and could not tell new code was waiting until Discord had
- * been fully restarted once. A reload is what people mean by restarting, so it always reloads.
+ * Pressing again while Discord is still loading would throw that load away and start another,
+ * so a restart already under way swallows any more presses until Discord has drawn itself and
+ * a moment has passed - pressed five times, it restarts once. A picture of the window laid over the reload was tried
+ * and dropped: it made nothing quicker, only hid it.
  *
  * A reload leaves a call, so during one the first press only says so and a second press within
  * a few seconds goes ahead.
  */
 function restart() {
+    if (restarting || !settled()) return;
+
     if (inCall() && Date.now() - warnedInCall > 4000) {
         warnedInCall = Date.now();
         toast("You're in a call. Press Ctrl+R again to restart, which leaves the call", "default");
@@ -400,24 +389,23 @@ migratePluginSettings("QuickRestart", "CustomPluginQuickRestart", "CustomQuickRe
 
 export default definePlugin({
     name: "QuickRestart",
-    description: "Ctrl+R restarts Discord the way it always did, but behind a picture of the window, so it never goes blank. In a call it asks you to press again first, so you are not hung up by accident.",
+    description: "Ctrl+R restarts Discord for real, once: pressing it again while Discord loads no longer starts the load over. In a call it asks you to press again first, so you are not hung up by accident.",
     tags: ["Utility"],
     authors: [{ name: "reqon", id: 497562304498368513n }],
 
     settings,
 
-    // At once, rather than when Discord's code is ready: that is after Discord has drawn, so
-    // the picture over a restart stayed up for a second and a half too long (measured). Nothing
-    // started here needs Discord's code - only the page and the key presses.
+    // At once, rather than when Discord's code is ready: Ctrl+R pressed while Discord is still
+    // loading has to be caught, or it reloads from the start again.
     startAt: StartAt.Init,
 
     settingsAboutComponent: () => (
         <About
             icon={BoltIcon}
-            title="Ctrl+R, without the flash"
+            title="Ctrl+R, done right"
             note={false}
             steps={[
-                <>Press <kbd>Ctrl</kbd>+<kbd>R</kbd> like always. Discord restarts for real - new updates, every plugin, everything - while a picture of the window stays up, so you never see it go blank.</>,
+                <>Press <kbd>Ctrl</kbd>+<kbd>R</kbd> once. Discord restarts for real - new updates, every plugin, everything. Pressing it again while it loads does nothing, so it never starts over.</>,
                 <>In a call the first press only warns you, because restarting leaves the call. Press again to go ahead.</>,
                 <>The buttons below can restart just the plugins in a few milliseconds, or quit and reopen Discord.</>
             ]}
@@ -426,7 +414,10 @@ export default definePlugin({
 
     start() {
         window.addEventListener("keydown", onKeyDown, true);
-        uncoverWhenDrawn();
+        noteWhenDrawn();
+        // An earlier version laid a picture over the window while it reloaded, from a helper
+        // that lives until Discord is fully quit. Any picture it left is taken away at once.
+        (VencordNative as any).pluginHelpers?.QuickRestart?.uncover?.()?.catch?.(() => { });
     },
 
     stop() {
