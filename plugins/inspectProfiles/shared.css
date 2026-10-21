@@ -1,0 +1,516 @@
+/* ---------------------------------------------------------------- settings */
+
+/*
+ * Neutral translucent greys rather than theme variables throughout: several themes set the
+ * input and card backgrounds to pure black, which makes them vanish against a modal. Mid
+ * grey at low alpha lifts on dark themes and sits back on light ones.
+ */
+.vc-cip-btn-icon {
+    flex: 0 0 auto;
+    margin-right: 6px;
+}
+
+.vc-cip-about {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px 16px;
+    border: 1px solid var(--border-subtle, rgb(128 128 128 / 20%));
+    border-radius: var(--radius-md, 12px);
+}
+
+.vc-cip-about-head {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.vc-cip-tile {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-sm, 8px);
+    background: var(--background-mod-subtle, rgb(128 128 128 / 12%));
+    color: var(--icon-default, var(--text-default));
+}
+
+.vc-cip-about-title {
+    color: var(--text-default, var(--text-normal));
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 20px;
+}
+
+.vc-cip-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 0;
+    padding: 0 0 0 18px;
+    color: var(--text-default, var(--text-normal));
+    font-size: 14px;
+    line-height: 20px;
+    list-style: disc;
+}
+
+.vc-cip-steps strong {
+    font-weight: 600;
+}
+
+.vc-cip-steps kbd {
+    padding: 1px 5px;
+    border: 1px solid rgb(128 128 128 / 28%);
+    border-radius: 4px;
+    background: rgb(128 128 128 / 16%);
+    font-size: 12px;
+    font-family: var(--font-primary);
+}
+
+.vc-cip-private {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 16px;
+}
+
+.vc-cip-private svg {
+    flex: 0 0 auto;
+}
+
+.vc-cip-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.vc-cip-panel-head {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.vc-cip-panel-title {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    color: var(--text-default, var(--text-normal));
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 20px;
+}
+
+.vc-cip-pill {
+    padding: 0 7px;
+    border-radius: 99px;
+    background: var(--background-mod-normal, rgb(128 128 128 / 22%));
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    line-height: 18px;
+}
+
+.vc-cip-actions {
+    display: flex;
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.vc-cip-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 296px;
+    overflow-y: auto;
+}
+
+.vc-cip-row {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 12px;
+    align-items: center;
+    padding: 8px 10px;
+    border-radius: var(--radius-sm, 8px);
+    background: var(--background-mod-subtle, rgb(128 128 128 / 8%));
+}
+
+.vc-cip-avatar {
+    flex: 0 0 auto;
+    width: 32px;
+    height: 32px;
+    object-fit: cover;
+}
+
+.vc-cip-avatar-round {
+    border-radius: 50%;
+}
+
+.vc-cip-avatar-square {
+    border-radius: 10px;
+}
+
+.vc-cip-avatar-blank {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgb(128 128 128 / 24%);
+    color: var(--text-muted);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.vc-cip-row-text {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.vc-cip-row-name,
+.vc-cip-row-detail {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vc-cip-row-name {
+    color: var(--text-default, var(--text-normal));
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 18px;
+}
+
+.vc-cip-row-detail {
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 16px;
+}
+
+.vc-cip-empty {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    align-items: center;
+    padding: 18px 12px;
+    border: 1px dashed var(--border-subtle, rgb(128 128 128 / 24%));
+    border-radius: var(--radius-sm, 8px);
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.vc-cip-empty-title {
+    margin-top: 4px;
+    color: var(--text-default, var(--text-normal));
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 18px;
+}
+
+.vc-cip-empty-text {
+    font-size: 13px;
+    line-height: 18px;
+}
+
+.vc-cip-group-title {
+    margin-top: 6px;
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .02em;
+    line-height: 16px;
+    text-transform: uppercase;
+}
+
+/* ---------------------------------------------------------------- where the menu entries show */
+
+.vc-cip-menus {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 20px;
+}
+
+.vc-cip-menus-title {
+    color: var(--header-primary, var(--text-default));
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 20px;
+}
+
+.vc-cip-menus-detail {
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 18px;
+}
+
+.vc-cip-menu-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.vc-cip-menu-chip {
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+    padding: 6px 12px;
+    border: 1px solid var(--border-subtle, rgb(128 128 128 / 24%));
+    border-radius: 999px;
+    background: none;
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 18px;
+    cursor: pointer;
+}
+
+.vc-cip-menu-chip:hover {
+    background: var(--background-mod-subtle, rgb(128 128 128 / 8%));
+    color: var(--text-default);
+}
+
+.vc-cip-menu-chip:focus-visible {
+    outline: 2px solid var(--focus-primary, #00b0f4);
+    outline-offset: 2px;
+}
+
+.vc-cip-menu-chip-on {
+    border-color: var(--brand-500, #5865f2);
+    background: color-mix(in srgb, var(--brand-500, #5865f2) 16%, transparent);
+    color: var(--text-default);
+}
+
+.vc-cip-menu-chip-on:hover {
+    background: color-mix(in srgb, var(--brand-500, #5865f2) 24%, transparent);
+}
+
+/* ---------------------------------------------------------------- modal form */
+
+/*
+ * One rhythm for the whole form: every block is a section, every section is separated by
+ * the same gap, and nothing sets its own ad-hoc margins.
+ */
+.vc-cip-section {
+    margin-bottom: 20px;
+}
+
+.vc-cip-section-last {
+    margin-bottom: 0;
+}
+
+.vc-cip-label {
+    margin: 0 0 8px;
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 700;
+    font-family: var(--font-display, var(--font-primary));
+    line-height: 16px;
+    letter-spacing: .02em;
+    text-transform: uppercase;
+}
+
+.vc-cip-field {
+    display: flex;
+    gap: 8px;
+}
+
+.vc-cip-input {
+    flex: 1 1 150px;
+    min-width: 0;
+    padding: 8px 8px 8px 11px;
+    border: 1px solid rgb(128 128 128 / 22%);
+    border-radius: 6px;
+    background: rgb(128 128 128 / 18%);
+    color: var(--text-default, var(--text-normal));
+    font-size: 14px;
+    font-family: var(--font-primary);
+    font-variant-numeric: tabular-nums;
+    color-scheme: dark;
+    cursor: text;
+    transition: background-color .15s ease, border-color .15s ease;
+}
+
+.vc-cip-input-time {
+    flex: 0 0 auto;
+    min-width: 158px;
+}
+
+.vc-cip-input:hover {
+    background: rgb(128 128 128 / 26%);
+}
+
+.vc-cip-input:focus {
+    border-color: var(--brand-500, var(--brand-experiment));
+    outline: none;
+}
+
+/* ships as a black glyph, so it is inverted to a mid grey that shows on any field */
+.vc-cip-input::-webkit-calendar-picker-indicator {
+    margin-left: 4px;
+    padding: 0;
+    opacity: 1;
+    cursor: pointer;
+    filter: invert(55%);
+}
+
+.vc-cip-line {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 8px;
+}
+
+.vc-cip-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.vc-cip-chip {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    padding: 5px 10px;
+    border: 1px solid rgb(128 128 128 / 18%);
+    border-radius: 6px;
+    background: rgb(128 128 128 / 12%);
+    color: var(--text-default, var(--text-normal));
+    font-size: 12px;
+    font-weight: 500;
+    font-family: var(--font-primary);
+    font-variant-numeric: tabular-nums;
+    line-height: 16px;
+    cursor: pointer;
+    transition: background-color .15s ease, border-color .15s ease;
+}
+
+.vc-cip-chip:hover {
+    background: rgb(128 128 128 / 24%);
+}
+
+.vc-cip-chip-on,
+.vc-cip-chip-on:hover {
+    border-color: var(--brand-500, #5865f2);
+    background: color-mix(in srgb, var(--brand-500, #5865f2) 26%, transparent);
+}
+
+/* a choice between people or options: bigger than a chip, one of them always picked */
+.vc-cip-choices {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.vc-cip-choice {
+    display: flex;
+    flex: 1 1 140px;
+    gap: 10px;
+    align-items: center;
+    min-width: 0;
+    padding: 8px 10px;
+    border: 1px solid rgb(128 128 128 / 18%);
+    border-radius: 8px;
+    background: rgb(128 128 128 / 10%);
+    color: var(--text-default, var(--text-normal));
+    font-family: var(--font-primary);
+    text-align: start;
+    cursor: pointer;
+    transition: background-color .15s ease, border-color .15s ease;
+}
+
+.vc-cip-choice:hover {
+    background: rgb(128 128 128 / 20%);
+}
+
+.vc-cip-choice-on,
+.vc-cip-choice-on:hover {
+    border-color: var(--brand-500, #5865f2);
+    background: color-mix(in srgb, var(--brand-500, #5865f2) 22%, transparent);
+}
+
+.vc-cip-choice img,
+.vc-cip-choice-blank {
+    flex: 0 0 auto;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+}
+
+.vc-cip-choice-blank {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgb(128 128 128 / 26%);
+    color: var(--text-muted);
+}
+
+.vc-cip-choice-text {
+    min-width: 0;
+}
+
+.vc-cip-choice-name,
+.vc-cip-choice-detail {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vc-cip-choice-name {
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 18px;
+}
+
+.vc-cip-choice-detail {
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 16px;
+}
+
+/* the switches read as one panel, set apart from the plain fields around them */
+.vc-cip-card {
+    padding: 2px 12px;
+    border: 1px solid rgb(128 128 128 / 14%);
+    border-radius: 8px;
+    background: rgb(128 128 128 / 7%);
+}
+
+.vc-cip-switch {
+    margin: 10px 0;
+}
+
+.vc-cip-divider {
+    height: 1px;
+    background: rgb(128 128 128 / 14%);
+}
+
+.vc-cip-hint {
+    margin-top: 6px;
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 16px;
+}
+
+.vc-cip-footnote {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin-top: 14px;
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 16px;
+}
+
+.vc-cip-footnote svg {
+    flex: 0 0 auto;
+}

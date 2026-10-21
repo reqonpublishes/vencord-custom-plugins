@@ -1,0 +1,432 @@
+/*
+ * The Inspect window: a live preview on the left, the editor on the right. Colours come from
+ * Discord's own variables, so it sits in either theme the way the rest of the client does.
+ */
+
+.vc-cip-layout {
+    display: grid;
+    grid-template-columns: 300px minmax(0, 1fr);
+    gap: 20px;
+    padding-bottom: 8px;
+}
+
+.vc-cip-aside {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-self: start;
+    position: sticky;
+    top: 0;
+}
+
+.vc-cip-main {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-width: 0;
+}
+
+/* ---------------------------------------------------------------- preview card */
+
+.vc-cip-preview {
+    overflow: hidden;
+    border: 1px solid var(--border-subtle, rgb(128 128 128 / 16%));
+    border-radius: 12px;
+    background: var(--background-base-lower, var(--background-secondary));
+}
+
+.vc-cip-preview-banner {
+    height: 106px;
+    background: var(--background-mod-strong, rgb(128 128 128 / 30%)) center / cover no-repeat;
+}
+
+.vc-cip-preview-avatar {
+    display: block;
+    width: 80px;
+    height: 80px;
+    margin: -44px 0 0 14px;
+    border: 6px solid var(--background-base-lower, var(--background-secondary));
+    border-radius: 50%;
+    background: var(--background-base-lower, var(--background-secondary));
+    object-fit: cover;
+}
+
+.vc-cip-preview-body {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 6px 10px 12px;
+    padding: 12px;
+    border-radius: 8px;
+    background: rgb(0 0 0 / 22%);
+    color: var(--text-default);
+}
+
+.vc-cip-preview-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    align-self: flex-end;
+    margin-top: -40px;
+    margin-bottom: 8px;
+    padding: 3px 4px;
+    border-radius: 8px;
+    background: var(--background-base-lower, var(--background-secondary));
+}
+
+.vc-cip-preview-badges img {
+    width: 22px;
+    height: 22px;
+}
+
+.vc-cip-preview-name {
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 24px;
+    overflow-wrap: anywhere;
+}
+
+.vc-cip-preview-username {
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+.vc-cip-preview-bio {
+    margin-top: 6px;
+    font-size: 14px;
+    line-height: 18px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.vc-cip-preview-label {
+    margin-top: 10px;
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .02em;
+    text-transform: uppercase;
+}
+
+.vc-cip-preview-text {
+    font-size: 14px;
+}
+
+.vc-cip-preview-connections {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.vc-cip-preview-connection {
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: rgb(128 128 128 / 18%);
+    font-size: 12px;
+}
+
+/* ---------------------------------------------------------------- tabs */
+
+.vc-cip-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 10px;
+    background: rgb(128 128 128 / 10%);
+}
+
+.vc-cip-tab-button {
+    display: inline-flex;
+    flex: 1 1 auto;
+    gap: 6px;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 12px;
+    border-radius: 7px;
+    background: none;
+    color: var(--text-muted);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.vc-cip-tab-button:hover {
+    color: var(--text-default);
+}
+
+.vc-cip-tab-on {
+    background: var(--background-mod-strong, rgb(128 128 128 / 24%));
+    color: var(--text-default);
+}
+
+.vc-cip-tab {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+/* ---------------------------------------------------------------- fields */
+
+.vc-cip-f {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.vc-cip-f-label {
+    color: var(--text-default);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.vc-cip-f-hint,
+.vc-cip-muted {
+    color: var(--text-muted);
+    font-size: 13px;
+    line-height: 17px;
+}
+
+.vc-cip-pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.vc-cip-row-inline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.vc-cip-spread {
+    justify-content: space-between;
+}
+
+.vc-cip-select {
+    flex: 0 0 150px;
+}
+
+.vc-cip-colour {
+    width: 48px;
+    height: 34px;
+    padding: 2px;
+    border: 1px solid rgb(128 128 128 / 30%);
+    border-radius: 8px;
+    background: none;
+    cursor: pointer;
+}
+
+.vc-cip-picture {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.vc-cip-picture-thumb {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 40px;
+    border-radius: 6px;
+    background: rgb(128 128 128 / 18%) center / cover no-repeat;
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+.vc-cip-segments {
+    display: inline-flex;
+    gap: 4px;
+    padding: 3px;
+    border-radius: 8px;
+    background: rgb(128 128 128 / 12%);
+}
+
+.vc-cip-segment {
+    padding: 6px 14px;
+    border-radius: 6px;
+    background: none;
+    color: var(--text-muted);
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.vc-cip-segment-on {
+    background: var(--brand-500, #5865f2);
+    color: #fff;
+}
+
+/* ---------------------------------------------------------------- lists */
+
+.vc-cip-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.vc-cip-list-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: rgb(128 128 128 / 10%);
+}
+
+.vc-cip-list-text {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.vc-cip-list-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--text-default);
+    font-size: 14px;
+    font-weight: 500;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vc-cip-tag {
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgb(128 128 128 / 20%);
+    color: var(--text-default);
+    font-size: 12px;
+    text-transform: capitalize;
+}
+
+.vc-cip-x {
+    display: inline-flex;
+    padding: 4px;
+    border-radius: 6px;
+    background: none;
+    color: var(--interactive-normal, var(--text-muted));
+    cursor: pointer;
+}
+
+.vc-cip-x:hover {
+    background: rgb(128 128 128 / 20%);
+    color: var(--text-feedback-critical, #f23f43);
+}
+
+.vc-cip-link {
+    padding: 0;
+    background: none;
+    color: var(--text-link, #00a8fc);
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.vc-cip-link:hover {
+    text-decoration: underline;
+}
+
+/* ---------------------------------------------------------------- badges */
+
+.vc-cip-badge-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.vc-cip-group-head {
+    display: flex;
+    gap: 8px;
+    align-items: baseline;
+}
+
+.vc-cip-badges {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 6px;
+}
+
+.vc-cip-badge {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    padding: 7px 9px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: rgb(128 128 128 / 10%);
+    color: var(--text-muted);
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.vc-cip-badge img {
+    flex: 0 0 auto;
+    width: 22px;
+    height: 22px;
+}
+
+.vc-cip-badge:hover {
+    color: var(--text-default);
+}
+
+.vc-cip-badge-on {
+    border-color: var(--brand-500, #5865f2);
+    background: color-mix(in srgb, var(--brand-500, #5865f2) 16%, transparent);
+    color: var(--text-default);
+}
+
+/* ---------------------------------------------------------------- presets */
+
+.vc-cip-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.vc-cip-action {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: flex-start;
+    padding: 14px;
+    border: 1px solid var(--border-subtle, rgb(128 128 128 / 20%));
+    border-radius: 10px;
+    background: rgb(128 128 128 / 8%);
+    color: var(--text-default);
+    text-align: left;
+    cursor: pointer;
+}
+
+.vc-cip-action:hover {
+    border-color: var(--brand-500, #5865f2);
+}
+
+.vc-cip-action-title {
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.vc-cip-action-text {
+    color: var(--text-muted);
+    font-size: 13px;
+    line-height: 17px;
+}
+
+.vc-cip-tab-button:focus-visible,
+.vc-cip-badge:focus-visible,
+.vc-cip-segment:focus-visible,
+.vc-cip-action:focus-visible,
+.vc-cip-x:focus-visible,
+.vc-cip-link:focus-visible {
+    outline: 2px solid var(--focus-primary, #00b0f4);
+    outline-offset: 2px;
+}
+
+/* the shared input stretches along a row; stacked under a label it should only be as tall as its text */
+.vc-cip-f > .vc-cip-input {
+    flex: 0 0 auto;
+}

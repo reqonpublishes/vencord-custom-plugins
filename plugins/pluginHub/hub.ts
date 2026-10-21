@@ -9,8 +9,8 @@ import { Logger } from "@utils/Logger";
 import { Flux } from "@webpack/common";
 
 import {
-    BellIcon, BoltIcon, BookmarkIcon, ChatAddIcon, ChatIcon, CloudIcon, EyeOffIcon, IconComponent, InspectIcon, PersonOffIcon,
-    PhoneAddIcon, ServerIcon, ShieldIcon
+    BellIcon, BoltIcon, BookmarkIcon, ChatAddIcon, ChatIcon, CloudIcon, EyeOffIcon, IconComponent, InspectIcon, MasksIcon, PersonOffIcon,
+PhoneAddIcon, ServerIcon, ShieldIcon
 } from "./icons";
 
 const logger = new Logger("PluginHub");
@@ -53,6 +53,7 @@ export const ENTRIES: Entry[] = [
     { plugin: "FakeNotifications", label: "Fake Notifications", icon: BellIcon, section: "fake", about: "Set the numbers on your badges", off: "Off. Badges show the real numbers" },
     { plugin: "FakeMod", label: "Fake Mod", icon: ShieldIcon, section: "fake", about: "Menus that look like moderator tools", off: "Off. The moderation entries are gone" },
     { plugin: "InspectMessages", label: "Inspect Messages", icon: InspectIcon, section: "fake", about: "Change what a message says and when it was sent", off: "Off. Messages read as they really are" },
+    { plugin: "InspectProfiles", label: "Inspect Profiles", icon: MasksIcon, section: "fake", about: "Change how any profile looks, and steal whole profiles", off: "Off. Profiles look as they really are" },
     { plugin: "Bookmarks", label: "Bookmarks", icon: BookmarkIcon, section: "tools", about: "Keep people within reach after closing their DM", off: "Off. The Bookmarked tab is hidden" },
     { plugin: "CloudSync", label: "Cloud Sync", icon: CloudIcon, section: "tools", about: "Sync all of this with your phone", off: "Off" },
     { plugin: "QuickRestart", label: "Quick Restart", icon: BoltIcon, section: "tools", about: "Restart plugins in milliseconds", off: "Off. The restart shortcuts do nothing" }
