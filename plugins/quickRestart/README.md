@@ -1,47 +1,38 @@
 # Quick Restart
 
-A restart that takes milliseconds instead of seconds.
+Ctrl+R is still your restart. It's just faster, and the window never flashes.
 
-| Shortcut | What happens | How long |
+| You press | What happens | How long |
 | --- | --- | --- |
-| `Ctrl+R` | Restarts every running plugin in place | Milliseconds |
-| `Ctrl+Shift+R` | Reloads the window, the way Ctrl+R always did | ~1 second |
-| (settings button) | Restarts Discord completely | Several seconds |
+| `Ctrl+R` | Every plugin restarts, then Discord fetches your servers, DMs, friends and settings again, the way it does when it opens. The window stays put | ~2 seconds |
+| `Ctrl+Shift+R` | Discord's own reload, untouched. The window goes blank and loads again | ~5 seconds |
+| **Restart Discord** (settings) | Quits Discord and opens it again | Several seconds |
 
-## Why it's quicker
+## What Ctrl+R does
 
-Nothing is thrown away. No bundle is parsed again, your gateway connection stays up, and
-the message you were half way through typing is still sitting there.
-
-Restarting a plugin is a full lifecycle cycle — commands, context menus, event handlers,
-styles, badges, buttons and decorations are all torn down and registered again. It's the
-same thing the settings page does when you toggle a plugin off and on.
-
-> [!TIP]
-> This is what you actually want nearly every time you'd otherwise reload: making a plugin
-> or a setting take effect.
-
-## The one thing it can't do
-
-Some plugins patch Discord's own code, and those patches are applied as Discord's modules
-first load. If you switch such a plugin **on**, its patches were never applied, and no
-amount of restarting will change that — only loading Discord again will.
-
-`Ctrl+R` handles this for you: it notices, and reloads the window instead. So the shortcut
-always does the right thing, it's just occasionally slower.
+1. **Plugins restart in place.** Every running plugin is stopped and started again: commands,
+   menus, styles, buttons and badges are torn down and put back. This takes a few milliseconds.
+2. **Discord resyncs.** Its connection is closed and opened again as a new session, so the
+   server sends everything afresh, exactly what a launch gets. Whatever you were typing stays
+   where it is.
 
 > [!NOTE]
-> A plugin that *has* patches and is already running restarts perfectly well — its patches
-> are already in place and stay there. It's only newly switched-on ones that need a reload.
+> In a call only the plugins restart. A new session would hang the call up.
 
-Shortcuts are caught before Discord sees them, so they work from anywhere — mid-message,
-inside a modal, or on the settings page you just changed.
+## When it reloads instead
+
+Two things can only take effect by loading Discord's code again:
+
+- **A new Vencord build.** Ctrl+R notices the build on disk is newer than the one running.
+- **A plugin you just switched on that patches Discord's code.** Its patches go in as Discord
+  loads, so they were never applied.
+
+Then Ctrl+R does a real reload, behind a still picture of the window, so you never see it go
+blank. You don't have to tell it which: the shortcut always picks the right restart.
 
 ## Settings
 
 | Setting | Default | What it does |
 | --- | --- | --- |
-| Main shortcut | `ctrl+r` | Modifiers and a key joined by `+` |
-| What the main shortcut does | Restart plugins, reload only if it has to | Or: never reload / always reload / restart Discord |
-| Second shortcut | `ctrl+shift+r` | Always a full window reload |
-| Restart right now | — | Buttons for all three, without a shortcut |
+| Restart shortcut | `ctrl+r` | Modifiers and a key joined by `+` |
+| Restart now | | **Restart and Resync** (what Ctrl+R does), **Plugins Only**, **Reload** and **Restart Discord**, with the times of the last restart |

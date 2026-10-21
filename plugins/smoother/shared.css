@@ -1,0 +1,293 @@
+/* ---------------------------------------------------------------- settings */
+
+/*
+ * Neutral translucent greys rather than theme variables throughout: several themes set the
+ * input and card backgrounds to pure black, which makes them vanish against a modal. Mid
+ * grey at low alpha lifts on dark themes and sits back on light ones.
+ */
+.vc-smooth-btn-icon {
+    flex: 0 0 auto;
+    margin-right: 6px;
+}
+
+.vc-smooth-about {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px 16px;
+    border: 1px solid var(--border-subtle, rgb(128 128 128 / 20%));
+    border-radius: var(--radius-md, 12px);
+}
+
+.vc-smooth-about-head {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.vc-smooth-tile {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-sm, 8px);
+    background: var(--background-mod-subtle, rgb(128 128 128 / 12%));
+    color: var(--icon-default, var(--text-default));
+}
+
+.vc-smooth-about-title {
+    color: var(--text-default, var(--text-normal));
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 20px;
+}
+
+.vc-smooth-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 0;
+    padding: 0 0 0 18px;
+    color: var(--text-default, var(--text-normal));
+    font-size: 14px;
+    line-height: 20px;
+    list-style: disc;
+}
+
+.vc-smooth-steps strong {
+    font-weight: 600;
+}
+
+.vc-smooth-steps kbd {
+    padding: 1px 5px;
+    border: 1px solid rgb(128 128 128 / 28%);
+    border-radius: 4px;
+    background: rgb(128 128 128 / 16%);
+    font-size: 12px;
+    font-family: var(--font-primary);
+}
+
+.vc-smooth-private {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 16px;
+}
+
+.vc-smooth-private svg {
+    flex: 0 0 auto;
+}
+
+.vc-smooth-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.vc-smooth-panel-head {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.vc-smooth-panel-title {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    color: var(--text-default, var(--text-normal));
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 20px;
+}
+
+.vc-smooth-pill {
+    padding: 0 7px;
+    border-radius: 99px;
+    background: var(--background-mod-normal, rgb(128 128 128 / 22%));
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    line-height: 18px;
+}
+
+.vc-smooth-actions {
+    display: flex;
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.vc-smooth-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 296px;
+    overflow-y: auto;
+}
+
+.vc-smooth-row {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 12px;
+    align-items: center;
+    padding: 8px 10px;
+    border-radius: var(--radius-sm, 8px);
+    background: var(--background-mod-subtle, rgb(128 128 128 / 8%));
+}
+
+.vc-smooth-avatar {
+    flex: 0 0 auto;
+    width: 32px;
+    height: 32px;
+    object-fit: cover;
+}
+
+.vc-smooth-avatar-round {
+    border-radius: 50%;
+}
+
+.vc-smooth-avatar-square {
+    border-radius: 10px;
+}
+
+.vc-smooth-avatar-blank {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgb(128 128 128 / 24%);
+    color: var(--text-muted);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.vc-smooth-row-text {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.vc-smooth-row-name,
+.vc-smooth-row-detail {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vc-smooth-row-name {
+    color: var(--text-default, var(--text-normal));
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 18px;
+}
+
+.vc-smooth-row-detail {
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 16px;
+}
+
+.vc-smooth-empty {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    align-items: center;
+    padding: 18px 12px;
+    border: 1px dashed var(--border-subtle, rgb(128 128 128 / 24%));
+    border-radius: var(--radius-sm, 8px);
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.vc-smooth-empty-title {
+    margin-top: 4px;
+    color: var(--text-default, var(--text-normal));
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 18px;
+}
+
+.vc-smooth-empty-text {
+    font-size: 13px;
+    line-height: 18px;
+}
+
+.vc-smooth-group-title {
+    margin-top: 6px;
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .02em;
+    line-height: 16px;
+    text-transform: uppercase;
+}
+
+/* ---------------------------------------------------------------- where the menu entries show */
+
+.vc-smooth-menus {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 20px;
+}
+
+.vc-smooth-menus-title {
+    color: var(--header-primary, var(--text-default));
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 20px;
+}
+
+.vc-smooth-menus-detail {
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 18px;
+}
+
+.vc-smooth-menu-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.vc-smooth-menu-chip {
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+    padding: 6px 12px;
+    border: 1px solid var(--border-subtle, rgb(128 128 128 / 24%));
+    border-radius: 999px;
+    background: none;
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 18px;
+    cursor: pointer;
+}
+
+.vc-smooth-menu-chip:hover {
+    background: var(--background-mod-subtle, rgb(128 128 128 / 8%));
+    color: var(--text-default);
+}
+
+.vc-smooth-menu-chip:focus-visible {
+    outline: 2px solid var(--focus-primary, #00b0f4);
+    outline-offset: 2px;
+}
+
+.vc-smooth-menu-chip-on {
+    border-color: var(--brand-500, #5865f2);
+    background: color-mix(in srgb, var(--brand-500, #5865f2) 16%, transparent);
+    color: var(--text-default);
+}
+
+.vc-smooth-menu-chip-on:hover {
+    background: color-mix(in srgb, var(--brand-500, #5865f2) 24%, transparent);
+}

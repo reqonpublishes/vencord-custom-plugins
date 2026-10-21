@@ -10,7 +10,7 @@ import { Flux } from "@webpack/common";
 
 import {
     BellIcon, BoltIcon, BookmarkIcon, ChatAddIcon, ChatIcon, CloudIcon, EyeOffIcon, IconComponent, InspectIcon, MasksIcon, PersonOffIcon,
-PhoneAddIcon, ServerIcon, ShieldIcon
+PhoneAddIcon, ServerIcon, ShieldIcon, SpeedIcon
 } from "./icons";
 
 const logger = new Logger("PluginHub");
@@ -56,7 +56,8 @@ export const ENTRIES: Entry[] = [
     { plugin: "InspectProfiles", label: "Inspect Profiles", icon: MasksIcon, section: "fake", about: "Change how any profile looks, and steal whole profiles", off: "Off. Profiles look as they really are" },
     { plugin: "Bookmarks", label: "Bookmarks", icon: BookmarkIcon, section: "tools", about: "Keep people within reach after closing their DM", off: "Off. The Bookmarked tab is hidden" },
     { plugin: "CloudSync", label: "Cloud Sync", icon: CloudIcon, section: "tools", about: "Sync all of this with your phone", off: "Off" },
-    { plugin: "QuickRestart", label: "Quick Restart", icon: BoltIcon, section: "tools", about: "Restart plugins in milliseconds", off: "Off. The restart shortcuts do nothing" }
+    { plugin: "QuickRestart", label: "Quick Restart", icon: BoltIcon, section: "tools", about: "Makes Ctrl+R a faster restart, with no flash", off: "Off. The restart shortcuts do nothing" },
+    { plugin: "Smoother", label: "Smoother", icon: SpeedIcon, section: "tools", about: "Keeps chats loading when you scroll up", off: "Off. Discord behaves as it normally does" }
 ];
 
 /** Whether a plugin changes what Discord shows, rather than being a tool */
