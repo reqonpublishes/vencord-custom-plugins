@@ -19,7 +19,7 @@ import { place } from "./menu";
 import { redrawPresence, startPresence, stopPresence } from "./presence";
 import { ProfilesPanel } from "./ProfilesPanel";
 import { avatarFor, bannerFor, joinedAt, profileLoaded, redraw, startRewriting, stopRewriting } from "./rewrite";
-import { stealLook } from "./steal";
+import { loadWhole, stealLook } from "./steal";
 import { asRecord, editedIds, invalidate, load, lookFor, onChange, presetNames, revert, savePreset } from "./store";
 import { About, menuChips } from "./ui";
 
@@ -43,7 +43,10 @@ const settings = definePluginSettings({
 const enabledAtLoad = !!Settings.plugins.InspectProfiles?.enabled;
 
 /** Keep somebody's whole profile as a preset, named after them */
-function steal(user: User) {
+async function steal(user: User) {
+    // whatever has not loaded yet is asked for first, so the copy is the whole thing
+    await loadWhole(user.id);
+
     const look = stealLook(user.id);
     // A name made only of symbols reads as nothing in a list, so the username stands in
     const shown = (user as any).globalName;
@@ -54,7 +57,7 @@ function steal(user: User) {
     }
 
     showToast({
-        text: profileLoaded(user.id) ? `Stole ${called}. Wear it from Presets` : `Stole ${called}. Open their profile once to get their bio and badges too`,
+        text: profileLoaded(user.id) ? `Stole ${called}. Wear it from Presets` : `Stole ${called}. Discord would not send their full profile, so their bio and badges are missing`,
         variant: "success"
     });
 }
@@ -77,7 +80,7 @@ const userMenu = (enabled: () => boolean): NavContextMenuPatchCallback => (child
             label="Steal Profile"
             icon={MasksIcon}
             leadingAccessory={{ type: "icon", icon: MasksIcon }}
-            action={() => steal(user)}
+            action={() => void steal(user)}
         />,
         lookFor(user.id) ? (
             <Menu.MenuItem
@@ -94,6 +97,18 @@ const userMenu = (enabled: () => boolean): NavContextMenuPatchCallback => (child
         ) : null
     );
 };
+
+/**
+ * Your own full profile, while you wear a look.
+ *
+ * Discord only asks for it when you open your profile - not for the popout from your avatar
+ * (measured) - so after a restart the popout has no profile for the look to land on: no bio,
+ * badges or colours. Asked for once here instead, the same request opening it makes.
+ */
+function loadMine() {
+    const me = UserStore.getCurrentUser()?.id;
+    if (me && lookFor(me) && !profileLoaded(me)) void loadWhole(me);
+}
 
 let unwatch: (() => void) | null = null;
 
@@ -190,6 +205,14 @@ export default definePlugin({
     /** Told by Cloud Sync that the saved copy was replaced, so the next start reads it again */
     dataChanged: invalidate,
 
+    flux: {
+        // the plugin starts before Discord knows who you are, and Discord is busiest just after
+        // connecting, so your own profile is asked for a moment later
+        CONNECTION_OPEN() {
+            setTimeout(loadMine, 3000);
+        }
+    },
+
     contextMenus: {
         "user-context": userMenu(() => settings.store.userMenu !== false),
         "user-profile-actions": userMenu(() => settings.store.profileMenu !== false),
@@ -209,10 +232,12 @@ export default definePlugin({
 
         startRewriting();
         startPresence();
+        loadMine();
         unwatch = onChange(() => {
             redraw();
             redrawPresence();
             tidyPictures();
+            loadMine();
         });
     },
 

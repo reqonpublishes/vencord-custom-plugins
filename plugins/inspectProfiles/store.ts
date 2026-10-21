@@ -51,6 +51,8 @@ export interface Look {
     customStatus?: CustomStatus | typeof NOTHING;
     /** what they are doing - playing, listening, watching - as Discord's presence carries it */
     activities?: any[];
+    /** the games under Recent activity on their profile, with their streaks, as Discord sends them */
+    recentActivity?: any[];
     /** the widgets on their board, exactly as their profile carries them */
     widgets?: any[];
 }
@@ -242,7 +244,7 @@ export function summary(look?: Look): string {
     if (look.themeColors || look.nameColors?.length) parts.push("colours");
     if (look.connections?.length) parts.push(`${look.connections.length} connection${look.connections.length === 1 ? "" : "s"}`);
     if (look.status || look.customStatus) parts.push("status");
-    if (look.activities?.length) parts.push("activity");
+    if (look.activities?.length || look.recentActivity?.length) parts.push("activity");
     if (look.widgets?.length) parts.push("board");
 
     return parts.length ? parts.join(", ") : "Nothing in it";

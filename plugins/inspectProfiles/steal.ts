@@ -5,9 +5,26 @@
  */
 
 import { Settings } from "@api/Settings";
+import { findByCodeLazy } from "@webpack";
 
-import { wholeLookOf } from "./rewrite";
+import { realOutbox } from "./presence";
+import { realProfile, wholeLookOf } from "./rewrite";
 import { Look } from "./store";
+
+const fetchProfile = findByCodeLazy("USER_PROFILE_FETCH_START");
+const fetchOutbox = findByCodeLazy("CONTENT_INVENTORY_FETCH_OUTBOX_START");
+
+/**
+ * Ask for whatever of somebody's profile has not arrived yet: the full profile, for the bio,
+ * badges and colours, and the games under Recent activity. The same requests opening their
+ * profile makes, and only the ones not made already.
+ */
+export async function loadWhole(userId: string) {
+    await Promise.allSettled([
+        realProfile(userId) ? null : fetchProfile?.(userId),
+        realOutbox(userId) ? null : fetchOutbox?.(userId)
+    ]);
+}
 
 /**
  * The parts of a profile Steal can copy, so it can copy all of it or only some.
@@ -24,7 +41,7 @@ export const PARTS: { id: string; label: string; fields: (keyof Look)[]; }[] = [
     { id: "collectibles", label: "Collectibles", fields: ["decoration", "decorationSku", "nameplate", "nameplateSku", "nameplatePalette", "profileEffect", "profileFrame", "fontId", "effectId", "nameColors"] },
     { id: "connections", label: "Connections", fields: ["connections"] },
     { id: "status", label: "Status", fields: ["status", "customStatus"] },
-    { id: "activity", label: "Activity", fields: ["activities"] },
+    { id: "activity", label: "Activity", fields: ["activities", "recentActivity"] },
     { id: "board", label: "Board", fields: ["widgets"] },
 ];
 

@@ -7,23 +7,21 @@
 import "./styles.css";
 
 import { ModalAction, RenderModalProps } from "@vencord/discord-types";
-import { findByCodeLazy, findByPropsLazy } from "@webpack";
-import { ColorPicker, Modal, openModal, ScrollerThin, SearchableSelect, showToast, TextArea, TextInput, useEffect, useRef, UserStore, useState } from "@webpack/common";
+import { findByPropsLazy } from "@webpack";
+import { ColorPicker, Modal, moment, openModal, ScrollerThin, SearchableSelect, showToast, TextArea, TextInput, useEffect, useRef, UserStore, useState } from "@webpack/common";
 
 import { Badge, BADGES, badgesFor, GROUPS, realKeys, withBadge } from "./badges";
 import { CollectiblesTab, decorationPicture } from "./Collectibles";
 import { DateField } from "./DateField";
 import { BookmarkIcon, CheckIcon, CloseIcon, CopyIcon, ImageIcon, LinkIcon, MasksIcon, PaletteIcon, PersonIcon, StarIcon, TrashIcon } from "./icons";
 import { keep } from "./images";
-import { realActivities, realStatus } from "./presence";
+import { realActivities, realOutbox, realStatus } from "./presence";
 import { pictureUrl, realProfile, realUser } from "./rewrite";
-import { PARTS, skippedParts, stealLook, toggleStealPart } from "./steal";
+import { loadWhole, PARTS, skippedParts, stealLook, toggleStealPart } from "./steal";
 import {
     Connection, deletePreset, Look, lookFor, NOTHING, presetCalled, presetNames, revert, savePreset, setLook, summary, tidyName,
 } from "./store";
 import { cl, IconButton } from "./ui";
-
-const fetchProfile = findByCodeLazy("USER_PROFILE_FETCH_START");
 
 /** Discord's own list of connection services: their names and their logos */
 const Platforms: {
@@ -34,6 +32,16 @@ const Platforms: {
 const badgeIcon = (icon: string) => `https://cdn.discordapp.com/badge-icons/${icon}.png`;
 const isLink = (value?: string) => !!value && /^https?:\/\//.test(value);
 const hex = (n?: number) => "#" + ((n ?? 0) & 0xffffff).toString(16).padStart(6, "0");
+
+/** Whether dark writing reads better on a colour than light - the usual contrast rule */
+function isLightColour(colour: number) {
+    const channel = (v: number) => {
+        const c = v / 255;
+        return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    };
+    const luminance = 0.2126 * channel((colour >> 16) & 255) + 0.7152 * channel((colour >> 8) & 255) + 0.0722 * channel(colour & 255);
+    return luminance > 0.179;
+}
 const plainAvatar = (userId: string) => `https://cdn.discordapp.com/embed/avatars/${Number(BigInt(userId) >> 22n) % 6}.png`;
 
 /** Light or dark, so a logo is drawn in the version made for the background behind it */
@@ -122,7 +130,9 @@ function Preview({ userId, look }: { userId: string; look: Look; }) {
 
     return (
         <div
-            className={cl("pcard", themed ? "pcard-themed" : "")}
+            // Discord's own theme class, as its themed cards carry, so everything on the card -
+            // writing, dividers, buttons - turns light or dark with the colours
+            className={cl("pcard", themed ? "pcard-themed" : "") + (themed ? ` theme-${isLightColour(colours![0]) ? "light" : "dark"}` : "")}
             style={themed ? { background: `linear-gradient(180deg, ${hex(colours![0])}, ${hex(colours![1])})` } : undefined}
         >
             <div
@@ -441,6 +451,29 @@ function StatusSection({ userId, look, set }: { userId: string; look: Look; set:
                 </div>
             </Field>
 
+            {look.recentActivity !== undefined && (
+                <Field label="Recent activity" action={<RealLink show onClick={() => set({ recentActivity: undefined })} />}>
+                    <div className={cl("rows")}>
+                        {!look.recentActivity.length && <div className={cl("empty-line")}>No recent activity</div>}
+                        {look.recentActivity.map((entry, i) => {
+                            const streak = entry.traits?.find((t: any) => t?.streak_count_days)?.streak_count_days;
+                            const when = entry.ended_at ? moment(entry.ended_at).fromNow() : "";
+                            return (
+                                <div key={entry.id ?? i} className={cl("item")}>
+                                    <div className={cl("item-text")}>
+                                        <span className={cl("item-name")}>{entry.extra?.game_name ?? entry.extra?.title ?? "Activity"}</span>
+                                        <span className={cl("item-detail")}>{[when, streak ? `${streak}x streak` : ""].filter(Boolean).join(" · ") || "No details"}</span>
+                                    </div>
+                                    <button className={cl("icon-button")} aria-label="Remove" onClick={() => set({ recentActivity: look.recentActivity!.filter((_, j) => j !== i) })}>
+                                        <CloseIcon height={16} width={16} />
+                                    </button>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </Field>
+            )}
+
             {look.widgets !== undefined && (
                 <Field label="Board" action={<RealLink show onClick={() => set({ widgets: undefined })} />}>
                     <div className={cl("item")}>
@@ -734,12 +767,13 @@ function InspectModal({ rootProps, userId, startOn }: { rootProps: RenderModalPr
         return next;
     });
 
-    // The bio, badges and connections only arrive with the full profile, so it is asked for
-    // as the window opens - the same request opening their profile makes.
-    const [loaded, setLoaded] = useState(() => !!realProfile(userId));
+    // The bio, badges and connections only arrive with the full profile, and the games under
+    // Recent activity separately, so both are asked for as the window opens - the same requests
+    // opening their profile makes.
+    const [loaded, setLoaded] = useState(() => !!realProfile(userId) && !!realOutbox(userId));
     useEffect(() => {
         if (loaded) return;
-        Promise.resolve(fetchProfile?.(userId)).catch(() => { }).finally(() => setLoaded(true));
+        loadWhole(userId).finally(() => setLoaded(true));
     }, []);
 
     const changed = !!lookFor(userId);

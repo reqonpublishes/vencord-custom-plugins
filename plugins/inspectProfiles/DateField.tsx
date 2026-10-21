@@ -5,7 +5,7 @@
  */
 
 import { findByPropsLazy } from "@webpack";
-import { moment, useEffect, useRef, useState } from "@webpack/common";
+import { moment, Popout, useRef, useState } from "@webpack/common";
 
 import { CalendarIcon, ChevronDownIcon } from "./icons";
 import { cl } from "./ui";
@@ -18,9 +18,11 @@ const two = (n: number) => String(n).padStart(2, "0");
 /**
  * A day, and optionally a time, chosen the way Discord chooses them.
  *
- * The day is a button that opens Discord's calendar under it; the time, when there is one, is
- * hours and minutes you can type or nudge with the arrow keys, and AM or PM. Nothing here is the
- * operating system's own picker, which looks like nothing else in Discord.
+ * The day is a button that opens Discord's calendar floating under it, the way its own pickers
+ * open - over the page rather than in it, so nothing moves, and gone with a click anywhere else
+ * or Escape. The time, when there is one, is hours and minutes you can type or nudge with the
+ * arrow keys, and AM or PM. Nothing here is the operating system's own picker, which looks like
+ * nothing else in Discord.
  */
 export function DateField({ value, onChange, withTime, maxToday = true }: {
     value: number;
@@ -29,27 +31,8 @@ export function DateField({ value, onChange, withTime, maxToday = true }: {
     maxToday?: boolean;
 }) {
     const [open, setOpen] = useState(false);
-    const box = useRef<HTMLDivElement>(null);
-    const calendar = useRef<HTMLDivElement>(null);
-
-    // Opened near the bottom of a scrolling page, the calendar would be cut off below it
-    useEffect(() => {
-        if (open) requestAnimationFrame(() => calendar.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }));
-    }, [open]);
+    const button = useRef<HTMLButtonElement>(null);
     const day = new Date(value);
-
-    // Closed by a click anywhere else, or Escape
-    useEffect(() => {
-        if (!open) return;
-        const away = (e: MouseEvent) => !box.current?.contains(e.target as Node) && setOpen(false);
-        const key = (e: KeyboardEvent) => e.key === "Escape" && (e.stopPropagation(), setOpen(false));
-        document.addEventListener("mousedown", away, true);
-        document.addEventListener("keydown", key, true);
-        return () => {
-            document.removeEventListener("mousedown", away, true);
-            document.removeEventListener("keydown", key, true);
-        };
-    }, [open]);
 
     const pickDay = (picked: any) => {
         const next = new Date(value);
@@ -87,13 +70,33 @@ export function DateField({ value, onChange, withTime, maxToday = true }: {
     );
 
     return (
-        <div className={cl("date")} ref={box}>
+        <div className={cl("date")}>
             <div className={cl("date-row")}>
-                <button className={cl("date-button", open ? "date-open" : "")} onClick={() => setOpen(!open)} aria-expanded={open}>
-                    <CalendarIcon height={18} width={18} />
-                    <span>{day.toLocaleDateString(undefined, { weekday: "short", month: "long", day: "numeric", year: "numeric" })}</span>
-                    <ChevronDownIcon className={cl("date-chevron")} height={18} width={18} />
-                </button>
+                <Popout
+                    position="bottom"
+                    align="left"
+                    shouldShow={open && !!Calendar?.CalendarPicker}
+                    onRequestClose={() => setOpen(false)}
+                    targetElementRef={button}
+                    renderPopout={() => (
+                        <div className={cl("calendar")}>
+                            <Calendar.CalendarPicker
+                                value={moment(value)}
+                                maxDate={maxToday ? moment() : undefined}
+                                onSelect={pickDay}
+                                autoFocus
+                            />
+                        </div>
+                    )}
+                >
+                    {() => (
+                        <button ref={button} className={cl("date-button", open ? "date-open" : "")} onClick={() => setOpen(v => !v)} aria-expanded={open}>
+                            <CalendarIcon height={18} width={18} />
+                            <span>{day.toLocaleDateString(undefined, { weekday: "short", month: "long", day: "numeric", year: "numeric" })}</span>
+                            <ChevronDownIcon className={cl("date-chevron")} height={18} width={18} />
+                        </button>
+                    )}
+                </Popout>
 
                 {withTime && (
                     <div className={cl("time")}>
@@ -116,17 +119,6 @@ export function DateField({ value, onChange, withTime, maxToday = true }: {
                     </div>
                 )}
             </div>
-
-            {open && Calendar?.CalendarPicker && (
-                <div className={cl("calendar")} ref={calendar}>
-                    <Calendar.CalendarPicker
-                        value={moment(value)}
-                        maxDate={maxToday ? moment() : undefined}
-                        onSelect={pickDay}
-                        autoFocus
-                    />
-                </div>
-            )}
         </div>
     );
 }

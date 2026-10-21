@@ -10,7 +10,7 @@ import { UserStore } from "@webpack/common";
 
 import { badgesFor, realKeys } from "./badges";
 import { isStored, urlOf } from "./images";
-import { realActivities, realStatus, realWidgets } from "./presence";
+import { realActivities, realOutbox, realStatus, realWidgets } from "./presence";
 import { changes, Look, lookFor, NOTHING } from "./store";
 
 const logger = new Logger("InspectProfiles");
@@ -26,10 +26,16 @@ const MARK = "a_vcip";
 let UserProfileStore: any = null;
 const profileStore = () => (UserProfileStore ??= findStore("UserProfileStore"));
 
+/** The accounts you are logged in to, which Switch Accounts lists from its own saved copy */
+let MultiAccountStore: any = null;
+const accountStore = () => (MultiAccountStore ??= findStore("MultiAccountStore"));
+
 /** The store methods as Discord wrote them, so the real thing can always be read */
 let realGetUser: ((id: string) => any) | null = null;
 let realGetCurrentUser: (() => any) | null = null;
 let realGetProfile: ((id: string) => any) | null = null;
+let realGetAccounts: (() => any[]) | null = null;
+let realGetValidAccounts: (() => any[]) | null = null;
 
 let running = false;
 
@@ -145,6 +151,13 @@ function profileCopy(profile: any) {
         if (look.premiumType) copy.premiumSince ??= new Date(Date.now() - 31536e6);
     }
 
+    // Discord draws a card's colours only for Nitro, and anything less shows them on the
+    // banner strip alone. Colours that were chosen are meant to be seen, so the card has Nitro.
+    if (look.themeColors && (copy.premiumType ?? 0) < 2) {
+        copy.premiumType = 2;
+        copy.premiumSince ??= new Date(Date.now() - 31536e6);
+    }
+
     if (look.badges) copy.badges = badgesFor(profile.badges ?? [], look.badges);
     if (look.profileEffect) copy.profileEffect = look.profileEffect === NOTHING ? null : { skuId: look.profileEffect };
     if (look.profileFrame) copy.profileFrame = look.profileFrame === NOTHING ? null : { skuId: look.profileFrame, type: 3 };
@@ -188,17 +201,24 @@ export function startRewriting() {
     if (running) return;
 
     const profiles = profileStore();
+    const accounts = accountStore();
     realGetUser = UserStore.getUser;
     realGetCurrentUser = UserStore.getCurrentUser;
     realGetProfile = profiles?.getUserProfile ?? null;
+    realGetAccounts = accounts?.getUsers ?? null;
+    realGetValidAccounts = accounts?.getValidUsers ?? null;
 
     const getUser = realGetUser;
     const getCurrentUser = realGetCurrentUser;
     const getProfile = realGetProfile;
+    const getAccounts = realGetAccounts;
+    const getValidAccounts = realGetValidAccounts;
 
     (UserStore as any).getUser = function (id: string) { return userCopy(getUser.call(this, id)); };
     (UserStore as any).getCurrentUser = function () { return userCopy(getCurrentUser.call(this)); };
     if (profiles && getProfile) profiles.getUserProfile = function (id: string) { return profileCopy(getProfile.call(this, id)); };
+    if (accounts && getAccounts) accounts.getUsers = function () { return accountsCopy("all", getAccounts.call(this)); };
+    if (accounts && getValidAccounts) accounts.getValidUsers = function () { return accountsCopy("valid", getValidAccounts.call(this)); };
 
     running = true;
     redraw();
@@ -211,9 +231,12 @@ export function stopRewriting() {
     if (realGetUser) (UserStore as any).getUser = realGetUser;
     if (realGetCurrentUser) (UserStore as any).getCurrentUser = realGetCurrentUser;
     if (realGetProfile && profileStore()) profileStore().getUserProfile = realGetProfile;
+    if (realGetAccounts && accountStore()) accountStore().getUsers = realGetAccounts;
+    if (realGetValidAccounts && accountStore()) accountStore().getValidUsers = realGetValidAccounts;
 
     userCopies.clear();
     profileCopies.clear();
+    accountLists.clear();
     redraw();
 }
 
@@ -222,9 +245,40 @@ export function redraw() {
     try {
         (UserStore as any).emitChange?.();
         profileStore()?.emitChange?.();
+        accountStore()?.emitChange?.();
     } catch (e) {
         logger.error("Could not redraw", e);
     }
+}
+
+// ---------------------------------------------------------------- Switch Accounts
+
+/** Each list kept until the real list or a look changes, for the same reason as the user copies */
+const accountLists = new Map<string, { from: any[]; version: number; list: any[]; }>();
+
+/**
+ * The accounts as Switch Accounts lists them, with the name and picture of any look worn.
+ *
+ * Only what is shown changes. Discord switches by id and saves the list from its own copy,
+ * never from what this answers, so the real accounts are untouched.
+ */
+function accountsCopy(key: string, list: any[]) {
+    if (!running || !Array.isArray(list) || !list.some(account => lookFor(account?.id))) return list;
+
+    const held = accountLists.get(key);
+    if (held && held.from === list && held.version === changes()) return held.list;
+
+    const copy = list.map(account => {
+        const look = lookFor(account?.id);
+        if (!look) return account;
+
+        const shown = { ...account };
+        if (look.username !== undefined) shown.username = look.username;
+        if (look.avatar) shown.avatar = look.avatar === NOTHING ? null : (isAddress(look.avatar) ? MARK : look.avatar);
+        return shown;
+    });
+    accountLists.set(key, { from: list, version: changes(), list: copy });
+    return copy;
 }
 
 // ---------------------------------------------------------------- stealing
@@ -252,9 +306,13 @@ export function wholeLookOf(userId: string): Look | null {
         globalName: user.globalName ?? user.username,
         username: user.username,
         memberSince: new Date(Number(BigInt(userId) >> 22n) + 1420070400000).getTime(),
-        premiumType: user.premiumType ?? 0,
         avatar: user.avatar ? pictureAt("avatars", userId, user.avatar, 512) : NOTHING,
     };
+
+    // Discord only says whether somebody else has Nitro on their profile - their user record
+    // leaves it out - so it is read from there. Not known until the profile has loaded.
+    const premium = profile?.premiumType ?? user.premiumType;
+    if (premium !== undefined) look.premiumType = premium ?? 0;
 
     const banner = profile?.banner ?? user.banner;
     look.banner = banner ? pictureAt("banners", userId, banner, 1024) : NOTHING;
@@ -292,6 +350,8 @@ export function wholeLookOf(userId: string): Look | null {
     look.activities = activities.filter(a => a?.type !== 4).map(a => JSON.parse(JSON.stringify(a)));
     const widgets = realWidgets(userId);
     if (widgets) look.widgets = JSON.parse(JSON.stringify(widgets));
+    const recent = realOutbox(userId)?.entries;
+    if (Array.isArray(recent)) look.recentActivity = JSON.parse(JSON.stringify(recent));
 
     return { ...look, ...(lookFor(userId) ?? {}) };
 }

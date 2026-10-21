@@ -81,14 +81,6 @@
     padding: 8px 16px 16px;
 }
 
-/* themed cards keep their text on a wash of the card colour, as Discord's do */
-.vc-cip-pcard-themed .vc-cip-pcard-body {
-    margin: 8px;
-    padding: 12px;
-    border-radius: 8px;
-    background: color-mix(in srgb, var(--background-surface-high, var(--modal-background)) 72%, transparent);
-}
-
 .vc-cip-pcard-name {
     color: var(--text-strong, var(--header-primary));
     font-size: 20px;
@@ -742,7 +734,6 @@
 }
 
 .vc-cip-calendar {
-    align-self: flex-start;
     overflow: hidden;
     border: 1px solid var(--border-subtle);
     border-radius: 8px;

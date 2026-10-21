@@ -14,8 +14,8 @@ import { changes, CustomStatus, lookFor, NOTHING } from "./store";
 const logger = new Logger("InspectProfiles");
 
 /**
- * Status, custom status, what someone is doing, and their board - the parts of a profile that
- * live outside the profile itself.
+ * Status, custom status, what someone is doing, their recent activity and their board - the parts
+ * of a profile that live outside the profile itself.
  *
  * The online status and activities come from the presence store, the board from the profile
  * store's widgets, and your own custom status from your account settings (measured: the bubble
@@ -25,12 +25,18 @@ const logger = new Logger("InspectProfiles");
 
 let Presence: any = null;
 let Profiles: any = null;
+/** Recent activity on a profile: the games somebody played lately, with their streaks */
+let Outbox: any = null;
 let real: Record<string, any> = {};
 let running = false;
 
 export const realActivities = (id: string): any[] => (real.getActivities ?? Presence?.getActivities)?.call(Presence, id) ?? [];
 export const realStatus = (id: string): string => (real.getStatus ?? Presence?.getStatus)?.call(Presence, id) ?? "offline";
 export const realWidgets = (id: string): any[] | undefined => (real.getWidgets ?? Profiles?.getWidgets)?.call(Profiles, id);
+export const realOutbox = (id: string): any => {
+    const store = Outbox ?? findStore("ContentInventoryOutboxStore");
+    return (real.getUserOutbox ?? store?.getUserOutbox)?.call(store, id);
+};
 
 const emojiOf = (emoji: CustomStatus["emoji"]) =>
     !emoji ? undefined : typeof emoji === "string" ? { name: emoji } : emoji;
@@ -71,6 +77,31 @@ function activitiesFor(id: string, actual: any[]): any[] {
     const list = [...custom, ...(look.activities ?? realOther)];
     lists.set(id, { from: actual, version: changes(), list });
     return list;
+}
+
+/** Recent activity, kept per person for the same reason as the activities */
+const outboxes = new Map<string, { from: any; version: number; box: any; }>();
+
+function outboxFor(id: string, actual: any) {
+    if (!running) return actual;
+    const entries = lookFor(id)?.recentActivity;
+    if (entries === undefined) return actual;
+
+    const held = outboxes.get(id);
+    if (held && held.from === actual && held.version === changes()) return held.box;
+
+    // Each entry names who played. They were somebody else's, so they are made out to whoever wears them.
+    const box = {
+        ...(actual ?? {}),
+        lastFetched: actual?.lastFetched ?? Date.now(),
+        entries: entries.map(entry => ({
+            ...entry,
+            author_id: id,
+            participants: (entry.participants ?? []).map((who: string) => who === entry.author_id ? id : who)
+        }))
+    };
+    outboxes.set(id, { from: actual, version: changes(), box });
+    return box;
 }
 
 function statusFor(id: string, actual: string) {
@@ -149,6 +180,7 @@ export function startPresence() {
 
     Presence = findStore("PresenceStore");
     Profiles = findStore("UserProfileStore");
+    Outbox = findStore("ContentInventoryOutboxStore");
 
     real = {
         getStatus: Presence?.getStatus,
@@ -156,6 +188,8 @@ export function startPresence() {
         getUnfilteredActivities: Presence?.getUnfilteredActivities,
         getPrimaryActivity: Presence?.getPrimaryActivity,
         getWidgets: Profiles?.getWidgets,
+        getUserOutbox: Outbox?.getUserOutbox,
+        isFetchingUserOutbox: Outbox?.isFetchingUserOutbox,
     };
 
     if (Presence) {
@@ -180,6 +214,16 @@ export function startPresence() {
         };
     }
 
+    if (Outbox && real.getUserOutbox) {
+        Outbox.getUserOutbox = function (id: string, ...rest: any[]) { return outboxFor(id, real.getUserOutbox.call(this, id, ...rest)); };
+        // a worn list is already here, so the tab never waits on a fetch to show it
+        if (real.isFetchingUserOutbox) {
+            Outbox.isFetchingUserOutbox = function (id: string, ...rest: any[]) {
+                return running && lookFor(id)?.recentActivity !== undefined ? false : real.isFetchingUserOutbox.call(this, id, ...rest);
+            };
+        }
+    }
+
     patchSetting();
     running = true;
     redrawPresence();
@@ -191,14 +235,17 @@ export function stopPresence() {
 
     if (Presence) for (const key of ["getStatus", "getActivities", "getUnfilteredActivities", "getPrimaryActivity"]) if (real[key]) Presence[key] = real[key];
     if (Profiles && real.getWidgets) Profiles.getWidgets = real.getWidgets;
+    if (Outbox) for (const key of ["getUserOutbox", "isFetchingUserOutbox"]) if (real[key]) Outbox[key] = real[key];
     unpatchSetting();
 
     lists.clear();
+    outboxes.clear();
     redrawPresence();
 }
 
 export function redrawPresence() {
     try {
         Presence?.emitChange?.();
+        Outbox?.emitChange?.();
     } catch { /* nothing showing */ }
 }
