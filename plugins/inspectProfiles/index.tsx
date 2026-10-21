@@ -16,8 +16,10 @@ import { InspectIcon, MasksIcon, UndoIcon } from "./icons";
 import { forgetUnused, preload, whenReady } from "./images";
 import { openInspect } from "./InspectModal";
 import { place } from "./menu";
+import { redrawPresence, startPresence, stopPresence } from "./presence";
 import { ProfilesPanel } from "./ProfilesPanel";
-import { avatarFor, bannerFor, joinedAt, profileLoaded, redraw, startRewriting, stopRewriting, wholeLookOf } from "./rewrite";
+import { avatarFor, bannerFor, joinedAt, profileLoaded, redraw, startRewriting, stopRewriting } from "./rewrite";
+import { stealLook } from "./steal";
 import { asRecord, editedIds, invalidate, load, lookFor, onChange, presetNames, revert, savePreset } from "./store";
 import { About, menuChips } from "./ui";
 
@@ -29,6 +31,8 @@ const settings = definePluginSettings({
     },
     userMenu: { type: OptionType.BOOLEAN, hidden: true, description: "", default: true },
     profileMenu: { type: OptionType.BOOLEAN, hidden: true, description: "", default: true },
+    // parts Steal leaves out - picked in the Presets tab
+    stealSkip: { type: OptionType.CUSTOM, default: [] as string[] },
     profiles: {
         type: OptionType.COMPONENT,
         component: ProfilesPanel
@@ -40,7 +44,7 @@ const enabledAtLoad = !!Settings.plugins.InspectProfiles?.enabled;
 
 /** Keep somebody's whole profile as a preset, named after them */
 function steal(user: User) {
-    const look = wholeLookOf(user.id);
+    const look = stealLook(user.id);
     // A name made only of symbols reads as nothing in a list, so the username stands in
     const shown = (user as any).globalName;
     const called = shown && /[\p{L}\p{N}]/u.test(shown) ? shown : user.username;
@@ -112,6 +116,7 @@ export default definePlugin({
     description: "Change how anybody's profile looks to you: names, bio, badges, pictures, colours, connections and the day they joined. Steal a whole profile as a preset and wear it. Nothing is sent to Discord.",
     tags: ["Appearance", "Fun", "Friends"],
     authors: [{ name: "reqon", id: 497562304498368513n }],
+    dependencies: ["UserSettingsAPI"],
 
     settings,
 
@@ -203,8 +208,10 @@ export default definePlugin({
         if (mine !== runs) return;
 
         startRewriting();
+        startPresence();
         unwatch = onChange(() => {
             redraw();
+            redrawPresence();
             tidyPictures();
         });
     },
@@ -214,6 +221,7 @@ export default definePlugin({
         unwatch?.();
         unwatch = null;
         stopRewriting();
+        stopPresence();
     }
 });
 

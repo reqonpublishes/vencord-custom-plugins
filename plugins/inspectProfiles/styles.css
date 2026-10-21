@@ -895,3 +895,54 @@
     outline: 2px solid var(--focus-primary, #00b0f4);
     outline-offset: 2px;
 }
+
+/* ---------------------------------------------------------------- status */
+
+.vc-cip-dot {
+    display: inline-block;
+    flex: 0 0 auto;
+    width: 10px;
+    height: 10px;
+    margin-right: 6px;
+    border-radius: 50%;
+    vertical-align: -1px;
+}
+
+.vc-cip-dot-online {
+    background: var(--status-positive, #23a55a);
+}
+
+.vc-cip-dot-idle {
+    background: var(--status-warning, #f0b232);
+}
+
+.vc-cip-dot-dnd {
+    background: var(--status-danger, #f23f43);
+}
+
+.vc-cip-dot-invisible,
+.vc-cip-dot-offline {
+    background: var(--status-offline, #80848e);
+}
+
+.vc-cip-pcard-status {
+    position: absolute;
+    right: 2px;
+    bottom: 2px;
+    width: 18px;
+    height: 18px;
+    border: 4px solid var(--background-surface-high, var(--modal-background));
+    border-radius: 50%;
+}
+
+.vc-cip-pcard-custom {
+    margin: 4px 0;
+    color: var(--text-default);
+    font-size: 14px;
+    line-height: 18px;
+    overflow-wrap: anywhere;
+}
+
+.vc-cip-emoji-box {
+    flex: 0 0 64px;
+}

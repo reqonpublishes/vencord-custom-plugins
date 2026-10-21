@@ -10,6 +10,7 @@ import { UserStore } from "@webpack/common";
 
 import { badgesFor, realKeys } from "./badges";
 import { isStored, urlOf } from "./images";
+import { realActivities, realStatus, realWidgets } from "./presence";
 import { changes, Look, lookFor, NOTHING } from "./store";
 
 const logger = new Logger("InspectProfiles");
@@ -281,6 +282,16 @@ export function wholeLookOf(userId: string): Look | null {
     look.fontId = styles?.fontId ?? 0;
     look.effectId = styles?.effectId ?? 0;
     look.nameColors = [...(styles?.colors ?? [])];
+
+    // Their status, what they are doing, and their board - read as Discord really has them
+    const status = realStatus(userId);
+    look.status = status === "offline" ? "invisible" : status as Look["status"];
+    const activities = realActivities(userId);
+    const custom = activities.find(a => a?.type === 4);
+    look.customStatus = custom ? { text: custom.state ?? "", emoji: custom.emoji ? { ...custom.emoji } : undefined } : NOTHING;
+    look.activities = activities.filter(a => a?.type !== 4).map(a => JSON.parse(JSON.stringify(a)));
+    const widgets = realWidgets(userId);
+    if (widgets) look.widgets = JSON.parse(JSON.stringify(widgets));
 
     return { ...look, ...(lookFor(userId) ?? {}) };
 }

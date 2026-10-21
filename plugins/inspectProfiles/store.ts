@@ -45,6 +45,20 @@ export interface Look {
     nameColors?: number[];
     /** the accounts listed under Connections, exactly as a profile carries them */
     connections?: Connection[];
+    /** the dot on the avatar: online, idle, do not disturb, or invisible (shows as offline) */
+    status?: "online" | "idle" | "dnd" | "invisible";
+    /** the custom status, or "none" for no custom status at all */
+    customStatus?: CustomStatus | typeof NOTHING;
+    /** what they are doing - playing, listening, watching - as Discord's presence carries it */
+    activities?: any[];
+    /** the widgets on their board, exactly as their profile carries them */
+    widgets?: any[];
+}
+
+export interface CustomStatus {
+    text?: string;
+    /** a plain emoji, or one of a server's own as Discord describes it */
+    emoji?: string | { name?: string; id?: string; animated?: boolean; };
 }
 
 export interface Connection {
@@ -227,6 +241,9 @@ export function summary(look?: Look): string {
     if (look.premiumType) parts.push("Nitro");
     if (look.themeColors || look.nameColors?.length) parts.push("colours");
     if (look.connections?.length) parts.push(`${look.connections.length} connection${look.connections.length === 1 ? "" : "s"}`);
+    if (look.status || look.customStatus) parts.push("status");
+    if (look.activities?.length) parts.push("activity");
+    if (look.widgets?.length) parts.push("board");
 
     return parts.length ? parts.join(", ") : "Nothing in it";
 }

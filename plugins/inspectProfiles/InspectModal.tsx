@@ -15,7 +15,9 @@ import { CollectiblesTab, decorationPicture } from "./Collectibles";
 import { DateField } from "./DateField";
 import { BookmarkIcon, CheckIcon, CloseIcon, CopyIcon, ImageIcon, LinkIcon, MasksIcon, PaletteIcon, PersonIcon, StarIcon, TrashIcon } from "./icons";
 import { keep } from "./images";
-import { pictureUrl, realProfile, realUser, wholeLookOf } from "./rewrite";
+import { realActivities, realStatus } from "./presence";
+import { pictureUrl, realProfile, realUser } from "./rewrite";
+import { PARTS, skippedParts, stealLook, toggleStealPart } from "./steal";
 import {
     Connection, deletePreset, Look, lookFor, NOTHING, presetCalled, presetNames, revert, savePreset, setLook, summary, tidyName,
 } from "./store";
@@ -111,6 +113,12 @@ function Preview({ userId, look }: { userId: string; look: Look; }) {
         : look.decoration ? { asset: look.decoration, skuId: look.decorationSku }
             : real.user?.avatarDecorationData ?? null;
     const decoration = ring?.asset ? decorationPicture(ring.asset, ring.skuId, true) : undefined;
+    const actualStatus = realStatus(userId);
+    const status = look.status ?? (actualStatus === "offline" ? "invisible" : actualStatus);
+    const actualCustom = realActivities(userId).find(a => a?.type === 4);
+    const custom = look.customStatus === NOTHING ? null : look.customStatus ?? (actualCustom ? { text: actualCustom.state, emoji: actualCustom.emoji } : null);
+    const customEmoji = typeof custom?.emoji === "string" ? custom.emoji : custom?.emoji?.id ? "" : custom?.emoji?.name ?? "";
+    const customLine = custom ? [customEmoji, custom.text].filter(Boolean).join(" ") : "";
 
     return (
         <div
@@ -125,6 +133,7 @@ function Preview({ userId, look }: { userId: string; look: Look; }) {
                 <div className={cl("pcard-avatar-wrap")}>
                     <img className={cl("pcard-avatar")} src={avatar} alt="" />
                     {decoration && <img className={cl("pcard-deco")} src={decoration} alt="" />}
+                    <span className={cl("pcard-status", `dot-${status}`)} />
                 </div>
                 {!!badges.length && (
                     <div className={cl("pcard-badges")}>
@@ -136,6 +145,7 @@ function Preview({ userId, look }: { userId: string; look: Look; }) {
             </div>
             <div className={cl("pcard-body")}>
                 <div className={cl("pcard-name")}>{name}</div>
+                {customLine && <div className={cl("pcard-custom")}>{customLine}</div>}
                 <div className={cl("pcard-username")}>
                     {username}
                     {pronouns && <><span className={cl("pcard-dot")} />{pronouns}</>}
@@ -359,6 +369,93 @@ const TABS: { id: Tab; label: string; icon: any; }[] = [
 
 type Set = (change: Partial<Look> | ((prev: Look) => Partial<Look>)) => void;
 
+/** The four dots, in the order Discord's own status menu lists them */
+const STATUSES: { value: NonNullable<Look["status"]>; label: string; }[] = [
+    { value: "online", label: "Online" },
+    { value: "idle", label: "Idle" },
+    { value: "dnd", label: "Do Not Disturb" },
+    { value: "invisible", label: "Invisible" },
+];
+
+const ACTIVITY_VERB = ["Playing", "Streaming", "Listening to", "Watching", "", "Competing in"];
+
+/** Status, custom status, what they are doing, and their board */
+function StatusSection({ userId, look, set }: { userId: string; look: Look; set: Set; }) {
+    const actualStatus = realStatus(userId);
+    const shownStatus = look.status ?? (actualStatus === "offline" ? "invisible" : actualStatus);
+    const actualCustom = realActivities(userId).find(a => a?.type === 4);
+    const custom = look.customStatus === NOTHING ? null : look.customStatus ?? (actualCustom ? { text: actualCustom.state, emoji: actualCustom.emoji } : null);
+    const emojiText = typeof custom?.emoji === "string" ? custom.emoji : custom?.emoji?.id ? `:${custom.emoji.name}:` : custom?.emoji?.name ?? "";
+    const activities: any[] = look.activities ?? realActivities(userId).filter(a => a?.type !== 4);
+
+    const setCustom = (patch: { text?: string; emoji?: string; }) => {
+        const next = { text: custom?.text ?? "", emoji: custom?.emoji, ...patch };
+        set({ customStatus: !next.text && !next.emoji ? NOTHING : next });
+    };
+
+    return (
+        <>
+            <Field label="Status" action={<RealLink show={look.status !== undefined} onClick={() => set({ status: undefined })} />}>
+                <div className={cl("segments")} role="radiogroup" aria-label="Status">
+                    {STATUSES.map(option => (
+                        <button
+                            key={option.value}
+                            role="radio"
+                            aria-checked={shownStatus === option.value}
+                            className={cl("segment", shownStatus === option.value ? "segment-on" : "")}
+                            onClick={() => set({ status: option.value })}
+                        >
+                            <span className={cl("dot", `dot-${option.value}`)} />
+                            {option.label}
+                        </button>
+                    ))}
+                </div>
+            </Field>
+
+            <Field label="Custom status" action={<RealLink show={look.customStatus !== undefined} onClick={() => set({ customStatus: undefined })} />}>
+                <div className={cl("add")}>
+                    <div className={cl("emoji-box")}>
+                        <TextInput value={emojiText} placeholder="😀" maxLength={null} onChange={(next: string) => setCustom({ emoji: next.trim() || undefined })} />
+                    </div>
+                    <div className={cl("grow")}>
+                        <TextInput value={custom?.text ?? ""} placeholder="What's on your mind?" onChange={(next: string) => setCustom({ text: next })} />
+                    </div>
+                    {custom && <IconButton icon={CloseIcon} variant="secondary" onClick={() => set({ customStatus: NOTHING })}>Clear</IconButton>}
+                </div>
+            </Field>
+
+            <Field label="Activity" hint={look.activities === undefined ? "Their real activity. Steal a profile to copy someone's." : undefined} action={<RealLink show={look.activities !== undefined} onClick={() => set({ activities: undefined })} />}>
+                <div className={cl("rows")}>
+                    {!activities.length && <div className={cl("empty-line")}>Not doing anything</div>}
+                    {activities.map((a, i) => (
+                        <div key={(a.id ?? a.name) + i} className={cl("item")}>
+                            <div className={cl("item-text")}>
+                                <span className={cl("item-name")}>{[ACTIVITY_VERB[a.type] ?? "", a.name].filter(Boolean).join(" ")}</span>
+                                <span className={cl("item-detail")}>{[a.details, a.state].filter(Boolean).join(" · ") || "No details"}</span>
+                            </div>
+                            <button className={cl("icon-button")} aria-label={`Remove ${a.name}`} onClick={() => set({ activities: activities.filter((_, j) => j !== i) })}>
+                                <CloseIcon height={16} width={16} />
+                            </button>
+                        </div>
+                    ))}
+                </div>
+            </Field>
+
+            {look.widgets !== undefined && (
+                <Field label="Board" action={<RealLink show onClick={() => set({ widgets: undefined })} />}>
+                    <div className={cl("item")}>
+                        <div className={cl("item-text")}>
+                            <span className={cl("item-name")}>{look.widgets.length ? `${look.widgets.length} widget${look.widgets.length === 1 ? "" : "s"} copied` : "Empty board"}</span>
+                            <span className={cl("item-detail")}>Shows on the Board tab of their full profile.</span>
+                        </div>
+                        {!!look.widgets.length && <button className={cl("link", "link-danger")} onClick={() => set({ widgets: [] })}>Remove</button>}
+                    </div>
+                </Field>
+            )}
+        </>
+    );
+}
+
 function ProfileTab({ userId, look, set }: { userId: string; look: Look; set: Set; }) {
     const real = realOf(userId);
     const connections: Connection[] = look.connections ?? real.profile?.connectedAccounts ?? [];
@@ -394,6 +491,8 @@ function ProfileTab({ userId, look, set }: { userId: string; look: Look; set: Se
             <Field label="Member since" action={<RealLink show={look.memberSince !== undefined} onClick={() => set({ memberSince: undefined })} />}>
                 <DateField value={since.getTime()} onChange={ms => set({ memberSince: ms })} />
             </Field>
+
+            <StatusSection userId={userId} look={look} set={set} />
 
             <Field label="Connections" action={<RealLink show={look.connections !== undefined} onClick={() => set({ connections: undefined })} />}>
                 <div className={cl("rows")}>
@@ -556,12 +655,12 @@ function PresetsTab({ userId, look, replace }: { userId: string; look: Look; rep
             </Field>
             <div className={cl("cards")}>
                 <button className={cl("action")} onClick={() => {
-                    const whole = wholeLookOf(userId);
+                    const whole = stealLook(userId);
                     if (whole) keep(whole, theirName);
                 }}>
                     <MasksIcon className={cl("action-icon")} height={20} width={20} />
                     <span className={cl("action-title")}>Steal profile</span>
-                    <span className={cl("action-text")}>Copies everything about {theirName}.</span>
+                    <span className={cl("action-text")}>{skippedParts().length ? `Copies what is ticked below from ${theirName}.` : `Copies everything about ${theirName}.`}</span>
                 </button>
                 <button className={cl("action")} onClick={() => keep(look, theirName + " (edited)")}>
                     <CopyIcon className={cl("action-icon")} height={20} width={20} />
@@ -569,6 +668,20 @@ function PresetsTab({ userId, look, replace }: { userId: string; look: Look; rep
                     <span className={cl("action-text")}>Copies only what you changed here.</span>
                 </button>
             </div>
+
+            <Field label="What Steal copies">
+                <div className={cl("menu-chips")} role="group" aria-label="What Steal copies">
+                    {PARTS.map(part => {
+                        const on = !skippedParts().includes(part.id);
+                        return (
+                            <button key={part.id} type="button" className={cl("menu-chip", on ? "menu-chip-on" : "")} aria-pressed={on} onClick={() => { toggleStealPart(part.id); redraw(n => n + 1); }}>
+                                {on && <CheckIcon height={14} width={14} />}
+                                <span>{part.label}</span>
+                            </button>
+                        );
+                    })}
+                </div>
+            </Field>
 
             <Field label={`Saved presets${names.length ? ` (${names.length})` : ""}`}>
                 <div className={cl("rows")}>
