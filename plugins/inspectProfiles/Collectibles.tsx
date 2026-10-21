@@ -4,10 +4,12 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+import { Settings } from "@api/Settings";
 import { findByCodeLazy, findStoreLazy } from "@webpack";
-import { IconUtils, TextInput, useEffect, useMemo, useRef, useState } from "@webpack/common";
+import { ContextMenuApi, IconUtils, Menu, TextInput, useEffect, useMemo, useRef, useState } from "@webpack/common";
 
-import { CloseIcon, UndoIcon } from "./icons";
+import { CloseIcon, StarIcon, UndoIcon } from "./icons";
+import { keepList, keptList, loadPicture, pictureNow } from "./shopCache";
 import { Look, NOTHING } from "./store";
 import { cl } from "./ui";
 
@@ -27,13 +29,16 @@ export const KINDS: { id: Kind; label: string; }[] = [
     { id: "frame", label: "Frames" },
 ];
 
+/** One thing the shop sells, with only what wearing it and drawing it need - small enough to keep */
 interface Entry {
     skuId: string;
     name: string;
     collection: string;
     picture?: string;
-    item: any;
+    item: { asset?: string; palette?: string; label?: string; };
 }
+
+type List = Record<Kind, Entry[]>;
 
 /** The address of a decoration's picture, as Discord builds it */
 export function decorationPicture(asset: string, skuId?: string, animate = false) {
@@ -46,36 +51,52 @@ export function decorationPicture(asset: string, skuId?: string, animate = false
 
 const nameplatePicture = (asset: string) => `https://cdn.discordapp.com/assets/collectibles/${asset}static.png`;
 
+/** The element a picture scrolls inside, so it can be fetched before it is scrolled to */
+function scrollerOf(el: HTMLElement): HTMLElement | null {
+    for (let node = el.parentElement; node; node = node.parentElement) {
+        if (/(auto|scroll)/.test(getComputedStyle(node).overflowY)) return node;
+    }
+    return null;
+}
+
 /**
- * A picture that is only fetched once it is about to be seen.
+ * A picture, fetched as it comes close to being seen and kept on this computer after that.
  *
- * The shop has hundreds of these, and asking for all of them at once is several megabytes before
- * anything shows. The browser's own loading="lazy" never fires inside Discord's window - measured,
- * tiles in plain view stayed empty - so this watches for itself.
+ * The shop has hundreds of these. Watching the window alone does not work inside the editor,
+ * which scrolls on its own: a picture was only asked for once it was already on screen, so
+ * tiles sat empty while you scrolled (measured). The editor's own scroller is watched instead,
+ * with a screen and a half of warning.
  */
 function LazyPicture({ src }: { src: string; }) {
     const ref = useRef<HTMLImageElement>(null);
-    const [shown, setShown] = useState(false);
+    const [shown, setShown] = useState<string | undefined>(() => pictureNow(src));
 
     useEffect(() => {
         const el = ref.current;
         if (!el || shown) return;
 
+        let gone = false;
         const watcher = new IntersectionObserver(seen => {
-            if (seen.some(entry => entry.isIntersecting)) {
-                setShown(true);
-                watcher.disconnect();
-            }
-        }, { rootMargin: "300px" });
+            if (!seen.some(entry => entry.isIntersecting)) return;
+            watcher.disconnect();
+            loadPicture(src)
+                .then(url => !gone && setShown(url))
+                // kept or not, a picture that can be shown is shown
+                .catch(() => !gone && setShown(src));
+        }, { root: scrollerOf(el), rootMargin: "900px 0px" });
         watcher.observe(el);
-        return () => watcher.disconnect();
-    }, [shown]);
 
-    return <img ref={ref} src={shown ? src : undefined} alt="" />;
+        return () => {
+            gone = true;
+            watcher.disconnect();
+        };
+    }, [src, shown]);
+
+    return <img ref={ref} src={shown} alt="" />;
 }
 
-/** Everything of one kind in the catalogue, under the collection each belongs to */
-function entriesOf(kind: Kind): Entry[] {
+/** Everything of one kind in Discord's catalogue, under the collection each belongs to */
+function liveEntries(kind: Kind): Entry[] {
     const products: any[] = [...(CategoryStore?.products?.values?.() ?? [])];
     const categories: any[] = [...(CategoryStore?.categories?.values?.() ?? [])];
     const collectionOf = (p: any) => categories.find(c => c.skuId === p.categorySkuId);
@@ -89,9 +110,17 @@ function entriesOf(kind: Kind): Entry[] {
                 : kind === "nameplate" ? nameplatePicture(item.asset)
                     : kind === "effect" ? item.thumbnailPreviewSrc ?? item.staticFrameSrc
                         : collection?.logoUrl;
-            return { skuId: p.skuId, name: p.name, collection: collection?.name ?? "Other", picture, item };
+            return {
+                skuId: String(p.skuId),
+                name: p.name,
+                collection: collection?.name ?? "Other",
+                picture,
+                item: { asset: item.asset, palette: item.palette, label: item.label }
+            };
         });
 }
+
+const liveList = (): List => ({ decoration: liveEntries("decoration"), nameplate: liveEntries("nameplate"), effect: liveEntries("effect"), frame: liveEntries("frame") });
 
 /** What wearing one sets on a look, and how to tell it is the one worn */
 const apply: Record<Kind, (e: Entry) => Partial<Look>> = {
@@ -109,31 +138,91 @@ const isWorn: Record<Kind, (look: Look, e: Entry) => boolean> = {
     frame: (look, e) => look.profileFrame === e.skuId,
 };
 
+// ---------------------------------------------------------------- favourites
+
+const favouritesStore = () => Settings.plugins.InspectProfiles as any;
+
+/** The things kept at the top of each kind, by their shop id */
+const favourites = (kind: Kind): string[] => favouritesStore()?.favourites?.[kind] ?? [];
+
+function toggleFavourite(kind: Kind, skuId: string) {
+    const all = { ...(favouritesStore()?.favourites ?? {}) };
+    const mine: string[] = all[kind] ?? [];
+    all[kind] = mine.includes(skuId) ? mine.filter(id => id !== skuId) : [skuId, ...mine];
+    favouritesStore().favourites = all;
+}
+
+function openTileMenu(event: React.MouseEvent, kind: Kind, entry: Entry, wear: () => void, changed: () => void) {
+    const favourite = favourites(kind).includes(entry.skuId);
+    ContextMenuApi.openContextMenu(event, () => (
+        <Menu.Menu navId="vc-cip-shop" onClose={ContextMenuApi.closeContextMenu} aria-label={entry.name}>
+            <Menu.MenuItem id="vc-cip-shop-wear" label="Wear" action={wear} />
+            <Menu.MenuItem
+                id="vc-cip-shop-favourite"
+                label={favourite ? "Remove from Favourites" : "Add to Favourites"}
+                icon={StarIcon}
+                action={() => {
+                    toggleFavourite(kind, entry.skuId);
+                    changed();
+                }}
+            />
+        </Menu.Menu>
+    ));
+}
+
 /**
  * The shop, to choose from: every decoration, nameplate, effect and frame Discord sells, with
- * its real picture, grouped by collection the way the Shop groups them.
+ * its real picture, grouped by collection the way the Shop groups them, favourites first.
  *
- * Read from the same catalogue the Shop shows, fetched the same way the Shop fetches it the
- * first time it is opened. Choosing one only changes how the profile looks to you.
+ * Read from the same catalogue the Shop shows, fetched the same way the Shop fetches it. The
+ * list last seen is kept on this computer, so it opens at once and is brought up to date as
+ * Discord answers. Choosing one only changes how the profile looks to you.
  */
 export function CollectiblesTab({ look, set }: { look: Look; set(change: Partial<Look>): void; }) {
     const [kind, setKind] = useState<Kind>("decoration");
     const [query, setQuery] = useState("");
-    const [state, setState] = useState<"loading" | "ready" | "failed">(() => CategoryStore?.categories?.size ? "ready" : "loading");
+    const [, redraw] = useState(0);
+    const [list, setList] = useState<List | null>(() => CategoryStore?.categories?.size ? liveList() : null);
+    const [state, setState] = useState<"loading" | "ready" | "failed">(() => list ? "ready" : "loading");
 
+    // The kept list first, if Discord has not got its own yet; then Discord's, which replaces it
     useEffect(() => {
         if (state !== "loading") return;
+        let gone = false;
+
+        if (!list) void keptList<List>().then(kept => !gone && kept && setList(prev => prev ?? kept));
+
         Promise.resolve(fetchCategories?.())
-            .then(() => setState(CategoryStore?.categories?.size ? "ready" : "failed"))
-            .catch(() => setState("failed"));
+            .then(() => {
+                if (gone) return;
+                if (!CategoryStore?.categories?.size) {
+                    setState("failed");
+                    return;
+                }
+                const fresh = liveList();
+                setList(fresh);
+                setState("ready");
+                void keepList(fresh);
+            })
+            .catch(() => !gone && setState("failed"));
+
+        return () => { gone = true; };
     }, [state]);
 
-    const all = useMemo(() => state === "ready" ? entriesOf(kind) : [], [kind, state]);
-    const wanted = query.trim().toLowerCase();
-    const shown = wanted ? all.filter(e => e.name.toLowerCase().includes(wanted) || e.collection.toLowerCase().includes(wanted)) : all;
+    // Discord's list, opened again with it already loaded, is kept too
+    useEffect(() => {
+        if (list && CategoryStore?.categories?.size) void keepList(list);
+    }, []);
 
-    // grouped by collection, in the order the catalogue gives them
+    const all = list?.[kind] ?? [];
+    const wanted = query.trim().toLowerCase();
+    const shown = useMemo(() => wanted ? all.filter(e => e.name.toLowerCase().includes(wanted) || e.collection.toLowerCase().includes(wanted)) : all, [all, wanted]);
+
+    // favourites first, then by collection, in the order the catalogue gives them
+    const starred = new Set(favourites(kind));
     const groups: [string, Entry[]][] = [];
+    const favouriteEntries = shown.filter(e => starred.has(e.skuId));
+    if (favouriteEntries.length) groups.push(["Favourites", favouriteEntries]);
     for (const e of shown) {
         const group = groups.find(([name]) => name === e.collection);
         if (group) group[1].push(e);
@@ -171,13 +260,13 @@ export function CollectiblesTab({ look, set }: { look: Look; set(change: Partial
                 </button>
             </div>
 
-            {state === "loading" && <div className={cl("empty-line")}>Loading the shop...</div>}
-            {state === "failed" && (
+            {!list && state === "loading" && <div className={cl("empty-line")}>Loading the shop...</div>}
+            {!list && state === "failed" && (
                 <div className={cl("empty-line")}>
                     Could not load the shop. <button className={cl("link")} onClick={() => setState("loading")}>Try again</button>
                 </div>
             )}
-            {state === "ready" && !shown.length && <div className={cl("empty-line")}>Nothing matches "{query}"</div>}
+            {list && !shown.length && <div className={cl("empty-line")}>{wanted ? `Nothing matches "${query}"` : "Nothing here yet"}</div>}
 
             {groups.map(([collection, entries]) => (
                 <div key={collection} className={cl("group")}>
@@ -186,22 +275,29 @@ export function CollectiblesTab({ look, set }: { look: Look; set(change: Partial
                         <span className={cl("f-hint")}>{entries.length}</span>
                     </div>
                     <div className={cl("shop-grid")}>
-                        {entries.map(e => (
-                            <button
-                                key={e.skuId}
-                                className={cl("shop-tile", isWorn[kind](look, e) ? "shop-on" : "")}
-                                title={e.item?.label ?? e.name}
-                                onClick={() => set(apply[kind](e))}
-                            >
-                                <div className={cl("shop-pic", `shop-pic-${kind}`)}>
-                                    {e.picture && <LazyPicture key={e.picture} src={e.picture} />}
-                                </div>
-                                <span className={cl("shop-name")}>{e.name}</span>
-                            </button>
-                        ))}
+                        {entries.map(e => {
+                            const wear = () => set(apply[kind](e));
+                            return (
+                                <button
+                                    key={e.skuId}
+                                    className={cl("shop-tile", isWorn[kind](look, e) ? "shop-on" : "")}
+                                    title={e.item?.label ?? e.name}
+                                    onClick={wear}
+                                    onContextMenu={event => openTileMenu(event, kind, e, wear, () => redraw(n => n + 1))}
+                                >
+                                    <div className={cl("shop-pic", `shop-pic-${kind}`)}>
+                                        {e.picture && <LazyPicture key={e.picture} src={e.picture} />}
+                                        {starred.has(e.skuId) && <span className={cl("shop-star")}><StarIcon height={12} width={12} /></span>}
+                                    </div>
+                                    <span className={cl("shop-name")}>{e.name}</span>
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
             ))}
+
+            {list && <div className={cl("shop-tip")}>Right-click anything to add it to your Favourites.</div>}
         </div>
     );
 }

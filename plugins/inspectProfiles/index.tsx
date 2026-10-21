@@ -33,6 +33,8 @@ const settings = definePluginSettings({
     profileMenu: { type: OptionType.BOOLEAN, hidden: true, description: "", default: true },
     // parts Steal leaves out - picked in the Presets tab
     stealSkip: { type: OptionType.CUSTOM, default: [] as string[] },
+    // shop ids kept at the top of each kind in the Collectibles tab - picked by right-clicking
+    favourites: { type: OptionType.CUSTOM, default: {} as Record<string, string[]> },
     profiles: {
         type: OptionType.COMPONENT,
         component: ProfilesPanel

@@ -850,6 +850,7 @@
 }
 
 .vc-cip-shop-pic {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -936,4 +937,66 @@
 
 .vc-cip-emoji-box {
     flex: 0 0 64px;
+}
+
+/* ---------------------------------------------------------------- small buttons beside labels */
+
+.vc-cip-small-button {
+    display: inline-flex;
+    flex: 0 0 auto;
+    gap: 4px;
+    align-items: center;
+    height: 24px;
+    margin-block: -3px;
+    padding: 0 8px 0 6px;
+    border-radius: 6px;
+    background: var(--background-mod-subtle);
+    color: var(--interactive-normal, var(--text-default));
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 16px;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color .15s ease, color .15s ease;
+}
+
+.vc-cip-small-button:hover {
+    background: var(--background-mod-normal);
+    color: var(--interactive-hover, var(--text-strong));
+}
+
+.vc-cip-small-danger {
+    color: var(--text-feedback-critical, var(--status-danger));
+}
+
+.vc-cip-small-danger:hover {
+    background: color-mix(in srgb, var(--status-danger, #da373c) 16%, transparent);
+    color: var(--text-feedback-critical, var(--status-danger));
+}
+
+.vc-cip-small-button:focus-visible {
+    outline: 2px solid var(--focus-primary, #00b0f4);
+    outline-offset: 2px;
+}
+
+/* ---------------------------------------------------------------- shop favourites */
+
+.vc-cip-shop-star {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: rgb(0 0 0 / 55%);
+    color: #f0b232;
+}
+
+.vc-cip-shop-tip {
+    color: var(--text-muted);
+    font-size: 12px;
+    text-align: center;
 }

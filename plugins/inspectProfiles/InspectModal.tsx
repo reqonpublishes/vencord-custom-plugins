@@ -13,7 +13,7 @@ import { ColorPicker, Modal, moment, openModal, ScrollerThin, SearchableSelect, 
 import { Badge, BADGES, badgesFor, GROUPS, realKeys, withBadge } from "./badges";
 import { CollectiblesTab, decorationPicture } from "./Collectibles";
 import { DateField } from "./DateField";
-import { BookmarkIcon, CheckIcon, CloseIcon, CopyIcon, ImageIcon, LinkIcon, MasksIcon, PaletteIcon, PersonIcon, StarIcon, TrashIcon } from "./icons";
+import { BookmarkIcon, CheckIcon, CloseIcon, CopyIcon, IconComponent, ImageIcon, LinkIcon, MasksIcon, PaletteIcon, PersonIcon, StarIcon, TrashIcon, UndoIcon } from "./icons";
 import { keep } from "./images";
 import { realActivities, realOutbox, realStatus } from "./presence";
 import { pictureUrl, realProfile, realUser } from "./rewrite";
@@ -209,9 +209,19 @@ function Text({ value, real, onChange, multiline }: { value?: string; real?: str
         : <TextInput value={value ?? ""} placeholder={real || ""} onChange={change} />;
 }
 
+/** A small button with an icon, for the actions beside a label - red when it takes something away */
+function SmallButton({ icon: Icon, danger, onClick, children }: { icon: IconComponent; danger?: boolean; onClick(): void; children: React.ReactNode; }) {
+    return (
+        <button type="button" className={cl("small-button", danger ? "small-danger" : "")} onClick={onClick}>
+            <Icon height={14} width={14} />
+            <span>{children}</span>
+        </button>
+    );
+}
+
 /** "Use the real one", beside a field's label, only once it has been changed */
 const RealLink = ({ show, onClick }: { show: boolean; onClick(): void; }) =>
-    show ? <button className={cl("link")} onClick={onClick}>Use real</button> : null;
+    show ? <SmallButton icon={UndoIcon} onClick={onClick}>Use real</SmallButton> : null;
 
 /**
  * Choosing one picture: from a file, dropped on it, pasted, or from a link.
@@ -305,7 +315,7 @@ function PictureControls({ label, value, onChange, picture }: {
                         <IconButton icon={CloseIcon} variant="secondary" onClick={() => { onChange(NOTHING); picture.setLinking(false); }}>Remove</IconButton>
                     )}
                     {value !== undefined && (
-                        <button className={cl("link")} onClick={() => { onChange(undefined); picture.setLinking(false); }}>Use real</button>
+                        <SmallButton icon={UndoIcon} onClick={() => { onChange(undefined); picture.setLinking(false); }}>Use real</SmallButton>
                     )}
                 </div>
             </div>
@@ -481,7 +491,7 @@ function StatusSection({ userId, look, set }: { userId: string; look: Look; set:
                             <span className={cl("item-name")}>{look.widgets.length ? `${look.widgets.length} widget${look.widgets.length === 1 ? "" : "s"} copied` : "Empty board"}</span>
                             <span className={cl("item-detail")}>Shows on the Board tab of their full profile.</span>
                         </div>
-                        {!!look.widgets.length && <button className={cl("link", "link-danger")} onClick={() => set({ widgets: [] })}>Remove</button>}
+                        {!!look.widgets.length && <SmallButton icon={TrashIcon} danger onClick={() => set({ widgets: [] })}>Remove</SmallButton>}
                     </div>
                 </Field>
             )}
@@ -640,7 +650,7 @@ function BadgesTab({ userId, look, set }: { userId: string; look: Look; set: Set
                 <span className={cl("f-hint")}>{chosen.length ? `${chosen.length} selected, shown in Discord's order` : "None selected"}</span>
                 <div className={cl("toolbar-actions")}>
                     <RealLink show={look.badges !== undefined} onClick={() => set({ badges: undefined })} />
-                    {!!chosen.length && <button className={cl("link", "link-danger")} onClick={() => set({ badges: [] })}>Clear all</button>}
+                    {!!chosen.length && <SmallButton icon={TrashIcon} danger onClick={() => set({ badges: [] })}>Clear all</SmallButton>}
                 </div>
             </div>
             {GROUPS.map(group => (
