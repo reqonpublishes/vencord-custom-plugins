@@ -11,8 +11,9 @@ import { findByCodeLazy, findByPropsLazy } from "@webpack";
 import { ColorPicker, Modal, openModal, ScrollerThin, SearchableSelect, showToast, TextArea, TextInput, useEffect, useRef, UserStore, useState } from "@webpack/common";
 
 import { Badge, BADGES, badgesFor, GROUPS, realKeys, withBadge } from "./badges";
+import { CollectiblesTab, decorationPicture } from "./Collectibles";
 import { DateField } from "./DateField";
-import { BookmarkIcon, CheckIcon, CloseIcon, CopyIcon, ImageIcon, LinkIcon, MasksIcon, PersonIcon, StarIcon, TrashIcon } from "./icons";
+import { BookmarkIcon, CheckIcon, CloseIcon, CopyIcon, ImageIcon, LinkIcon, MasksIcon, PaletteIcon, PersonIcon, StarIcon, TrashIcon } from "./icons";
 import { keep } from "./images";
 import { pictureUrl, realProfile, realUser, wholeLookOf } from "./rewrite";
 import {
@@ -106,6 +107,10 @@ function Preview({ userId, look }: { userId: string; look: Look; }) {
     const pronouns = look.pronouns ?? real.profile?.pronouns ?? "";
     const since = new Date(look.memberSince ?? real.user?.createdAt?.getTime?.() ?? Date.now());
     const connections: Connection[] = look.connections ?? real.profile?.connectedAccounts ?? [];
+    const ring = look.decoration === NOTHING ? null
+        : look.decoration ? { asset: look.decoration, skuId: look.decorationSku }
+            : real.user?.avatarDecorationData ?? null;
+    const decoration = ring?.asset ? decorationPicture(ring.asset, ring.skuId, true) : undefined;
 
     return (
         <div
@@ -117,7 +122,10 @@ function Preview({ userId, look }: { userId: string; look: Look; }) {
                 style={banner ? { backgroundImage: `url("${banner}")` } : themed ? { background: hex(colours![0]) } : undefined}
             />
             <div className={cl("pcard-head")}>
-                <img className={cl("pcard-avatar")} src={avatar} alt="" />
+                <div className={cl("pcard-avatar-wrap")}>
+                    <img className={cl("pcard-avatar")} src={avatar} alt="" />
+                    {decoration && <img className={cl("pcard-deco")} src={decoration} alt="" />}
+                </div>
                 {!!badges.length && (
                     <div className={cl("pcard-badges")}>
                         {badges.map((badge, i) => (
@@ -339,11 +347,12 @@ function Header({ look, real, set }: { look: Look; real: ReturnType<typeof realO
 
 // ---------------------------------------------------------------- tabs
 
-type Tab = "profile" | "pictures" | "badges" | "presets";
+type Tab = "profile" | "pictures" | "collectibles" | "badges" | "presets";
 
 const TABS: { id: Tab; label: string; icon: any; }[] = [
     { id: "profile", label: "Profile", icon: PersonIcon },
     { id: "pictures", label: "Appearance", icon: ImageIcon },
+    { id: "collectibles", label: "Collectibles", icon: PaletteIcon },
     { id: "badges", label: "Badges", icon: StarIcon },
     { id: "presets", label: "Presets", icon: BookmarkIcon },
 ];
@@ -427,12 +436,6 @@ function PicturesTab({ userId, look, set }: { userId: string; look: Look; set: S
     const colours = look.themeColors ?? real.profile?.themeColors;
     const nitro = look.premiumType ?? real.user?.premiumType ?? 0;
 
-    const extras: { key: keyof Look; label: string; }[] = [
-        { key: "decoration", label: "Avatar decoration" },
-        { key: "nameplate", label: "Nameplate" },
-        { key: "profileEffect", label: "Profile effect" },
-        { key: "profileFrame", label: "Profile frame" },
-    ];
 
     return (
         <div className={cl("tab")}>
@@ -474,24 +477,6 @@ function PicturesTab({ userId, look, set }: { userId: string; look: Look; set: S
                             {option.label}
                         </button>
                     ))}
-                </div>
-            </Field>
-
-            <Field label="Collectibles" hint="Copied from whoever you steal.">
-                <div className={cl("rows")}>
-                    {extras.map(({ key, label }) => {
-                        const value = look[key] as string | undefined;
-                        return (
-                            <div key={key} className={cl("item")}>
-                                <div className={cl("item-text")}>
-                                    <span className={cl("item-name")}>{label}</span>
-                                    <span className={cl("item-detail")}>{value === NOTHING ? "None" : value ? "Copied from a profile" : "Real"}</span>
-                                </div>
-                                {value !== undefined && <button className={cl("link")} onClick={() => set({ [key]: undefined } as any)}>Use real</button>}
-                                {value !== NOTHING && <button className={cl("link", "link-danger")} onClick={() => set({ [key]: NOTHING } as any)}>Remove</button>}
-                            </div>
-                        );
-                    })}
                 </div>
             </Field>
         </div>
@@ -698,6 +683,7 @@ function InspectModal({ rootProps, userId, startOn }: { rootProps: RenderModalPr
                         <div className={cl("scroll-inner")}>
                             {tab === "profile" && <ProfileTab userId={userId} look={look} set={set} />}
                             {tab === "pictures" && <PicturesTab userId={userId} look={look} set={set} />}
+                            {tab === "collectibles" && <CollectiblesTab look={look} set={set} />}
                             {tab === "badges" && <BadgesTab userId={userId} look={look} set={set} />}
                             {tab === "presets" && <PresetsTab userId={userId} look={look} replace={next => setDraft(next)} />}
                         </div>
