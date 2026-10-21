@@ -45,27 +45,7 @@ const record = (patch: Partial<Last>) => {
     for (const listener of listeners) listener();
 };
 
-// ---------------------------------------------------------------- is there newer code
-
-/** When the build this window is running was written, read as it loaded */
-let loadedBuild = 0;
-
-/**
- * Whether a newer Vencord build is waiting on disk.
- *
- * Restarting plugins runs the code this window loaded - a new build is only ever brought in by
- * a reload. So the shortcut asks first, and reloads only when there is something to load.
- * Null when it cannot tell, which is until Discord has been fully restarted once with this.
- */
-async function newerBuild(): Promise<boolean | null> {
-    if (!Native || !loadedBuild) return null;
-
-    try {
-        return (await Native.builtAt()) > loadedBuild + 1000;
-    } catch {
-        return null;
-    }
-}
+// ---------------------------------------------------------------- plugins that need a reload
 
 /**
  * Whether a plugin that is enabled but not running can only be brought in by a reload.
@@ -263,31 +243,30 @@ async function softRestart(withResync: boolean) {
     toast(`Restarted ${plural(result.restarted, "plugin")} in ${ms(result.ms)} and resynced Discord in ${ms(took)}`, "success");
 }
 
-/** What the shortcut does by default: reload when there is new code, restart in place when not */
-async function smartRestart() {
-    const newer = await newerBuild();
-    if (newer) {
-        toast("New Vencord build found. Reloading to load it...", "default");
-        reload();
+/** When Ctrl+R was last pressed during a call, so a second press can confirm it */
+let warnedInCall = 0;
+
+/**
+ * What the shortcut does: a real restart of Discord, every time - new code, plugins and all -
+ * under a picture of the window so it never goes blank.
+ *
+ * It used to restart only the plugins when it judged nothing new was waiting, which was quick
+ * but looked like nothing happened, and could not tell new code was waiting until Discord had
+ * been fully restarted once. A reload is what people mean by restarting, so it always reloads.
+ *
+ * A reload leaves a call, so during one the first press only says so and a second press within
+ * a few seconds goes ahead.
+ */
+function restart() {
+    if (inCall() && Date.now() - warnedInCall > 4000) {
+        warnedInCall = Date.now();
+        toast("You're in a call. Press Ctrl+R again to restart, which leaves the call", "default");
         return;
     }
-
-    const PM: any = Vencord?.Plugins;
-    const waiting = PM?.plugins && Object.keys(PM.plugins).some(name => {
-        const plugin = PM.plugins[name];
-        return !plugin.started && !plugin.required && PM.isPluginEnabled(name) && unpatched(name, plugin);
-    });
-    if (waiting) {
-        toast("A plugin was switched on that needs a reload. Reloading...", "default");
-        reload();
-        return;
-    }
-
-    await softRestart(true);
+    reload();
 }
 
-/** What the shortcut does: the right restart, every time */
-const runAction = () => smartRestart();
+const runAction = () => restart();
 
 // ---------------------------------------------------------------- hotkeys
 
@@ -395,7 +374,7 @@ const settings = definePluginSettings({
     hotkey: {
         type: OptionType.STRING,
         displayName: "Restart shortcut",
-        description: "Replaces Discord's own reload. Ctrl+R by default.",
+        description: "Ctrl+R by default, replacing Discord's own reload.",
         default: "ctrl+r"
     },
     buttons: {
@@ -408,7 +387,7 @@ migratePluginSettings("QuickRestart", "CustomPluginQuickRestart", "CustomQuickRe
 
 export default definePlugin({
     name: "QuickRestart",
-    description: "Makes Ctrl+R a much faster restart: plugins restart in milliseconds and Discord fetches everything again without reloading the window. When a reload is really needed, for a new Vencord build, it happens behind a picture of the window so nothing flashes.",
+    description: "Ctrl+R restarts Discord the way it always did, but behind a picture of the window, so it never goes blank. In a call it asks you to press again first, so you are not hung up by accident.",
     tags: ["Utility"],
     authors: [{ name: "reqon", id: 497562304498368513n }],
 
@@ -417,27 +396,19 @@ export default definePlugin({
     settingsAboutComponent: () => (
         <About
             icon={BoltIcon}
-            title="Ctrl+R, only faster"
+            title="Ctrl+R, without the flash"
             note={false}
             steps={[
-                <>Press <kbd>Ctrl</kbd>+<kbd>R</kbd> like always. Every plugin restarts in a few milliseconds and Discord fetches your servers, DMs and friends again, without the window reloading.</>,
-                <>When a new Vencord build is waiting it reloads instead, behind a picture of the window, so there is no flash.</>,
-                <>In a call only the plugins restart, so you are not hung up.</>
+                <>Press <kbd>Ctrl</kbd>+<kbd>R</kbd> like always. Discord restarts for real - new updates, every plugin, everything - while a picture of the window stays up, so you never see it go blank.</>,
+                <>In a call the first press only warns you, because restarting leaves the call. Press again to go ahead.</>,
+                <>The buttons below can restart just the plugins in a few milliseconds, or quit and reopen Discord.</>
             ]}
         />
     ),
 
-    async start() {
+    start() {
         window.addEventListener("keydown", onKeyDown, true);
         uncoverWhenDrawn();
-
-        if (!loadedBuild && Native) {
-            try {
-                loadedBuild = await Native.builtAt();
-            } catch (e) {
-                logger.error("Could not read when this build was made", e);
-            }
-        }
     },
 
     stop() {
