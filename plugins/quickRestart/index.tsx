@@ -10,9 +10,9 @@ import "./styles.css";
 import { definePluginSettings, migratePluginSettings, Settings } from "@api/Settings";
 import { Logger } from "@utils/Logger";
 import { relaunch } from "@utils/native";
-import definePlugin, { OptionType, PluginNative } from "@utils/types";
+import definePlugin, { OptionType, PluginNative, StartAt } from "@utils/types";
 import { findByPropsLazy } from "@webpack";
-import { FluxDispatcher, React, SelectedChannelStore, showToast, UserStore } from "@webpack/common";
+import { FluxDispatcher, React, SelectedChannelStore, showToast } from "@webpack/common";
 
 import { BoltIcon, PowerIcon, PuzzleIcon, RefreshIcon } from "./icons";
 import { About, IconButton, Panel } from "./ui";
@@ -80,23 +80,36 @@ const reload = () => {
  * Take the picture away once this window has drawn Discord again.
  *
  * Called as the plugin starts on every load: after a covered reload it is what reveals the new
- * window, and the rest of the time there is nothing to take away. Waited for until there is a
- * signed-in user and the server list or DM list is on screen, then one more frame so it has
- * been painted rather than only put in place.
+ * window, and the rest of the time there is nothing to take away. Waited for until the server
+ * list is on screen.
  */
 function uncoverWhenDrawn() {
     if (!Native?.uncover) return;
 
-    const began = Date.now();
-    const look = () => {
-        const drawn = !!UserStore.getCurrentUser() && !!document.querySelector('[data-list-id="guildsnav"], nav[aria-label] [class*="privateChannels"]');
-        if (drawn || Date.now() - began > 15000) {
-            requestAnimationFrame(() => requestAnimationFrame(() => void Native.uncover().catch(() => { })));
-            return;
-        }
-        setTimeout(look, 100);
+    // Only the page is asked. Asking for the signed-in user this early failed or came back
+    // empty, and the picture then stayed up until the main process gave up on it at fifteen
+    // seconds - measured: Discord drawn at 5.5 s, picture gone at 15.2 s.
+    //
+    // Told the moment the list is added rather than looking every so often: Discord is busiest
+    // drawing its first screen, and a timer then fired well over a second late.
+    let done = false;
+    const reveal = () => {
+        if (done) return;
+        done = true;
+        watcher.disconnect();
+        clearTimeout(giveUp);
+        // At once, not after the next frames or a timer: the picture covers the window, and
+        // Windows does not draw a covered window, so frames may not come; and timers run late
+        // while Discord draws its first screen. The request crosses to the main process, by
+        // which time the list has been painted.
+        void Native.uncover().catch(() => { });
     };
-    look();
+    const drawn = () => !!document.querySelector('[data-list-id="guildsnav"]');
+
+    const watcher = new MutationObserver(() => drawn() && reveal());
+    const giveUp = setTimeout(reveal, 15000);
+    if (drawn()) reveal();
+    else watcher.observe(document, { childList: true, subtree: true });
 }
 
 /**
@@ -392,6 +405,11 @@ export default definePlugin({
     authors: [{ name: "reqon", id: 497562304498368513n }],
 
     settings,
+
+    // At once, rather than when Discord's code is ready: that is after Discord has drawn, so
+    // the picture over a restart stayed up for a second and a half too long (measured). Nothing
+    // started here needs Discord's code - only the page and the key presses.
+    startAt: StartAt.Init,
 
     settingsAboutComponent: () => (
         <About
