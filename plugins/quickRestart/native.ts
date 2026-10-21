@@ -41,9 +41,34 @@ export function uncover() {
     cover = null;
 }
 
+/**
+ * Keep the window and the picture in the same place: drag the picture and the window comes
+ * with it, move the window and the picture comes with it. Each move sets off the other one's
+ * move event, so one in progress is not answered.
+ */
+function follow(win: BrowserWindow, picture: BrowserWindow) {
+    let moving = false;
+    const match = (from: BrowserWindow, to: BrowserWindow) => () => {
+        if (moving || from.isDestroyed() || to.isDestroyed()) return;
+        moving = true;
+        try {
+            const { x, y } = from.getBounds();
+            to.setPosition(x, y);
+        } finally {
+            moving = false;
+        }
+    };
+
+    const pictureMoved = match(picture, win);
+    const windowMoved = match(win, picture);
+    picture.on("move", pictureMoved);
+    win.on("move", windowMoved);
+    picture.once("closed", () => win.removeListener("move", windowMoved));
+}
+
 /** What is laid over the window while it reloads: the window as it was, and a small pill */
 const coverPage = (picture: string) => `<!doctype html><html><head><meta charset="utf-8"><style>
-html,body{margin:0;height:100%;overflow:hidden;background:#000;cursor:progress}
+html,body{margin:0;height:100%;overflow:hidden;background:#000;cursor:progress;-webkit-app-region:drag}
 img{display:block;width:100%;height:100%}
 .pill{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);display:flex;gap:10px;align-items:center;
 padding:10px 16px;border-radius:999px;background:rgba(20,20,24,.86);color:#fff;font:600 14px/1 system-ui,sans-serif;
@@ -60,8 +85,11 @@ box-shadow:0 8px 24px rgba(0,0,0,.35)}
  * the window reloads underneath, and the picture is taken away when the new one says it is
  * ready - so what you see is your Discord, a small "Restarting" pill, then your Discord again.
  *
- * Clicks pass straight through the picture, and it takes itself away after fifteen seconds
- * whatever happens, so it can never be left in the way.
+ * While it is up you can still move Discord: Discord's title bar is part of the page, and the
+ * page is what is reloading, so there is nothing underneath to grab. The picture is grabbed
+ * instead - anywhere on it - and the window follows it, as the picture follows the window if
+ * it is moved some other way. A maximized window stays where it is, as it would anyway. It
+ * takes itself away after fifteen seconds whatever happens, so it can never be left in the way.
  */
 export async function reloadCovered(event: IpcMainInvokeEvent) {
     const contents = event.sender;
@@ -71,8 +99,15 @@ export async function reloadCovered(event: IpcMainInvokeEvent) {
 
     if (win && !win.isMinimized() && win.isVisible()) {
         try {
-            const shot = await contents.capturePage();
+            // A window hidden behind others is not being drawn, and asking it for a picture then
+            // waits for ever - measured: the restart never started. A second is plenty when it is
+            // drawn; past that it restarts without the picture.
+            const shot = await Promise.race([
+                contents.capturePage(),
+                new Promise<never>((_, fail) => setTimeout(() => fail(new Error("no picture")), 1000))
+            ]);
             const bounds = win.getContentBounds();
+            const movable = !win.isMaximized() && !win.isFullScreen();
 
             cover = new BrowserWindow({
                 x: bounds.x,
@@ -83,7 +118,7 @@ export async function reloadCovered(event: IpcMainInvokeEvent) {
                 frame: false,
                 show: false,
                 resizable: false,
-                movable: false,
+                movable,
                 minimizable: false,
                 maximizable: false,
                 focusable: false,
@@ -92,7 +127,9 @@ export async function reloadCovered(event: IpcMainInvokeEvent) {
                 backgroundColor: "#000000",
                 webPreferences: { javascript: false, sandbox: true }
             });
-            cover.setIgnoreMouseEvents(true);
+            if (!movable) cover.setIgnoreMouseEvents(true);
+            else follow(win, cover);
+
             await cover.loadURL("data:text/html;charset=utf-8," + encodeURIComponent(coverPage("data:image/jpeg;base64," + shot.toJPEG(88).toString("base64"))));
             cover.showInactive();
 
