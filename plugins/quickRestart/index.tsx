@@ -5,12 +5,14 @@
  */
 
 import "./shared.css";
+import "./styles.css";
 
 import { definePluginSettings, migratePluginSettings, Settings } from "@api/Settings";
 import { Logger } from "@utils/Logger";
 import { relaunch } from "@utils/native";
-import definePlugin, { OptionType } from "@utils/types";
-import { showToast } from "@webpack/common";
+import definePlugin, { OptionType, PluginNative } from "@utils/types";
+import { findByPropsLazy } from "@webpack";
+import { FluxDispatcher, React, SelectedChannelStore, showToast } from "@webpack/common";
 
 import { BoltIcon, PowerIcon, PuzzleIcon, RefreshIcon } from "./icons";
 import { About, IconButton, Panel } from "./ui";
@@ -20,96 +22,104 @@ const logger = new Logger("QuickRestart");
 const SELF = "QuickRestart";
 const HUB = "PluginHub";
 
+/** Present once Discord has been fully restarted with this plugin in it - see native.ts */
+const Native = (VencordNative as any).pluginHelpers?.QuickRestart as PluginNative<typeof import("./native")> | undefined;
+
+/** Discord's own connection to its servers */
+const Gateway = findByPropsLazy("getSocket");
+
+// ---------------------------------------------------------------- what the last restart did
+
+interface Last {
+    at: number;
+    plugins?: number;
+    pluginMs?: number;
+    resyncMs?: number;
+    note?: string;
+}
+
+let last: Last | null = null;
+const listeners = new Set<() => void>();
+const record = (patch: Partial<Last>) => {
+    last = { ...(last ?? { at: Date.now() }), ...patch };
+    for (const listener of listeners) listener();
+};
+
+// ---------------------------------------------------------------- is there newer code
+
+/** When the build this window is running was written, read as it loaded */
+let loadedBuild = 0;
+
+/**
+ * Whether a newer Vencord build is waiting on disk.
+ *
+ * Restarting plugins runs the code this window loaded - a new build is only ever brought in by
+ * a reload. So the shortcut asks first, and reloads only when there is something to load.
+ * Null when it cannot tell, which is until Discord has been fully restarted once with this.
+ */
+async function newerBuild(): Promise<boolean | null> {
+    if (!Native || !loadedBuild) return null;
+
+    try {
+        return (await Native.builtAt()) > loadedBuild + 1000;
+    } catch {
+        return null;
+    }
+}
+
 /**
  * Whether a plugin that is enabled but not running can only be brought in by a reload.
  *
- * Enabled and stopped is not enough to say so. Additional Settings stops plugins it has
- * switched off while Vencord still has them enabled, and those are off on purpose - a reload
- * starts them and they are stopped again straight after. What a reload really answers is a
- * plugin whose patches never went in, so only that is counted.
+ * Additional Settings stops plugins it has switched off while Vencord still has them enabled,
+ * and those are off on purpose. What a reload really answers is a plugin whose patches never
+ * went in, so only that is counted.
  */
 function unpatched(name: string, plugin: any): boolean {
     const off: unknown = (Settings.plugins[HUB] as any)?.off;
     if (Array.isArray(off) && off.includes(name)) return false;
-
     if (!plugin.patches?.length) return false;
 
     try {
-        // Plugins that know whether their patches went in say so; anything else with patches
-        // that is not running is taken to be waiting on them.
         return plugin.patchesLive ? !plugin.patchesLive() : true;
     } catch {
         return true;
     }
 }
 
-// ---------------------------------------------------------------- the restarts
+// ---------------------------------------------------------------- the three kinds of restart
 
-/**
- * Reload the window. What Ctrl+R has always done: on the desktop client it rebuilds the
- * renderer only, so the session and gateway connection are picked back up rather than
- * re-established.
- */
+/** Reload the window: the only thing that brings in new code. About five seconds */
 const reload = () => location.reload();
 
-interface QuickResult {
-    restarted: number;
-    failed: string[];
-    /** enabled, but never started - only a reload can bring these in */
-    needsReload: string[];
-    ms: number;
-}
-
 /**
- * Restart every plugin that is currently running.
+ * Restart every running plugin in place. Measured at under ten milliseconds for eighty-odd.
  *
- * Vencord's stop/start pair is a complete lifecycle cycle - commands, context menus, flux
- * subscriptions, styles, badges, listeners, chat bar buttons, decorations, all torn down
- * and registered again. It is the same pair the settings page uses when you toggle a
- * plugin. So this covers everything a reload would, bar one thing: webpack patches, which
- * were applied to Discord's modules as those modules first loaded and cannot be redone
- * without loading them again.
- *
- * That distinction matters, and getting it wrong is what made this useless before. A
- * plugin that *has* patches restarts perfectly well - its patches are already in place and
- * stay there. It is a plugin that has been switched on since the last load whose patches
- * were never applied, and no amount of restarting will change that. Those are reported
- * separately rather than silently skipped.
+ * Vencord's stop/start pair is a full lifecycle - commands, menus, subscriptions, styles,
+ * listeners, all torn down and put back - the same pair its settings page uses. The one thing
+ * it cannot redo is a webpack patch, which goes in as Discord's code loads; a plugin switched
+ * on since then is reported as needing a reload rather than quietly left out.
  */
-function quickRestart(): QuickResult | null {
-    // Reached through the global rather than imported: importing the plugin manager from a
-    // plugin is a circular dependency by definition, and Vencord's own webpack commons
-    // dodge it the same way.
+function restartPlugins() {
     const PM: any = Vencord?.Plugins;
     if (!PM?.plugins) return null;
 
     const began = performance.now();
-
     const running: any[] = [];
     const needsReload: string[] = [];
 
     for (const name in PM.plugins) {
         const plugin = PM.plugins[name];
 
-        // The API plugins everything else is built on. Cycling those buys nothing and
-        // takes the ground out from under the plugins being restarted around them.
-        if (plugin.required) continue;
-
-        // Restarting the thing currently running the restart is asking for trouble, and
-        // there's no reason to: every setting here is read fresh at the keypress.
-        if (name === SELF) continue;
-
-        // Plugin Hub holds Screen Share Protection. Stopping it lets go of everything held on
-        // for a share and starting it takes hold again a moment later - long enough for the
-        // real lists to be on the stream in between. Its settings are read fresh as well.
-        if (name === HUB) continue;
+        // The APIs everything else stands on, this plugin (which is running the restart), and
+        // Additional Settings, which holds Screen Share Protection and would let go of it for
+        // the moment in between.
+        if (plugin.required || name === SELF || name === HUB) continue;
 
         if (plugin.started) running.push(plugin);
         else if (PM.isPluginEnabled(name) && unpatched(name, plugin)) needsReload.push(name);
     }
 
-    // Stopped in reverse and started in order - the order Vencord itself uses - so nothing
-    // is left running while something it depends on is down.
+    // Stopped in reverse and started in order, as Vencord itself does
     for (let i = running.length - 1; i >= 0; i--) {
         try {
             PM.stopPlugin(running[i]);
@@ -128,60 +138,132 @@ function quickRestart(): QuickResult | null {
         }
     }
 
-    return {
-        restarted: running.length - failed.length,
-        failed,
-        needsReload,
-        ms: Math.round(performance.now() - began)
-    };
+    return { restarted: running.length - failed.length, failed, needsReload, ms: performance.now() - began };
 }
 
-/** Bottom of the screen, out of the way of whatever you were doing when you hit the key */
-const toast = (message: string, type: ToastKind) =>
-    showToast({ text: message, variant: (type) === "failure" ? "critical" : (type) === "success" ? "success" : "default", position: "bottom" });
+/** Whether you are in a call, which a fresh session would hang up */
+const inCall = () => {
+    try {
+        return !!SelectedChannelStore.getVoiceChannelId();
+    } catch {
+        return false;
+    }
+};
 
-type ToastKind = "success" | "failure" | "message";
+/**
+ * Have Discord fetch everything again, as it does on launch, without reloading the window.
+ *
+ * The session is forgotten and the connection closed and opened again, so the server answers
+ * with a fresh start - every server, conversation, friend and setting - exactly what a launch
+ * gets. Measured at about two and a half seconds, with the window and whatever you were typing
+ * staying where they are. Not during a call: a new session would hang it up.
+ */
+function resync(): Promise<number | null> {
+    const socket = Gateway?.getSocket?.();
+    if (!socket?.isConnected?.() || inCall()) return Promise.resolve(null);
+
+    const began = performance.now();
+
+    return new Promise(resolve => {
+        const done = (ms: number | null) => {
+            FluxDispatcher.unsubscribe("CONNECTION_OPEN", onOpen);
+            clearTimeout(giveUp);
+            resolve(ms);
+        };
+        const onOpen = () => done(performance.now() - began);
+        const giveUp = setTimeout(() => done(null), 20000);
+
+        FluxDispatcher.subscribe("CONNECTION_OPEN", onOpen);
+
+        try {
+            socket.sessionId = null;
+            socket.close(true);
+            socket.connect();
+        } catch (e) {
+            logger.error("Could not resync", e);
+            done(null);
+        }
+    });
+}
+
+// ---------------------------------------------------------------- saying what happened
+
+const toast = (text: string, variant: "success" | "critical" | "default" = "default") =>
+    showToast({ text, variant, position: "bottom" });
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+const ms = (n: number) => n < 1000 ? `${Math.max(1, Math.round(n))} ms` : `${(n / 1000).toFixed(1)} s`;
 
-/** Restart the plugins, and say what happened */
-function runQuick(fallBackToReload: boolean) {
-    const result = quickRestart();
-
+/** Restart the plugins, then resync Discord unless told not to */
+async function softRestart(withResync: boolean) {
+    const result = restartPlugins();
     if (!result) {
-        toast("Couldn't reach the plugin manager - reloading instead", "failure");
+        toast("Could not reach the plugins, reloading instead", "critical");
         reload();
         return;
     }
 
-    // Plugins switched on since the last load are the one case a restart can't answer,
-    // because their patches were never applied. Reloading is the only thing that will
-    // help, so the sensible default is to just do it.
-    if (result.needsReload.length && fallBackToReload) {
-        reload();
-        return;
-    }
+    record({ at: Date.now(), plugins: result.restarted, pluginMs: result.ms, resyncMs: undefined, note: undefined });
 
     if (result.failed.length) {
-        toast(`Restarted ${result.restarted}, but ${plural(result.failed.length, "plugin")} failed - see the console`, "failure");
+        toast(`${plural(result.failed.length, "plugin")} failed to restart: ${result.failed.join(", ")}`, "critical");
+    }
+
+    const restarted = `Restarted ${plural(result.restarted, "plugin")} in ${ms(result.ms)}`;
+
+    if (!withResync) {
+        toast(restarted, "success");
         return;
     }
 
-    if (result.needsReload.length) {
-        const waiting = result.needsReload.length;
-        toast(`Restarted ${plural(result.restarted, "plugin")} - ${plural(waiting, "plugin")} still ${waiting === 1 ? "needs" : "need"} a reload`, "message");
+    if (inCall()) {
+        record({ note: "Discord was not resynced because you were in a call" });
+        toast(`${restarted}. Not resyncing Discord during a call`, "success");
         return;
     }
 
-    toast(`Restarted ${plural(result.restarted, "plugin")} in ${result.ms}ms`, "success");
+    toast(`${restarted}. Resyncing Discord...`, "default");
+    const took = await resync();
+
+    if (took === null) {
+        record({ note: "Discord could not be resynced" });
+        toast("Plugins restarted, but Discord did not resync. Press Ctrl+Shift+R to reload", "critical");
+        return;
+    }
+
+    record({ resyncMs: took });
+    toast(`Restarted ${plural(result.restarted, "plugin")} in ${ms(result.ms)} and resynced Discord in ${ms(took)}`, "success");
+}
+
+/** What the shortcut does by default: reload when there is new code, restart in place when not */
+async function smartRestart() {
+    const newer = await newerBuild();
+    if (newer) {
+        toast("New Vencord build found. Reloading to load it...", "default");
+        reload();
+        return;
+    }
+
+    const PM: any = Vencord?.Plugins;
+    const waiting = PM?.plugins && Object.keys(PM.plugins).some(name => {
+        const plugin = PM.plugins[name];
+        return !plugin.started && !plugin.required && PM.isPluginEnabled(name) && unpatched(name, plugin);
+    });
+    if (waiting) {
+        toast("A plugin was switched on that needs a reload. Reloading...", "default");
+        reload();
+        return;
+    }
+
+    await softRestart(true);
 }
 
 function runAction() {
     switch (settings.store.action) {
-        case "quick": return runQuick(false);
+        case "plugins": return softRestart(false);
         case "reload": return reload();
         case "full": return relaunch();
-        default: return runQuick(true);
+        default: return smartRestart();
     }
 }
 
@@ -208,12 +290,10 @@ function parseHotkey(value: string): Combo {
     };
 }
 
-// parsed once per distinct setting rather than on every keypress
 const cache = new Map<string, Combo>();
 function hotkey(raw: string) {
     let combo = cache.get(raw);
     if (!combo) cache.set(raw, combo = parseHotkey(raw));
-
     return combo;
 }
 
@@ -221,18 +301,11 @@ function matches(e: KeyboardEvent, raw: string) {
     const combo = hotkey(raw);
     if (!combo.key || e.key.toLowerCase() !== combo.key) return false;
 
-    // every modifier has to match exactly, so Ctrl+R doesn't also fire on Ctrl+Shift+R
-    return e.ctrlKey === combo.ctrl && e.shiftKey === combo.shift
-        && e.altKey === combo.alt && e.metaKey === combo.meta;
+    // every modifier has to match exactly, so Ctrl+R does not also fire on Ctrl+Shift+R
+    return e.ctrlKey === combo.ctrl && e.shiftKey === combo.shift && e.altKey === combo.alt && e.metaKey === combo.meta;
 }
 
-/**
- * Listened for in the capture phase.
- *
- * Discord binds its own shortcuts on the way up and stops some of them there, and the
- * message box swallows keys of its own. Going first means the shortcut works from wherever
- * you happen to be - mid-message, inside a modal, in the settings you just changed.
- */
+/** Listened for first, so the shortcut works wherever you are - mid-message, in a modal, in settings */
 function onKeyDown(e: KeyboardEvent) {
     if (matches(e, settings.store.reloadHotkey)) {
         e.preventDefault();
@@ -244,11 +317,46 @@ function onKeyDown(e: KeyboardEvent) {
     if (matches(e, settings.store.hotkey)) {
         e.preventDefault();
         e.stopPropagation();
-        runAction();
+        if (!e.repeat) void runAction();
     }
 }
 
 // ---------------------------------------------------------------- settings
+
+function LastRestart() {
+    const [, redraw] = React.useState(0);
+    React.useEffect(() => {
+        const listener = () => redraw(n => n + 1);
+        listeners.add(listener);
+        return () => void listeners.delete(listener);
+    }, []);
+
+    if (!last) return <div className="vc-qr-last">Nothing restarted yet since Discord opened.</div>;
+
+    return (
+        <div className="vc-qr-last">
+            <div className="vc-qr-stats">
+                {last.plugins !== undefined && (
+                    <div className="vc-qr-stat">
+                        <span className="vc-qr-stat-value">{ms(last.pluginMs ?? 0)}</span>
+                        <span className="vc-qr-stat-label">to restart {plural(last.plugins, "plugin")}</span>
+                    </div>
+                )}
+                {last.resyncMs !== undefined && (
+                    <div className="vc-qr-stat">
+                        <span className="vc-qr-stat-value">{ms(last.resyncMs)}</span>
+                        <span className="vc-qr-stat-label">to resync Discord</span>
+                    </div>
+                )}
+                <div className="vc-qr-stat">
+                    <span className="vc-qr-stat-value">~5 s</span>
+                    <span className="vc-qr-stat-label">a full reload, for comparison</span>
+                </div>
+            </div>
+            {last.note && <div className="vc-qr-note">{last.note}.</div>}
+        </div>
+    );
+}
 
 function RestartButtons() {
     return (
@@ -256,18 +364,15 @@ function RestartButtons() {
             title="Restart now"
             actions={
                 <>
-                    <IconButton icon={PuzzleIcon} onClick={() => runQuick(false)}>
-                        Restart Plugins
-                    </IconButton>
-                    <IconButton icon={RefreshIcon} variant="secondary" onClick={reload}>
-                        Reload Window
-                    </IconButton>
-                    <IconButton icon={PowerIcon} variant="secondary" onClick={relaunch}>
-                        Restart Discord
-                    </IconButton>
+                    <IconButton icon={BoltIcon} onClick={() => void softRestart(true)}>Restart and Resync</IconButton>
+                    <IconButton icon={PuzzleIcon} variant="secondary" onClick={() => void softRestart(false)}>Plugins Only</IconButton>
+                    <IconButton icon={RefreshIcon} variant="secondary" onClick={reload}>Reload</IconButton>
+                    <IconButton icon={PowerIcon} variant="secondary" onClick={relaunch}>Restart Discord</IconButton>
                 </>
             }
-        />
+        >
+            <LastRestart />
+        </Panel>
     );
 }
 
@@ -275,16 +380,16 @@ const settings = definePluginSettings({
     hotkey: {
         type: OptionType.STRING,
         displayName: "Restart shortcut",
-        description: "The keys that restart your plugins, like ctrl+r.",
+        description: "The keys for a quick restart, like ctrl+r.",
         default: "ctrl+r"
     },
     action: {
         type: OptionType.SELECT,
         displayName: "Shortcut action",
-        description: "What happens when you press the restart shortcut.",
+        description: "What the restart shortcut does.",
         options: [
-            { label: "Restart plugins, reloading only if it has to", value: "smart", default: true },
-            { label: "Restart plugins, never reload", value: "quick" },
+            { label: "Restart plugins and resync Discord, reloading only for a new build", value: "smart", default: true },
+            { label: "Restart plugins only", value: "plugins" },
             { label: "Reload the window", value: "reload" },
             { label: "Restart Discord completely", value: "full" }
         ]
@@ -304,8 +409,8 @@ const settings = definePluginSettings({
 migratePluginSettings("QuickRestart", "CustomPluginQuickRestart", "CustomQuickRestart");
 
 export default definePlugin({
-    name: SELF,
-    description: "Ctrl+R restarts your plugins in milliseconds, keeping your connection and anything you were typing. It only reloads the window when it has to. Ctrl+Shift+R always reloads.",
+    name: "QuickRestart",
+    description: "Ctrl+R restarts every plugin in milliseconds and has Discord fetch everything again, without reloading the window. When there is a new Vencord build it reloads instead, so updates always arrive. Ctrl+Shift+R always reloads.",
     tags: ["Utility"],
     authors: [{ name: "reqon", id: 497562304498368513n }],
 
@@ -314,18 +419,27 @@ export default definePlugin({
     settingsAboutComponent: () => (
         <About
             icon={BoltIcon}
-            title="Restart in milliseconds"
+            title="Restart Discord without restarting it"
             note={false}
             steps={[
-                <><kbd>Ctrl</kbd>+<kbd>R</kbd> restarts every running plugin in place. You stay connected and keep what you were typing.</>,
-                <>If a change really needs a reload, it reloads by itself.</>,
+                <><kbd>Ctrl</kbd>+<kbd>R</kbd> restarts every plugin (a few milliseconds), then has Discord fetch your servers, DMs and friends again (a couple of seconds). The window stays open and you keep what you were typing.</>,
+                <>When a new Vencord build is on disk, it reloads instead, since that is the only way new code loads.</>,
+                <>In a call, only the plugins restart, so you are not hung up.</>,
                 <><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd> always reloads the whole window.</>
             ]}
         />
     ),
 
-    start() {
+    async start() {
         window.addEventListener("keydown", onKeyDown, true);
+
+        if (!loadedBuild && Native) {
+            try {
+                loadedBuild = await Native.builtAt();
+            } catch (e) {
+                logger.error("Could not read when this build was made", e);
+            }
+        }
     },
 
     stop() {

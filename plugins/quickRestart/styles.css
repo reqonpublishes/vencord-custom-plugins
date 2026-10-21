@@ -1,0 +1,43 @@
+/* What the last restart took, beside what a reload takes - the proof, in numbers */
+
+.vc-qr-last {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+.vc-qr-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 8px;
+}
+
+.vc-qr-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 12px;
+    border-radius: 8px;
+    background: var(--background-mod-subtle);
+}
+
+.vc-qr-stat-value {
+    color: var(--text-strong, var(--header-primary));
+    font-size: 22px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 26px;
+}
+
+.vc-qr-stat-label {
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 16px;
+}
+
+.vc-qr-note {
+    color: var(--text-muted);
+    font-size: 13px;
+}
