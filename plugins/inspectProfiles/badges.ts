@@ -99,13 +99,13 @@ export const BADGES: Badge[] = [
 ];
 
 export const GROUPS: { id: Group; title: string; note: string; }[] = [
-    { id: "staff", title: "Discord", note: "As many as you like. Bug Hunter is one tier at a time." },
-    { id: "nitro", title: "Nitro", note: "One at a time: how long you have supposedly had Nitro." },
-    { id: "boost", title: "Server boosting", note: "One at a time: how long you have supposedly boosted." },
-    { id: "stats", title: "Activity", note: "One tier of each." },
-    { id: "gifting", title: "Gifting", note: "One at a time." },
-    { id: "house", title: "HypeSquad house", note: "One house only." },
-    { id: "other", title: "Other", note: "As many as you like." },
+    { id: "staff", title: "Discord", note: "Pick any." },
+    { id: "nitro", title: "Nitro", note: "Pick one." },
+    { id: "boost", title: "Server boosting", note: "Pick one." },
+    { id: "stats", title: "Activity", note: "One of each." },
+    { id: "gifting", title: "Gifting", note: "Pick one." },
+    { id: "house", title: "HypeSquad house", note: "Pick one." },
+    { id: "other", title: "Other", note: "Pick any." },
 ];
 
 /** Groups where picking one replaces the last */

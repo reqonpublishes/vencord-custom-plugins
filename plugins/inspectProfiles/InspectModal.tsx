@@ -7,7 +7,8 @@
 import "./styles.css";
 
 import { ModalAction, RenderModalProps } from "@vencord/discord-types";
-import { Modal, openModal, showToast, TextArea, UserStore, useState } from "@webpack/common";
+import { findByCodeLazy } from "@webpack";
+import { Modal, openModal, showToast, TextArea, useEffect, UserStore, useState } from "@webpack/common";
 
 import { Badge, BADGES, badgesFor, GROUPS, realKeys, withBadge } from "./badges";
 import { BookmarkIcon, CheckIcon, CloseIcon, CopyIcon, ImageIcon, MasksIcon, PersonIcon, StarIcon, TrashIcon, UndoIcon } from "./icons";
@@ -16,6 +17,8 @@ import {
     Connection, deletePreset, Look, lookFor, NOTHING, presetCalled, presetNames, revert, savePreset, setLook, summary, tidyName,
 } from "./store";
 import { cl, IconButton } from "./ui";
+
+const fetchProfile = findByCodeLazy("USER_PROFILE_FETCH_START");
 
 const badgeIcon = (icon: string) => `https://cdn.discordapp.com/badge-icons/${icon}.png`;
 const isAddress = (value?: string) => !!value && /^https?:\/\//.test(value);
@@ -86,7 +89,7 @@ function Preview({ userId, look }: { userId: string; look: Look; }) {
                 <div className={cl("preview-username")}>
                     {username}{pronouns && <span> · {pronouns}</span>}
                 </div>
-                {bio && <div className={cl("preview-bio")}>{bio}</div>}
+                {bio && <div className={cl("preview-bio")}>{bio.replace(/(\*\*|__|~~|\*|_)(.+?)/g, "$2")}</div>}
                 <div className={cl("preview-label")}>Member since</div>
                 <div className={cl("preview-text")}>{since.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</div>
                 {!!connections.length && (
@@ -131,7 +134,7 @@ function Picture({ label, value, real, onChange }: { label: string; value?: stri
     const shown = value === NOTHING ? null : isAddress(value) ? value! : real;
 
     return (
-        <Field label={label} hint="Any picture address: a png, a gif, an attachment link. Empty keeps theirs.">
+        <Field label={label} hint="Paste an image link. Leave empty to keep theirs.">
             <div className={cl("picture")}>
                 <div className={cl("picture-thumb")} style={shown ? { backgroundImage: `url("${shown}")` } : undefined}>{!shown && "None"}</div>
                 <input
@@ -142,7 +145,7 @@ function Picture({ label, value, real, onChange }: { label: string; value?: stri
                     onChange={e => onChange(e.currentTarget.value.trim() || undefined)}
                 />
                 <IconButton icon={value === NOTHING ? UndoIcon : CloseIcon} variant="secondary" onClick={() => onChange(value === NOTHING ? undefined : NOTHING)}>
-                    {value === NOTHING ? "Theirs" : "None"}
+                    {value === NOTHING ? "Real" : "Remove"}
                 </IconButton>
             </div>
         </Field>
@@ -155,7 +158,7 @@ type Tab = "profile" | "pictures" | "badges" | "presets";
 
 const TABS: { id: Tab; label: string; icon: any; }[] = [
     { id: "profile", label: "Profile", icon: PersonIcon },
-    { id: "pictures", label: "Pictures & colours", icon: ImageIcon },
+    { id: "pictures", label: "Appearance", icon: ImageIcon },
     { id: "badges", label: "Badges", icon: StarIcon },
     { id: "presets", label: "Presets", icon: BookmarkIcon },
 ];
@@ -185,7 +188,7 @@ function ProfileTab({ userId, look, set }: { userId: string; look: Look; set(cha
                         value={since.toISOString().slice(0, 10)}
                         onChange={e => set({ memberSince: e.currentTarget.value ? new Date(e.currentTarget.value + "T12:00:00").getTime() : undefined })}
                     />
-                    {look.memberSince && <IconButton icon={UndoIcon} variant="secondary" onClick={() => set({ memberSince: undefined })}>Theirs</IconButton>}
+                    {look.memberSince && <IconButton icon={UndoIcon} variant="secondary" onClick={() => set({ memberSince: undefined })}>Real</IconButton>}
                 </div>
             </Field>
 
@@ -204,7 +207,7 @@ function ProfileTab({ userId, look, set }: { userId: string; look: Look; set(cha
                         <select className={cl("input", "select")} value={service} onChange={e => setService(e.currentTarget.value)}>
                             {SERVICES.map(s => <option key={s} value={s}>{s}</option>)}
                         </select>
-                        <input className={cl("input")} type="text" placeholder="account name" value={account} onChange={e => setAccount(e.currentTarget.value)} />
+                        <input className={cl("input")} type="text" placeholder="Account name" value={account} onChange={e => setAccount(e.currentTarget.value)} />
                         <IconButton
                             icon={CheckIcon}
                             variant="secondary"
@@ -218,7 +221,7 @@ function ProfileTab({ userId, look, set }: { userId: string; look: Look; set(cha
                         </IconButton>
                     </div>
                     {look.connections && (
-                        <button className={cl("link")} onClick={() => set({ connections: undefined })}>Use their real connections</button>
+                        <button className={cl("link")} onClick={() => set({ connections: undefined })}>Use real</button>
                     )}
                 </div>
             </Field>
@@ -243,7 +246,7 @@ function PicturesTab({ userId, look, set }: { userId: string; look: Look; set(ch
             <Picture label="Avatar" value={look.avatar} real={real.avatar} onChange={v => set({ avatar: v })} />
             <Picture label="Banner" value={look.banner} real={real.banner} onChange={v => set({ banner: v })} />
 
-            <Field label="Profile colours" hint={look.themeColors ? undefined : "Their real colours, or none"}>
+            <Field label="Profile colours" hint={look.themeColors ? undefined : realOf(userId).profile?.themeColors ? "Their colours" : "None set. Pick two for a gradient."}>
                 <div className={cl("row-inline")}>
                     {[0, 1].map(i => (
                         <input
@@ -258,7 +261,7 @@ function PicturesTab({ userId, look, set }: { userId: string; look: Look; set(ch
                             }}
                         />
                     ))}
-                    {look.themeColors && <IconButton icon={UndoIcon} variant="secondary" onClick={() => set({ themeColors: undefined })}>Theirs</IconButton>}
+                    {look.themeColors && <IconButton icon={UndoIcon} variant="secondary" onClick={() => set({ themeColors: undefined })}>Real</IconButton>}
                 </div>
             </Field>
 
@@ -276,16 +279,16 @@ function PicturesTab({ userId, look, set }: { userId: string; look: Look; set(ch
                 </div>
             </Field>
 
-            <Field label="Collectibles" hint="Copied whole when you steal a profile or wear a preset.">
+            <Field label="Collectibles" hint="Copied when you steal a profile.">
                 <div className={cl("list")}>
                     {extras.map(({ key, label }) => {
                         const value = look[key] as string | undefined;
                         return (
                             <div key={key} className={cl("list-row")}>
                                 <span className={cl("list-name")}>{label}</span>
-                                <span className={cl("muted")}>{value === NOTHING ? "None" : value ? "Chosen" : "Theirs"}</span>
+                                <span className={cl("muted")}>{value === NOTHING ? "None" : value ? "Chosen" : "Real"}</span>
                                 {value && (
-                                    <button className={cl("link")} onClick={() => set({ [key]: undefined } as any)}>Use theirs</button>
+                                    <button className={cl("link")} onClick={() => set({ [key]: undefined } as any)}>Use real</button>
                                 )}
                                 {value !== NOTHING && (
                                     <button className={cl("link")} onClick={() => set({ [key]: NOTHING } as any)}>Remove</button>
@@ -320,10 +323,10 @@ function BadgesTab({ userId, look, set }: { userId: string; look: Look; set(chan
     return (
         <div className={cl("tab")}>
             <div className={cl("row-inline", "spread")}>
-                <span className={cl("muted")}>{chosen.length} chosen. They show in the order Discord draws them.</span>
+                <span className={cl("muted")}>{chosen.length} selected</span>
                 <div className={cl("row-inline")}>
                     <IconButton icon={CloseIcon} variant="secondary" onClick={() => set({ badges: [] })}>None</IconButton>
-                    {look.badges && <IconButton icon={UndoIcon} variant="secondary" onClick={() => set({ badges: undefined })}>Theirs</IconButton>}
+                    {look.badges && <IconButton icon={UndoIcon} variant="secondary" onClick={() => set({ badges: undefined })}>Real</IconButton>}
                 </div>
             </div>
             {GROUPS.map(group => (
@@ -348,7 +351,10 @@ function PresetsTab({ userId, look, replace }: { userId: string; look: Look; rep
     const [, redraw] = useState(0);
     const me = UserStore.getCurrentUser()?.id;
     const who = realUser(userId);
-    const theirName = who?.globalName ?? who?.username ?? "them";
+    // A name made only of symbols and invisible characters reads as nothing in a list, so the
+    // username stands in for it.
+    const visible = (text?: string | null) => !!text && /[\p{L}\p{N}]/u.test(text);
+    const theirName = visible(who?.globalName) ? who.globalName : who?.username ?? "them";
 
     const keep = (what: Look, fallback: string) => {
         const called = tidyName(name) || fallback;
@@ -361,8 +367,8 @@ function PresetsTab({ userId, look, replace }: { userId: string; look: Look; rep
 
     return (
         <div className={cl("tab")}>
-            <Field label="Name" hint="Optional when stealing: it is named after them.">
-                <input className={cl("input")} type="text" value={name} placeholder="what to call this look" onChange={e => setName(e.currentTarget.value)} />
+            <Field label="Name" hint="Leave empty to use their name.">
+                <input className={cl("input")} type="text" value={name} placeholder="Preset name" onChange={e => setName(e.currentTarget.value)} />
             </Field>
             <div className={cl("cards")}>
                 <button className={cl("action")} onClick={() => {
@@ -370,31 +376,32 @@ function PresetsTab({ userId, look, replace }: { userId: string; look: Look; rep
                     if (whole) keep(whole, theirName);
                 }}>
                     <MasksIcon height={22} width={22} />
-                    <span className={cl("action-title")}>Steal {theirName}</span>
-                    <span className={cl("action-text")}>Everything: names, bio, date, badges, pictures, collectibles, colours and connections.</span>
+                    <span className={cl("action-title")}>Steal profile</span>
+                    <span className={cl("action-text")}>Copy everything about them.</span>
                 </button>
                 <button className={cl("action")} onClick={() => keep(look, theirName + " (edited)")}>
                     <CopyIcon height={22} width={22} />
-                    <span className={cl("action-title")}>Save these changes</span>
-                    <span className={cl("action-text")}>Only what you have changed here.</span>
+                    <span className={cl("action-title")}>Save changes</span>
+                    <span className={cl("action-text")}>Copy only what you changed.</span>
                 </button>
             </div>
 
-            <div className={cl("f-label")}>Saved ({presetNames().length})</div>
-            {!presetNames().length && <div className={cl("muted")}>Nothing saved yet.</div>}
+            <div className={cl("f-label")}>Presets ({presetNames().length})</div>
+            {!presetNames().length && <div className={cl("muted")}>No presets yet.</div>}
             <div className={cl("list")}>
                 {presetNames().map(called => (
                     <div key={called} className={cl("list-row")}>
+                        <img className={cl("preset-face")} alt="" src={isAddress(presetCalled(called)?.avatar) ? presetCalled(called)!.avatar : `https://cdn.discordapp.com/embed/avatars/${called.length % 6}.png`} />
                         <div className={cl("list-text")}>
                             <span className={cl("list-name")}>{called}</span>
                             <span className={cl("muted")}>{summary(presetCalled(called))}</span>
                         </div>
-                        <IconButton icon={CheckIcon} variant="secondary" onClick={() => replace({ ...presetCalled(called)! })}>Use here</IconButton>
+                        <IconButton icon={CheckIcon} variant="secondary" onClick={() => replace({ ...presetCalled(called)! })}>Use</IconButton>
                         {me && me !== userId && (
                             <IconButton icon={PersonIcon} variant="secondary" onClick={() => {
                                 setLook(me, presetCalled(called)!);
                                 showToast({ text: `You now look like ${called}`, variant: "success" });
-                            }}>Wear it</IconButton>
+                            }}>Wear</IconButton>
                         )}
                         <button className={cl("x")} aria-label={`Delete ${called}`} onClick={() => { deletePreset(called); redraw(n => n + 1); }}>
                             <TrashIcon height={16} width={16} />
@@ -422,33 +429,63 @@ function InspectModal({ rootProps, userId, startOn }: { rootProps: RenderModalPr
         return next;
     });
 
+    const isMe = userId === UserStore.getCurrentUser()?.id;
+
+    // The bio, badges and connections only arrive with the full profile, so it is asked for
+    // as the window opens - the same request opening their profile makes.
+    const [loaded, setLoaded] = useState(() => !!realProfile(userId));
+    useEffect(() => {
+        if (loaded) return;
+        Promise.resolve(fetchProfile?.(userId)).catch(() => { }).finally(() => setLoaded(true));
+    }, []);
+    const realName = who?.globalName ?? who?.username ?? "profile";
+
     const actions: ModalAction[] = [
         {
             text: "Save",
             variant: "primary",
             onClick: () => {
                 setLook(userId, look);
-                showToast({ text: "Saved. Only you see this", variant: "success" });
+                showToast({ text: "Saved", variant: "success" });
                 rootProps.onClose();
             }
         },
         {
-            text: "Show their real profile",
+            text: isMe ? "Reset to my real profile" : "Reset to real profile",
             variant: "secondary",
+            disabled: !lookFor(userId),
             onClick: () => {
                 revert(userId);
-                showToast({ text: "Back to their real profile", variant: "default" });
+                showToast({ text: isMe ? "Your real profile is back" : "Their real profile is back", variant: "default" });
                 rootProps.onClose();
             }
         },
     ];
 
+    const changed = !!lookFor(userId);
+
     return (
-        <Modal {...rootProps} size="xl" title={`Inspect ${who?.globalName ?? who?.username ?? "profile"}`} subtitle="Only you see any of this. Nothing is sent to Discord." actions={actions}>
+        <Modal {...rootProps} size="xl" title={isMe ? "Edit your profile" : `Inspect ${realName}`} subtitle="Only you can see these changes. Nothing is sent to Discord." actions={actions}>
             <div className={cl("layout")}>
                 <aside className={cl("aside")}>
                     <Preview userId={userId} look={look} />
-                    {!realProfile(userId) && <div className={cl("muted")}>Their full profile has not loaded. Open it once to fill in bio, badges and connections.</div>}
+                    <div className={cl("status", changed ? "status-on" : "")}>
+                        <span>
+                            {changed
+                                ? isMe ? "You are showing a changed profile." : `${realName}'s profile is changed for you.`
+                                : isMe ? "This is your real profile." : `This is ${realName}'s real profile.`}
+                        </span>
+                        {changed && (
+                            <button className={cl("link")} onClick={() => {
+                                revert(userId);
+                                setDraft({});
+                                showToast({ text: isMe ? "Your real profile is back" : "Their real profile is back", variant: "default" });
+                            }}>
+                                {isMe ? "Reset to my real profile" : "Reset to real profile"}
+                            </button>
+                        )}
+                    </div>
+                    {!loaded && <div className={cl("muted")}>Loading the full profile...</div>}
                 </aside>
                 <div className={cl("main")}>
                     <div className={cl("tabs")} role="tablist">
@@ -459,10 +496,13 @@ function InspectModal({ rootProps, userId, startOn }: { rootProps: RenderModalPr
                             </button>
                         ))}
                     </div>
-                    {tab === "profile" && <ProfileTab userId={userId} look={look} set={set} />}
-                    {tab === "pictures" && <PicturesTab userId={userId} look={look} set={set} />}
-                    {tab === "badges" && <BadgesTab userId={userId} look={look} set={set} />}
-                    {tab === "presets" && <PresetsTab userId={userId} look={look} replace={next => setDraft(next)} />}
+                    {/* One height for every tab, scrolling inside, so switching tabs never moves the window */}
+                    <div className={cl("scroller")}>
+                        {tab === "profile" && <ProfileTab userId={userId} look={look} set={set} />}
+                        {tab === "pictures" && <PicturesTab userId={userId} look={look} set={set} />}
+                        {tab === "badges" && <BadgesTab userId={userId} look={look} set={set} />}
+                        {tab === "presets" && <PresetsTab userId={userId} look={look} replace={next => setDraft(next)} />}
+                    </div>
                 </div>
             </div>
         </Modal>

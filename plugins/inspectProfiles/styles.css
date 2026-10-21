@@ -430,3 +430,55 @@
 .vc-cip-f > .vc-cip-input {
     flex: 0 0 auto;
 }
+
+.vc-cip-scroller {
+    height: min(520px, 62vh);
+    margin-right: -8px;
+    padding-right: 8px;
+    overflow-y: auto;
+}
+
+.vc-cip-preset-face {
+    flex: 0 0 auto;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+/* buttons in a row keep their size; the text beside them is what gives way */
+.vc-cip-list-row > button,
+.vc-cip-list-row > .vc-cip-x {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+.vc-cip-list-text .vc-cip-muted {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+/* says plainly whether what you are looking at is real, with the way back right there */
+.vc-cip-status {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: rgb(128 128 128 / 10%);
+    color: var(--text-muted);
+    font-size: 13px;
+    line-height: 17px;
+}
+
+.vc-cip-status-on {
+    background: color-mix(in srgb, var(--brand-500, #5865f2) 14%, transparent);
+    color: var(--text-default);
+}
+
+.vc-cip-status .vc-cip-link {
+    align-self: flex-start;
+    font-weight: 600;
+}

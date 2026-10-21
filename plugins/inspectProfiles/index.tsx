@@ -10,14 +10,14 @@ import { NavContextMenuPatchCallback } from "@api/ContextMenu";
 import { definePluginSettings, Settings } from "@api/Settings";
 import definePlugin, { OptionType } from "@utils/types";
 import { User } from "@vencord/discord-types";
-import { Menu, showToast } from "@webpack/common";
+import { Menu, showToast, UserStore } from "@webpack/common";
 
-import { InspectIcon, MasksIcon } from "./icons";
+import { InspectIcon, MasksIcon, UndoIcon } from "./icons";
 import { openInspect } from "./InspectModal";
 import { place } from "./menu";
 import { ProfilesPanel } from "./ProfilesPanel";
 import { avatarFor, bannerFor, joinedAt, profileLoaded, redraw, startRewriting, stopRewriting, wholeLookOf } from "./rewrite";
-import { editedIds, invalidate, load, onChange, presetNames, savePreset } from "./store";
+import { editedIds, invalidate, load, lookFor, onChange, presetNames, revert, savePreset } from "./store";
 import { About, menuChips } from "./ui";
 
 const settings = definePluginSettings({
@@ -40,7 +40,9 @@ const enabledAtLoad = !!Settings.plugins.InspectProfiles?.enabled;
 /** Keep somebody's whole profile as a preset, named after them */
 function steal(user: User) {
     const look = wholeLookOf(user.id);
-    const called = (user as any).globalName ?? user.username;
+    // A name made only of symbols reads as nothing in a list, so the username stands in
+    const shown = (user as any).globalName;
+    const called = shown && /[\p{L}\p{N}]/u.test(shown) ? shown : user.username;
     if (!look || savePreset(called, look) !== "saved") {
         showToast({ text: "Could not read their profile", variant: "critical" });
         return;
@@ -71,7 +73,20 @@ const userMenu = (enabled: () => boolean): NavContextMenuPatchCallback => (child
             icon={MasksIcon}
             leadingAccessory={{ type: "icon", icon: MasksIcon }}
             action={() => steal(user)}
-        />
+        />,
+        lookFor(user.id) ? (
+            <Menu.MenuItem
+                id="vc-cip-reset"
+                key="vc-cip-reset"
+                label={user.id === UserStore.getCurrentUser()?.id ? "Reset My Profile" : "Reset Profile"}
+                icon={UndoIcon}
+                leadingAccessory={{ type: "icon", icon: UndoIcon }}
+                action={() => {
+                    revert(user.id);
+                    showToast({ text: user.id === UserStore.getCurrentUser()?.id ? "Your real profile is back" : "Their real profile is back", variant: "default" });
+                }}
+            />
+        ) : null
     );
 };
 
