@@ -13,11 +13,12 @@ import { User } from "@vencord/discord-types";
 import { Menu, showToast, UserStore } from "@webpack/common";
 
 import { InspectIcon, MasksIcon, UndoIcon } from "./icons";
+import { forgetUnused, preload, whenReady } from "./images";
 import { openInspect } from "./InspectModal";
 import { place } from "./menu";
 import { ProfilesPanel } from "./ProfilesPanel";
 import { avatarFor, bannerFor, joinedAt, profileLoaded, redraw, startRewriting, stopRewriting, wholeLookOf } from "./rewrite";
-import { editedIds, invalidate, load, lookFor, onChange, presetNames, revert, savePreset } from "./store";
+import { asRecord, editedIds, invalidate, load, lookFor, onChange, presetNames, revert, savePreset } from "./store";
 import { About, menuChips } from "./ui";
 
 const settings = definePluginSettings({
@@ -91,6 +92,19 @@ const userMenu = (enabled: () => boolean): NavContextMenuPatchCallback => (child
 };
 
 let unwatch: (() => void) | null = null;
+
+/** Every picture any changed profile or preset uses */
+function picturesInUse() {
+    const { profiles, presets } = asRecord();
+    return [...Object.values(profiles), ...Object.values(presets)].flatMap(look => [look.avatar, look.banner]);
+}
+
+/** Pictures nothing uses any more are let go - a little after the last change, not on every one */
+let tidyTimer: ReturnType<typeof setTimeout> | null = null;
+function tidyPictures() {
+    if (tidyTimer) clearTimeout(tidyTimer);
+    tidyTimer = setTimeout(() => void forgetUnused(picturesInUse()), 5000);
+}
 let runs = 0;
 
 export default definePlugin({
@@ -182,8 +196,17 @@ export default definePlugin({
         await load();
         if (mine !== runs) return;
 
+        // Pictures kept on this computer are read before Discord first asks for them, and
+        // anything showing is told to draw again as each one becomes ready.
+        whenReady(redraw);
+        await preload(picturesInUse());
+        if (mine !== runs) return;
+
         startRewriting();
-        unwatch = onChange(redraw);
+        unwatch = onChange(() => {
+            redraw();
+            tidyPictures();
+        });
     },
 
     stop() {

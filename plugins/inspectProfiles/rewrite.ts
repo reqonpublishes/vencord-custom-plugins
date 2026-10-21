@@ -9,6 +9,7 @@ import { findStore } from "@webpack";
 import { UserStore } from "@webpack/common";
 
 import { badgesFor, realKeys } from "./badges";
+import { isStored, urlOf } from "./images";
 import { changes, Look, lookFor, NOTHING } from "./store";
 
 const logger = new Logger("InspectProfiles");
@@ -46,7 +47,12 @@ export const realProfile = (id: string) => (realGetProfile ?? profileStore()?.ge
 const userCopies = new Map<string, { from: any; version: number; copy: any; }>();
 const profileCopies = new Map<string, { from: any; version: number; copy: any; }>();
 
-const isAddress = (value?: string) => !!value && /^https?:\/\//.test(value);
+/** A picture this can draw: an address, or one kept on this computer */
+const isAddress = (value?: string) => !!value && (/^https?:\/\//.test(value) || isStored(value));
+
+/** Where to draw a chosen picture from, once it is ready */
+export const pictureUrl = (value?: string) =>
+    !value ? undefined : isStored(value) ? urlOf(value) : /^https?:\/\//.test(value) ? value : undefined;
 
 function userCopy(user: any) {
     if (!running || !user?.id) return user;
@@ -153,13 +159,13 @@ function profileCopy(profile: any) {
 export function avatarFor(user: any): string | undefined {
     if (!running) return;
     const chosen = lookFor(user?.id ?? user?.userId)?.avatar;
-    return isAddress(chosen) ? chosen : undefined;
+    return pictureUrl(chosen);
 }
 
 export function bannerFor(user: any): string | undefined {
     if (!running) return;
     const chosen = lookFor(user?.id ?? user?.userId)?.banner;
-    return isAddress(chosen) ? chosen : undefined;
+    return pictureUrl(chosen);
 }
 
 /** The day somebody joined, as Member Since shows it: the chosen one, or the real one */

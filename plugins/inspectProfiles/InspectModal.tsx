@@ -8,11 +8,12 @@ import "./styles.css";
 
 import { ModalAction, RenderModalProps } from "@vencord/discord-types";
 import { findByCodeLazy, findByPropsLazy } from "@webpack";
-import { Modal, openModal, SearchableSelect, showToast, TextArea, TextInput, useEffect, UserStore, useState } from "@webpack/common";
+import { ColorPicker, Modal, openModal, SearchableSelect, showToast, TextArea, TextInput, useEffect, useRef, UserStore, useState } from "@webpack/common";
 
 import { Badge, BADGES, badgesFor, GROUPS, realKeys, withBadge } from "./badges";
-import { BookmarkIcon, CheckIcon, CloseIcon, CopyIcon, ImageIcon, MasksIcon, PersonIcon, StarIcon, TrashIcon } from "./icons";
-import { realProfile, realUser, wholeLookOf } from "./rewrite";
+import { BookmarkIcon, CheckIcon, CloseIcon, CopyIcon, ImageIcon, LinkIcon, MasksIcon, PersonIcon, StarIcon, TrashIcon } from "./icons";
+import { keep } from "./images";
+import { pictureUrl, realProfile, realUser, wholeLookOf } from "./rewrite";
 import {
     Connection, deletePreset, Look, lookFor, NOTHING, presetCalled, presetNames, revert, savePreset, setLook, summary, tidyName,
 } from "./store";
@@ -27,9 +28,8 @@ const Platforms: {
 } = findByPropsLazy("isSupported", "getByUrl");
 
 const badgeIcon = (icon: string) => `https://cdn.discordapp.com/badge-icons/${icon}.png`;
-const isAddress = (value?: string) => !!value && /^https?:\/\//.test(value);
+const isLink = (value?: string) => !!value && /^https?:\/\//.test(value);
 const hex = (n?: number) => "#" + ((n ?? 0) & 0xffffff).toString(16).padStart(6, "0");
-const fromHex = (h: string) => parseInt(h.replace("#", ""), 16);
 const plainAvatar = (userId: string) => `https://cdn.discordapp.com/embed/avatars/${Number(BigInt(userId) >> 22n) % 6}.png`;
 
 /** Light or dark, so a logo is drawn in the version made for the background behind it */
@@ -96,8 +96,8 @@ function Preview({ userId, look }: { userId: string; look: Look; }) {
     const real = realOf(userId);
     const name = look.globalName ?? real.user?.globalName ?? real.user?.username ?? "Unknown";
     const username = look.username ?? real.user?.username ?? "";
-    const avatar = look.avatar === NOTHING ? plainAvatar(userId) : isAddress(look.avatar) ? look.avatar : real.avatar;
-    const banner = look.banner === NOTHING ? null : isAddress(look.banner) ? look.banner : real.banner;
+    const avatar = look.avatar === NOTHING ? plainAvatar(userId) : pictureUrl(look.avatar) ?? real.avatar;
+    const banner = look.banner === NOTHING ? null : pictureUrl(look.banner) ?? real.banner;
     const colours: number[] | undefined = look.themeColors ?? real.profile?.themeColors;
     const themed = !!colours && colours.length === 2;
     const badges = badgesFor(real.profile?.badges ?? [], look.badges ?? real.badges);
@@ -184,26 +184,111 @@ function Text({ value, real, onChange, multiline }: { value?: string; real?: str
 const RealLink = ({ show, onClick }: { show: boolean; onClick(): void; }) =>
     show ? <button className={cl("link")} onClick={onClick}>Use real</button> : null;
 
-function Picture({ label, value, real, wide, onChange }: { label: string; value?: string; real: string | null; wide?: boolean; onChange(next?: string): void; }) {
-    const shown = value === NOTHING ? null : isAddress(value) ? value! : real;
+/**
+ * An avatar or banner, chosen the way it is on a computer: drop a file on it, pick one, paste
+ * one, or give a link. What is showing is drawn large, so the choice is made by looking.
+ */
+function Picture({ label, kind, value, real, onChange }: {
+    label: string;
+    kind: "avatar" | "banner";
+    value?: string;
+    real: string | null;
+    onChange(next?: string): void;
+}) {
+    const [linking, setLinking] = useState(isLink(value));
+    const [busy, setBusy] = useState(false);
+    const [over, setOver] = useState(false);
+    const picker = useRef<HTMLInputElement>(null);
+    const shown = value === NOTHING ? null : pictureUrl(value) ?? real;
+    const word = label.toLowerCase();
+
+    const take = async (file?: File | null) => {
+        if (!file) return;
+        if (!file.type.startsWith("image/")) {
+            showToast({ text: "That file is not a picture", variant: "critical" });
+            return;
+        }
+
+        setBusy(true);
+        try {
+            onChange(await keep(file, kind));
+            setLinking(false);
+        } catch {
+            showToast({ text: "Could not use that picture", variant: "critical" });
+        } finally {
+            setBusy(false);
+        }
+    };
+
+    // A copied picture, or a copied link to one
+    const fromClipboard = (event: any) => {
+        const file = [...(event.clipboardData?.files ?? [])].find((f: File) => f.type.startsWith("image/"));
+        if (file) {
+            event.preventDefault();
+            void take(file);
+            return;
+        }
+
+        const text = event.clipboardData?.getData("text")?.trim();
+        if (isLink(text)) {
+            event.preventDefault();
+            onChange(text);
+        }
+    };
 
     return (
-        <Field label={label} hint="Paste an image link, or leave empty to keep the real one." action={<RealLink show={value !== undefined} onClick={() => onChange(undefined)} />}>
-            <div className={cl("picture")}>
-                <div className={cl("thumb", wide ? "thumb-wide" : "")} style={shown ? { backgroundImage: `url("${shown}")` } : undefined}>
-                    {!shown && "None"}
+        <Field label={label} action={<RealLink show={value !== undefined} onClick={() => { onChange(undefined); setLinking(false); }} />}>
+            <div className={cl("pic", `pic-${kind}`)}>
+                <button
+                    className={cl("drop", `drop-${kind}`, over ? "drop-over" : "")}
+                    style={shown ? { backgroundImage: `url("${shown}")` } : undefined}
+                    aria-label={`Change ${word}`}
+                    onClick={() => picker.current?.click()}
+                    onPaste={fromClipboard}
+                    onDragOver={e => { e.preventDefault(); setOver(true); }}
+                    onDragLeave={() => setOver(false)}
+                    onDrop={e => {
+                        e.preventDefault();
+                        setOver(false);
+                        void take(e.dataTransfer.files?.[0]);
+                    }}
+                >
+                    {!shown && <span className={cl("drop-empty")}>No {word}</span>}
+                    <span className={cl("drop-hover")}>{busy ? "Saving..." : over ? "Drop to use" : "Change"}</span>
+                </button>
+
+                <div className={cl("pic-side")}>
+                    <div className={cl("pic-buttons")}>
+                        <IconButton icon={ImageIcon} variant="primary" disabled={busy} onClick={() => picker.current?.click()}>Upload image</IconButton>
+                        <IconButton icon={LinkIcon} variant="secondary" onClick={() => setLinking(!linking)}>Paste link</IconButton>
+                        {value !== NOTHING && (
+                            <IconButton icon={CloseIcon} variant="secondary" onClick={() => { onChange(NOTHING); setLinking(false); }}>Remove</IconButton>
+                        )}
+                    </div>
+                    {linking && (
+                        <TextInput
+                            autoFocus
+                            value={isLink(value) ? value : ""}
+                            placeholder="https://"
+                            onChange={(next: string) => onChange(next.trim() || undefined)}
+                        />
+                    )}
+                    <span className={cl("f-hint")}>
+                        {value === NOTHING ? `No ${word} will show.` : "Drop a picture on it, or click it and paste. GIFs keep moving."}
+                    </span>
                 </div>
-                <div className={cl("grow")}>
-                    <TextInput
-                        value={isAddress(value) ? value : ""}
-                        placeholder={value === NOTHING ? "No picture" : "https://"}
-                        onChange={(next: string) => onChange(next.trim() || undefined)}
-                    />
-                </div>
-                {value !== NOTHING && (
-                    <IconButton icon={CloseIcon} variant="secondary" onClick={() => onChange(NOTHING)}>Remove</IconButton>
-                )}
             </div>
+
+            <input
+                ref={picker}
+                type="file"
+                accept="image/png,image/jpeg,image/gif,image/webp"
+                hidden
+                onChange={e => {
+                    void take(e.currentTarget.files?.[0]);
+                    e.currentTarget.value = "";
+                }}
+            />
         </Field>
     );
 }
@@ -311,28 +396,28 @@ function PicturesTab({ userId, look, set }: { userId: string; look: Look; set: S
 
     return (
         <div className={cl("tab")}>
-            <Picture label="Avatar" value={look.avatar} real={real.avatar} onChange={v => set({ avatar: v })} />
-            <Picture label="Banner" value={look.banner} real={real.banner} wide onChange={v => set({ banner: v })} />
+            <Picture label="Avatar" kind="avatar" value={look.avatar} real={real.avatar} onChange={v => set({ avatar: v })} />
+            <Picture label="Banner" kind="banner" value={look.banner} real={real.banner} onChange={v => set({ banner: v })} />
 
             <Field
                 label="Profile colours"
-                hint={look.themeColors ? undefined : colours ? "Their real colours." : "No colours set. Pick two to add a gradient."}
+                hint={look.themeColors ? undefined : colours ? "Their real colours." : "No colours set. Pick two to give the card a gradient."}
                 action={<RealLink show={look.themeColors !== undefined} onClick={() => set({ themeColors: undefined })} />}
             >
                 <div className={cl("swatches")}>
-                    {["Top", "Bottom"].map((which, i) => (
-                        <label key={which} className={cl("swatch")}>
-                            <input
-                                type="color"
-                                value={hex(colours?.[i] ?? 0x5865f2)}
-                                onChange={e => {
-                                    const next: [number, number] = [colours?.[0] ?? 0x5865f2, colours?.[1] ?? 0x5865f2];
-                                    next[i] = fromHex(e.currentTarget.value);
-                                    set({ themeColors: next });
-                                }}
-                            />
-                            <span>{which}</span>
-                        </label>
+                    {["Primary", "Accent"].map((which, i) => (
+                        <ColorPicker
+                            key={which}
+                            color={colours?.[i] ?? null}
+                            showEyeDropper
+                            label={<span className={cl("swatch-label")}>{which}</span>}
+                            onChange={(value: number | null) => set(prev => {
+                                const now = prev.themeColors ?? colours ?? [value ?? 0, value ?? 0];
+                                const next: [number, number] = [now[0], now[1]];
+                                next[i] = value ?? 0;
+                                return { themeColors: next };
+                            })}
+                        />
                     ))}
                 </div>
             </Field>
@@ -468,7 +553,7 @@ function PresetsTab({ userId, look, replace }: { userId: string; look: Look; rep
                         const preset = presetCalled(called)!;
                         return (
                             <div key={called} className={cl("item")}>
-                                <img className={cl("face")} alt="" src={isAddress(preset.avatar) ? preset.avatar : plainAvatar(String(called.length))} />
+                                <img className={cl("face")} alt="" src={pictureUrl(preset.avatar) ?? plainAvatar(String(called.length))} />
                                 <div className={cl("item-text")}>
                                     <span className={cl("item-name")}>{called}</span>
                                     <span className={cl("item-detail")}>{summary(preset)}</span>

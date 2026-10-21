@@ -303,62 +303,99 @@
 
 /* ---------------------------------------------------------------- pictures and colours */
 
-.vc-cip-picture {
+.vc-cip-pic {
     display: flex;
-    gap: 10px;
+    gap: 16px;
     align-items: center;
 }
 
-.vc-cip-thumb {
+.vc-cip-pic-banner {
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.vc-cip-pic-side {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+}
+
+.vc-cip-pic-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+/* the picture itself, drawn large: click to pick a file, drop one on it, or paste */
+.vc-cip-drop {
+    position: relative;
     display: flex;
     flex: 0 0 auto;
     align-items: center;
     justify-content: center;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
+    overflow: hidden;
+    padding: 0;
+    border: 2px dashed transparent;
     background: var(--background-mod-normal) center / cover no-repeat;
     color: var(--text-muted);
-    font-size: 11px;
+    cursor: pointer;
 }
 
-.vc-cip-thumb-wide {
-    width: 72px;
-    border-radius: 6px;
+.vc-cip-drop-avatar {
+    width: 96px;
+    height: 96px;
+    border-radius: 50%;
+}
+
+.vc-cip-drop-banner {
+    width: 100%;
+    height: 120px;
+    border-radius: 8px;
+}
+
+.vc-cip-drop-empty {
+    font-size: 13px;
+}
+
+.vc-cip-drop-hover {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgb(0 0 0 / 55%);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .02em;
+    text-transform: uppercase;
+    opacity: 0;
+    transition: opacity .12s ease;
+}
+
+.vc-cip-drop-over .vc-cip-drop-hover,
+.vc-cip-drop:hover .vc-cip-drop-hover,
+.vc-cip-drop:focus-visible .vc-cip-drop-hover {
+    opacity: 1;
+}
+
+.vc-cip-drop-over {
+    border-color: var(--brand-500, #5865f2);
 }
 
 .vc-cip-swatches {
     display: flex;
-    gap: 16px;
+    gap: 20px;
 }
 
-.vc-cip-swatch {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    align-items: center;
+.vc-cip-swatch-label {
+    display: block;
+    margin-top: 6px;
     color: var(--text-muted);
     font-size: 12px;
-    cursor: pointer;
-}
-
-.vc-cip-swatch input {
-    width: 64px;
-    height: 40px;
-    padding: 0;
-    border: 1px solid var(--border-subtle);
-    border-radius: 8px;
-    background: none;
-    cursor: pointer;
-}
-
-.vc-cip-swatch input::-webkit-color-swatch-wrapper {
-    padding: 0;
-}
-
-.vc-cip-swatch input::-webkit-color-swatch {
-    border: none;
-    border-radius: 7px;
+    text-align: center;
 }
 
 .vc-cip-segments {
@@ -626,12 +663,12 @@
 /* ---------------------------------------------------------------- keyboard */
 
 .vc-cip-tab-button:focus-visible,
+.vc-cip-drop:focus-visible,
 .vc-cip-badge:focus-visible,
 .vc-cip-segment:focus-visible,
 .vc-cip-action:focus-visible,
 .vc-cip-icon-button:focus-visible,
-.vc-cip-link:focus-visible,
-.vc-cip-swatch input:focus-visible {
+.vc-cip-link:focus-visible {
     outline: 2px solid var(--focus-primary, #00b0f4);
     outline-offset: 2px;
 }
