@@ -541,7 +541,7 @@ export function hideFresh(ids: string[]): string[] {
                 continue;
             }
 
-            if (hideChat(channelId)) done.push(channelId);
+            if (hideChat(channelId, true)) done.push(channelId);
         }
     });
 

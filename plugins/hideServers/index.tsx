@@ -49,7 +49,11 @@ let alive = false;
 let runs = 0;
 
 /** Which servers you were in the last time the plugin was on */
-const known = knownList("HideServers_Known", listNow);
+const known = knownList("HideServers_Known", listNow, isHidden);
+
+/** Screen Share Protection says the share is over: show what only the share hid */
+const onShareEnded = () => void setTimeout(() => alive && known.shareEnded(ids => ids.forEach(id => showServer(id))), 0);
+
 
 /** Put away what was joined while the plugin could not see, if asked to, and take the list down */
 function catchUp() {
@@ -77,8 +81,11 @@ const afterConnect = () => {
     }, 0);
 };
 
-/** A server joined or left while the plugin is on: seen, so not new next time */
-const onListChange = () => known.rememberSoon();
+/**
+ * A server joined or left while the plugin is on: seen, so not new next time - or, while the
+ * screen is shared, a server joined live, hidden until the share ends.
+ */
+const onListChange = () => void setTimeout(() => alive && known.arrived(hideFresh), 0);
 
 migratePluginSettings("HideServers", "CustomPluginHideServers");
 
@@ -133,6 +140,7 @@ export default definePlugin({
         watchMutuals();
         FluxDispatcher.subscribe("CONNECTION_OPEN", afterConnect);
         FluxDispatcher.subscribe("GUILD_CREATE", onListChange);
+        window.addEventListener("vc-share-ended", onShareEnded);
         FluxDispatcher.subscribe("GUILD_DELETE", onListChange);
 
         await known.load();
@@ -146,6 +154,7 @@ export default definePlugin({
         known.leave();
         FluxDispatcher.unsubscribe("CONNECTION_OPEN", afterConnect);
         FluxDispatcher.unsubscribe("GUILD_CREATE", onListChange);
+        window.removeEventListener("vc-share-ended", onShareEnded);
         FluxDispatcher.unsubscribe("GUILD_DELETE", onListChange);
         unwatchMutuals();
         // The bar goes back to how Discord has it; the list of what was hidden is kept.

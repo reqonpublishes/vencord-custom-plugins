@@ -17,7 +17,7 @@ import { get, set } from "@api/DataStore";
  * `current` gives the list as it stands, or null while Discord has not loaded it yet: taking
  * down an empty list before it has loaded would make everything look new afterwards.
  */
-export function knownList(key: string, current: () => string[] | null) {
+export function knownList(key: string, current: () => string[] | null, stillHidden: (id: string) => boolean) {
     let known: Set<string> | null = null;
     let loading: Promise<void> | null = null;
     let timer: ReturnType<typeof setTimeout> | null = null;
@@ -60,6 +60,9 @@ export function knownList(key: string, current: () => string[] | null) {
 
         // Not what a share hid: those were never seen with the screen to yourself, so they
         // stay new - hidden again if the plugin restarts mid-share, and still new after it.
+        // Unless you have since shown one yourself - opened that DM, unhid that friend - which
+        // is seeing it, and the share has no more business hiding it again.
+        lent = lent.filter(stillHidden);
         const borrowed = new Set(lent);
         known = new Set(now.filter(id => !borrowed.has(id)));
         set(key, [...known]);
@@ -119,5 +122,44 @@ export function knownList(key: string, current: () => string[] | null) {
         lent = [];
     }
 
-    return { load, rememberSoon, cancel, catchUp, leave, giveBack };
+    /**
+     * Something on the list changed while the plugin is on.
+     *
+     * Normally that is only something to take down. While the screen is being shared it may be
+     * somebody new turning up live - a message from somebody whose DM was closed, a friend
+     * request, a server invite accepted - and the share should not show them any more than it
+     * shows what turned up before it began. So it is hidden for the rest of the share, and
+     * given back after with everything else the share hid.
+     */
+    function arrived(hide: (ids: string[]) => string[]) {
+        if (!seen) return;
+
+        if (!(window as any).vcShareHideNew) {
+            rememberSoon();
+            return;
+        }
+
+        const now = fresh();
+        if (!now.length) return;
+
+        lent.push(...hide(now));
+        remember();
+    }
+
+    /**
+     * The share is over and the plugin is staying on: show again what only the share hid.
+     *
+     * A plugin the share switched on hands these back as it stops. One that was on already
+     * keeps running, so it is told instead - or they would stay hidden for good.
+     */
+    function shareEnded(show: (ids: string[]) => void) {
+        const ids = lent.filter(stillHidden);
+        lent = [];
+        if (!ids.length) return;
+
+        show(ids);
+        remember();
+    }
+
+    return { load, rememberSoon, cancel, catchUp, leave, giveBack, arrived, shareEnded };
 }

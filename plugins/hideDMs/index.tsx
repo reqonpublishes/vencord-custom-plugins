@@ -92,7 +92,11 @@ const afterCall = () => void setTimeout(hideWaiting, 0);
 const onMessage = (action: any) => noteMessage(action?.channelId, action?.message?.id, action?.message?.author?.id);
 
 /** Which conversations were in the list the last time the plugin was on */
-const known = knownList("HideDMs_Known", listNow);
+const known = knownList("HideDMs_Known", listNow, isHidden);
+
+/** Screen Share Protection says the share is over: show what only the share hid */
+const onShareEnded = () => void setTimeout(() => alive && known.shareEnded(ids => ids.forEach(id => showChat(id))), 0);
+
 
 /** Put away what turned up while the plugin could not see, if asked to, and take the list down */
 function catchUp() {
@@ -127,10 +131,14 @@ const afterConnect = () => {
     }, 0);
 };
 
-/** A conversation opened or closed while the plugin is on: seen, so not new next time */
+/**
+ * A conversation opened or closed while the plugin is on: seen, so not new next time - or,
+ * while the screen is shared, somebody new turning up live, hidden until the share ends.
+ * After this dispatch rather than inside it: hiding is a dispatch of its own.
+ */
 const onListChange = (action: any) => {
     noteReal(action);
-    known.rememberSoon();
+    setTimeout(() => alive && known.arrived(hideFresh), 0);
 };
 
 /** Whether the plugin is meant to be on */
@@ -211,6 +219,7 @@ export default definePlugin({
         FluxDispatcher.subscribe("MESSAGE_CREATE", onMessage);
         FluxDispatcher.subscribe("CONNECTION_OPEN", afterConnect);
         FluxDispatcher.subscribe("CHANNEL_CREATE", onListChange);
+        window.addEventListener("vc-share-ended", onShareEnded);
         FluxDispatcher.subscribe("CHANNEL_DELETE", onListChange);
 
         await known.load();
@@ -224,6 +233,7 @@ export default definePlugin({
         // Before they come back on screen, while the hidden ones are still the hidden ones
         known.leave();
         FluxDispatcher.unsubscribe("CHANNEL_CREATE", onListChange);
+        window.removeEventListener("vc-share-ended", onShareEnded);
         FluxDispatcher.unsubscribe("CHANNEL_DELETE", onListChange);
         FluxDispatcher.unsubscribe("CHANNEL_SELECT", reopen);
         FluxDispatcher.unsubscribe("VOICE_CHANNEL_SELECT", afterCall);

@@ -35,6 +35,7 @@ import {
     hideFriend,
     invalidate,
     isBlocked,
+    isDismissed,
     isFriended,
     isHidden,
     isIncoming,
@@ -49,6 +50,7 @@ import {
     receiveRequest,
     removeFakeFriend,
     restoreEverything,
+    restoreRequest,
     resume,
     sendRequest,
     setOn,
@@ -230,7 +232,26 @@ function unguard() {
 
 /** Discord rebuilds its relationships on every reconnect, so everything is said again */
 /** Who was a friend or had sent a request the last time the plugin was on */
-const known = knownList("HideFriends_Known", realList);
+/** Whether somebody the share hid, as `id:type`, is still hidden - see realList */
+function stillHidden(key: string) {
+    const [id, type] = key.split(":");
+    return Number(type) === FRIEND ? isHidden(id) : isDismissed(id);
+}
+
+/** Show again people the share hid, as `id:type` */
+function showFresh(keys: string[]) {
+    for (const key of keys) {
+        const [id, type] = key.split(":");
+        if (Number(type) === FRIEND) showFriend(id);
+        else restoreRequest(id);
+    }
+}
+
+const known = knownList("HideFriends_Known", realList, stillHidden);
+
+/** Screen Share Protection says the share is over: show what only the share hid */
+const onShareEnded = () => void setTimeout(() => alive && known.shareEnded(showFresh), 0);
+
 
 /** Put away whoever turned up while the plugin could not see, if asked to, and take the list down */
 function catchUp() {
@@ -264,8 +285,11 @@ const afterConnect = () => {
     }, 0);
 };
 
-/** Somebody added, removed or changed while the plugin is on: seen, so not new next time */
-const onRelationship = () => known.rememberSoon();
+/**
+ * Somebody added, removed or changed while the plugin is on: seen, so not new next time - or,
+ * while the screen is shared, a new friend or request turning up live, hidden until it ends.
+ */
+const onRelationship = () => void setTimeout(() => alive && known.arrived(hideFresh), 0);
 
 const RELATIONSHIP_EVENTS = ["RELATIONSHIP_ADD", "RELATIONSHIP_UPDATE", "RELATIONSHIP_REMOVE"];
 
@@ -370,6 +394,7 @@ export default definePlugin({
         resume();
         FluxDispatcher.subscribe("CONNECTION_OPEN", afterConnect); watchMutuals();
         for (const type of RELATIONSHIP_EVENTS) FluxDispatcher.subscribe(type, onRelationship);
+        window.addEventListener("vc-share-ended", onShareEnded);
         setRunning(true);
 
         await known.load();
@@ -382,6 +407,7 @@ export default definePlugin({
         cancelConnect();
         known.leave();
         for (const type of RELATIONSHIP_EVENTS) FluxDispatcher.unsubscribe(type, onRelationship);
+        window.removeEventListener("vc-share-ended", onShareEnded);
         unwatchMutuals();
         setRunning(false);
         FluxDispatcher.unsubscribe("CONNECTION_OPEN", afterConnect);

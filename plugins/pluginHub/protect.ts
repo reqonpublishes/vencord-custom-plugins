@@ -102,7 +102,7 @@ export function check() {
     } else {
         const mine = raised ?? [];
         raised = null;
-        (window as any).vcShareHideNew = false;
+        shareOver();
 
         // Only the ones still meant to be off. Anything switched on by hand during the
         // share was a decision, and is left alone.
@@ -179,6 +179,18 @@ function spread(names: string[], on: boolean) {
     };
 
     setTimeout(next, 0);
+}
+
+/**
+ * The share is over: stop asking for new things to be hidden, and tell the hide plugins that
+ * stay on to show what the share hid. The ones that go off hand it back as they stop.
+ */
+function shareOver() {
+    (window as any).vcShareHideNew = false;
+
+    try {
+        window.dispatchEvent(new CustomEvent("vc-share-ended"));
+    } catch { /* they hand it back when they next stop */ }
 }
 
 /** Whether this page is taken out of the settings sidebar right now */
@@ -278,7 +290,7 @@ export function stopProtection() {
         const mine = raised;
         raised = null;
 
-        (window as any).vcShareHideNew = false;
+        shareOver();
 
         const off: string[] = opt().off ?? [];
         release(mine.filter(name => off.includes(name)), true);
