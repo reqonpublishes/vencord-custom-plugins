@@ -1050,3 +1050,33 @@
 .vc-cip-shop-tile:hover .vc-cip-shop-moving {
     opacity: 1;
 }
+
+/* an item's variants, under its name: the one shown is lit */
+.vc-cip-shop-variants {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    justify-content: center;
+}
+
+.vc-cip-shop-variant {
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: var(--background-mod-subtle, rgb(128 128 128 / 10%));
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 16px;
+    cursor: pointer;
+}
+
+.vc-cip-shop-variant:hover {
+    background: var(--background-mod-normal, rgb(128 128 128 / 16%));
+    color: var(--text-default);
+}
+
+.vc-cip-shop-variant-on,
+.vc-cip-shop-variant-on:hover {
+    background: var(--background-mod-strong, rgb(128 128 128 / 24%));
+    color: var(--text-strong, var(--text-default));
+}

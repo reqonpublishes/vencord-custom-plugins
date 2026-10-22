@@ -119,6 +119,106 @@ function Moving({ asset, skuId }: { asset: string; skuId: string; }) {
     return <img ref={ref} className={cl("shop-moving")} src={wanted ? decorationPicture(asset, skuId, true) : undefined} alt="" />;
 }
 
+/** One item and its variants: "Jack Skellington (Base)" and "(Bones)" are one Jack Skellington */
+interface Family {
+    name: string;
+    variants: Entry[];
+    /** each variant's own word - Base, Bones - or none when the item has no variants */
+    labels: (string | null)[];
+}
+
+const VARIANT = /^(.*\S)\s*\(([^()]+)\)$/;
+
+/**
+ * Put an item's variants on one tile, as the Shop does, in the order the catalogue has them.
+ *
+ * Discord names variants "Item (Variant)". Only names that really share a stem with another
+ * become variants; a lone "Something (Special)" stays as it is.
+ */
+function families(entries: Entry[]): Family[] {
+    const stems = new Map<string, number>();
+    for (const e of entries) {
+        const stem = VARIANT.exec(e.name)?.[1];
+        if (stem) stems.set(stem, (stems.get(stem) ?? 0) + 1);
+    }
+
+    const out: Family[] = [];
+    const byStem = new Map<string, Family>();
+    for (const e of entries) {
+        const match = VARIANT.exec(e.name);
+        const stem = match && (stems.get(match[1]) ?? 0) > 1 ? match[1] : null;
+
+        if (!stem) {
+            out.push({ name: e.name, variants: [e], labels: [null] });
+            continue;
+        }
+
+        let family = byStem.get(stem);
+        if (!family) {
+            family = { name: stem, variants: [], labels: [] };
+            byStem.set(stem, family);
+            out.push(family);
+        }
+        family.variants.push(e);
+        family.labels.push(match![2]);
+    }
+
+    return out;
+}
+
+/** A tile for one item: the variant you wear or picked, and a chip for each variant */
+function ShopTile({ family, kind, isWorn, starred, wear, onMenu }: {
+    family: Family;
+    kind: Kind;
+    isWorn(e: Entry): boolean;
+    starred: Set<string>;
+    wear(e: Entry): void;
+    onMenu(event: React.MouseEvent, e: Entry, wear: () => void): void;
+}) {
+    const worn = family.variants.findIndex(isWorn);
+    const [picked, setPicked] = useState(Math.max(0, worn));
+    const at = worn !== -1 ? worn : picked;
+    const e = family.variants[at];
+    const wearIt = () => wear(e);
+
+    return (
+        <button
+            className={cl("shop-tile", worn !== -1 ? "shop-on" : "")}
+            title={e.item?.label ?? e.name}
+            onClick={wearIt}
+            onContextMenu={event => onMenu(event, e, wearIt)}
+        >
+            <div className={cl("shop-pic", `shop-pic-${kind}`)}>
+                {e.picture && <LazyPicture key={e.picture} src={e.picture} />}
+                {kind === "decoration" && e.item?.asset?.startsWith("a_") && <Moving key={e.skuId} asset={e.item.asset} skuId={e.skuId} />}
+                {starred.has(e.skuId) && <span className={cl("shop-star")}><StarIcon height={12} width={12} /></span>}
+                {worn !== -1 && <Tick />}
+            </div>
+            <span className={cl("shop-name")}>{family.name}</span>
+            {family.variants.length > 1 && (
+                <span className={cl("shop-variants")}>
+                    {family.labels.map((label, i) => (
+                        <span
+                            key={family.variants[i].skuId}
+                            role="button"
+                            tabIndex={0}
+                            className={cl("shop-variant", i === at ? "shop-variant-on" : "")}
+                            onClick={event => {
+                                // a chip shows that variant, and wears it when this item is the one worn
+                                event.stopPropagation();
+                                setPicked(i);
+                                if (worn !== -1) wear(family.variants[i]);
+                            }}
+                        >
+                            {label}
+                        </span>
+                    ))}
+                </span>
+            )}
+        </button>
+    );
+}
+
 /** Marks the one worn */
 const Tick = () => <span className={cl("shop-tick")}><CheckIcon height={12} width={12} /></span>;
 
@@ -299,29 +399,20 @@ export function CollectiblesTab({ look, set }: { look: Look; set(change: Partial
                 <div key={collection} className={cl("group")}>
                     <div className={cl("group-head")}>
                         <span className={cl("f-label")}>{collection}</span>
-                        <span className={cl("f-hint")}>{entries.length}</span>
+                        <span className={cl("f-hint")}>{families(entries).length}</span>
                     </div>
                     <div className={cl("shop-grid")}>
-                        {entries.map(e => {
-                            const wear = () => set(apply[kind](e));
-                            return (
-                                <button
-                                    key={e.skuId}
-                                    className={cl("shop-tile", isWorn[kind](look, e) ? "shop-on" : "")}
-                                    title={e.item?.label ?? e.name}
-                                    onClick={wear}
-                                    onContextMenu={event => openTileMenu(event, kind, e, wear, () => redraw(n => n + 1))}
-                                >
-                                    <div className={cl("shop-pic", `shop-pic-${kind}`)}>
-                                        {e.picture && <LazyPicture key={e.picture} src={e.picture} />}
-                                        {kind === "decoration" && e.item?.asset?.startsWith("a_") && <Moving asset={e.item.asset} skuId={e.skuId} />}
-                                        {starred.has(e.skuId) && <span className={cl("shop-star")}><StarIcon height={12} width={12} /></span>}
-                                        {isWorn[kind](look, e) && <Tick />}
-                                    </div>
-                                    <span className={cl("shop-name")}>{e.name}</span>
-                                </button>
-                            );
-                        })}
+                        {families(entries).map(family => (
+                            <ShopTile
+                                key={family.variants[0].skuId}
+                                family={family}
+                                kind={kind}
+                                isWorn={e => isWorn[kind](look, e)}
+                                starred={starred}
+                                wear={e => set(apply[kind](e))}
+                                onMenu={(event, e, wear) => openTileMenu(event, kind, e, wear, () => redraw(n => n + 1))}
+                            />
+                        ))}
                     </div>
                 </div>
             ))}
