@@ -14,7 +14,7 @@ import { React, showToast } from "@webpack/common";
 
 import { publishHiddenMenus, settings } from ".";
 import { applying, Entry, flipAll, installed, isEnabled, isOn, isView, needsRestart, pluginOf, SECTIONS, setOn, summaryOf, usable } from "./hub";
-import { CloudDownIcon, CloudUpIcon, EyeIcon, EyeOffIcon, GearIcon, RefreshIcon } from "./icons";
+import { CheckIcon, CloseIcon, CloudDownIcon, CloudUpIcon, EyeIcon, EyeOffIcon, GearIcon, RefreshIcon } from "./icons";
 import { isProtecting, onProtectionChange, raisedForShare } from "./protect";
 import { cl, IconButton } from "./ui";
 
@@ -27,15 +27,16 @@ const isWaiting = (plugin: string) => !isOn(plugin) && isEnabled(plugin) && need
 function MenuToggle({ plugin, label }: { plugin: string; label: string; }) {
     const { hiddenMenus } = settings.use(["hiddenMenus"]);
     const hidden = (hiddenMenus ?? []).includes(plugin);
-    const tip = hidden ? `${label}'s right-click buttons are hidden. Click to show them` : `Hide ${label}'s right-click buttons`;
+    const tip = hidden
+        ? `${label}'s buttons are hidden from right-click menus. Click to show them`
+        : `${label}'s buttons show in right-click menus. Click to hide them`;
 
     return (
-        <Button
-            className={cl("cog", hidden ? "cog-off" : "")}
-            size="iconOnly"
-            variant="none"
+        <button
+            type="button"
+            className={cl("menu-pill", hidden ? "menu-pill-off" : "")}
+            aria-pressed={!hidden}
             aria-label={tip}
-            aria-pressed={hidden}
             title={tip}
             onClick={() => {
                 const list: string[] = settings.store.hiddenMenus ?? [];
@@ -43,8 +44,9 @@ function MenuToggle({ plugin, label }: { plugin: string; label: string; }) {
                 publishHiddenMenus();
             }}
         >
-            {hidden ? <EyeOffIcon height={20} width={20} /> : <EyeIcon height={20} width={20} />}
-        </Button>
+            {hidden ? <CloseIcon height={14} width={14} /> : <CheckIcon height={14} width={14} />}
+            <span>Menu</span>
+        </button>
     );
 }
 

@@ -136,8 +136,33 @@
     line-height: 18px;
 }
 
-/* a plugin whose right-click buttons are hidden */
-.vc-hub-cog-off {
+/* whether a plugin's buttons show in right-click menus, said in words */
+.vc-hub-menu-pill {
+    display: inline-flex;
+    flex: 0 0 auto;
+    gap: 4px;
+    align-items: center;
+    height: 26px;
+    padding: 0 10px 0 7px;
+    border-radius: 999px;
+    background: var(--background-mod-subtle, rgb(128 128 128 / 12%));
+    color: var(--text-default);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color .15s ease, color .15s ease;
+}
+
+.vc-hub-menu-pill:hover {
+    background: var(--background-mod-normal, rgb(128 128 128 / 20%));
+}
+
+.vc-hub-menu-pill-off {
     color: var(--text-muted);
-    opacity: .6;
+    text-decoration: line-through;
+}
+
+.vc-hub-menu-pill:focus-visible {
+    outline: 2px solid var(--focus-primary, #00b0f4);
+    outline-offset: 2px;
 }
