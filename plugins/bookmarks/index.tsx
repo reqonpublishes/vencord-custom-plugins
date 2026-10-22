@@ -139,7 +139,7 @@ function holds(node: any, test: (id: string) => boolean): boolean {
 
 export default definePlugin({
     name: "Bookmarks",
-    description: "Bookmark people so you can close their DM and still find them. Adds a Bookmarked tab to the Friends page, next to Pending.",
+    description: "Bookmark people's profiles so you can always find them again, even after closing their DM. Adds a Bookmarked tab to the Friends page.",
     tags: ["Friends", "Organisation", "Utility"],
     authors: [{ name: "reqon", id: 497562304498368513n }],
 
@@ -149,12 +149,12 @@ export default definePlugin({
         <About
             menus
             icon={BookmarkIcon}
-            title="Keep people within reach after closing their DM"
+            title="Bookmark anyone's profile"
             note="Kept on this computer only. Nobody is told they were bookmarked."
             steps={[
-                <>Right-click a person or a DM and choose <strong>Bookmark</strong>.</>,
-                <>Close the DM whenever you like.</>,
-                <>Open <strong>Friends</strong> and the <strong>Bookmarked</strong> tab to find them again. Click one to open their DM.</>
+                <>Right-click someone, or open the <strong>...</strong> menu on their profile, and choose <strong>Bookmark</strong>.</>,
+                <>Open <strong>Friends</strong> and the <strong>Bookmarked</strong> tab. Click someone to open their profile, or the chat button to message them.</>,
+                <>They stay there even after you close their DM.</>
             ]}
         />
     ),

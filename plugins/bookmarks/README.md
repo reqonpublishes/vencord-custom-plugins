@@ -1,15 +1,15 @@
 # Bookmarks
 
-Bookmark people so you can close their DM and still find them.
+Bookmark people's profiles so you can always find them again, even after closing their DM.
 
 ## Using it
 
-**Bookmarking** — right-click a person, or their DM in the sidebar → **Bookmark**. It is also
+**Bookmarking** — right-click someone, or their DM in the sidebar → **Bookmark**. It is also
 in the **...** menu on a profile.
 
 **Finding them again** — open **Friends**. There is a **Bookmarked** tab next to Pending.
-Click somebody to open their DM, or use the buttons on the right of their row for their
-profile or to remove the bookmark.
+Click somebody to open their profile. The buttons on the right of their row message them or
+remove the bookmark.
 
 > [!NOTE]
 > Bookmarks are kept on this computer only. Nobody is told, and bookmarking somebody does not

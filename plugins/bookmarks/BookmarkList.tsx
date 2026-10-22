@@ -37,7 +37,7 @@ export function BookmarkList() {
                 <Empty
                     icon={BookmarkIcon}
                     title="Nobody bookmarked yet"
-                    text="Right-click a person or a DM and choose Bookmark."
+                    text="Right-click someone, or open the ... menu on their profile, and choose Bookmark."
                 />
             )}
 

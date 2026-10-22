@@ -92,21 +92,44 @@
     min-width: 0;
 }
 
+.vc-bm-names {
+    display: flex;
+    gap: 6px;
+    align-items: baseline;
+    min-width: 0;
+}
+
 .vc-bm-name,
-.vc-bm-username {
+.vc-bm-username,
+.vc-bm-status {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
 .vc-bm-name {
+    flex: 0 1 auto;
     color: var(--text-strong, var(--text-default));
     font-size: 16px;
     font-weight: 600;
     line-height: 20px;
 }
 
+/* as on the Friends tab: the username shows beside the name only under the pointer */
 .vc-bm-username {
+    flex: 0 1 auto;
+    visibility: hidden;
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 18px;
+}
+
+.vc-bm-person:hover .vc-bm-username,
+.vc-bm-person:focus-visible .vc-bm-username {
+    visibility: visible;
+}
+
+.vc-bm-status {
     color: var(--text-muted);
     font-size: 14px;
     line-height: 18px;
@@ -134,6 +157,11 @@
 
 .vc-bm-round:hover {
     color: var(--icon-default, var(--text-default));
+}
+
+/* on a lit row the buttons sit on the page colour, as Discord's own do */
+.vc-bm-person:hover .vc-bm-round {
+    background: var(--background-base-lowest, rgb(0 0 0 / 30%));
 }
 
 .vc-bm-round-danger:hover {
