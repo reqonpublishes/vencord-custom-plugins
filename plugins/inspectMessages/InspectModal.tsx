@@ -58,21 +58,6 @@ const OFFSETS = [
     { label: "+1d", ms: DAY }
 ];
 
-/** The eye-with-a-slash beside the "only you" line */
-const PrivateIcon = () => (
-    <svg viewBox="0 0 24 24" height={14} width={14} aria-hidden className={cl("footnote-icon")}>
-        <path
-            fill="currentColor"
-            d="M2.7 3.4 21.3 22l1.4-1.4-3.3-3.3A12.5 12.5 0 0 0 23 12s-4-7-11-7a10.7 10.7 0 0 0-4.7 1.1L4.1 2 2.7 3.4Zm6.1 6.1 5.7 5.7a4 4 0 0 1-5.7-5.7Z"
-        />
-        <path
-            fill="currentColor"
-            d="M12 19c-7 0-11-7-11-7a13.4 13.4 0 0 1 3.6-4.2l2.9 2.9a4 4 0 0 0 5.8 5.8l2.4 2.4A11 11 0 0 1 12 19Z"
-        />
-    </svg>
-);
-
-
 function InspectModal({ rootProps, message }: { rootProps: RenderModalProps; message: Message; }) {
     const [content, setContent] = useState(message.content ?? "");
     const [timestamp, setTimestamp] = useState(() => toInputValue(toDate(message.timestamp)));
@@ -134,24 +119,6 @@ function InspectModal({ rootProps, message }: { rootProps: RenderModalProps; mes
             notice={error ? { message: error, type: "critical" } : undefined}
             actions={actions}
         >
-            <section className={cl("section")}>
-                <h3 className={cl("label")}>Message</h3>
-                <TextArea
-                    value={content}
-                    onChange={next => {
-                        setContent(next);
-                        // keep following the text until you decide for yourself
-                        if (!highlightTouched) setHighlight(looksLikePing(next));
-                    }}
-                    rows={3}
-                    autosize
-                    spellCheck={false}
-                    placeholder="What the message says (markdown works)"
-                    onKeyDown={(e: React.KeyboardEvent) => {
-                        if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) apply();
-                    }}
-                />
-            </section>
 
             <section className={cl("section")}>
                 <h3 className={cl("label")}>Sent</h3>
@@ -171,7 +138,7 @@ function InspectModal({ rootProps, message }: { rootProps: RenderModalProps; mes
                 </div>
             </section>
 
-            <section className={cl("section", "section-last")}>
+            <section className={cl("section")}>
                 <h3 className={cl("label")}>Appearance</h3>
                 <div className={cl("card")}>
                     <FormSwitch
@@ -216,6 +183,25 @@ function InspectModal({ rootProps, message }: { rootProps: RenderModalProps; mes
                         </div>
                     )}
                 </div>
+            </section>
+
+            <section className={cl("section", "section-last")}>
+                <h3 className={cl("label")}>Message</h3>
+                <TextArea
+                    value={content}
+                    onChange={next => {
+                        setContent(next);
+                        // keep following the text until you decide for yourself
+                        if (!highlightTouched) setHighlight(looksLikePing(next));
+                    }}
+                    rows={3}
+                    autosize
+                    spellCheck={false}
+                    placeholder="What the message says (markdown works)"
+                    onKeyDown={(e: React.KeyboardEvent) => {
+                        if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) apply();
+                    }}
+                />
 
                 <div className={cl("footnote")}>
                     <LockIcon height={14} width={14} />

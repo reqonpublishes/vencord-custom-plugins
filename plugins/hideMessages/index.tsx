@@ -13,7 +13,7 @@ import definePlugin from "@utils/types";
 import { Channel, Message, User } from "@vencord/discord-types";
 import { ChannelStore, FluxDispatcher, Menu, SelectedChannelStore } from "@webpack/common";
 
-import { ctrlGated, GatedIcon, isCtrlHeldForMenu, startCtrlTracking, stopCtrlTracking } from "./ctrlGate";
+import { ctrlGated, GatedIcon, startCtrlTracking, stopCtrlTracking } from "./ctrlGate";
 import { ChatOffIcon, CloseIcon, EyeIcon, EyeOffIcon, FlagIcon } from "./icons";
 import { isShared, place } from "./menu";
 import { settings } from "./settings";
@@ -42,15 +42,18 @@ let interceptorRegistered = false;
 /** First half of a range selection: the message "Select From Here" was used on */
 let anchor: { channelId: string; messageId: string; } | null = null;
 
-const shouldOffer = () => {
-    const mode = settings.store.button;
-    return mode !== "never" && (mode !== "ctrl" || isCtrlHeldForMenu());
+/**
+ * When the hover button shows: its own choice, or by default whatever Additional Settings says
+ * for right-click buttons. Right-click entries themselves follow only that, through place().
+ */
+const hoverMode = (): string => {
+    const mode = settings.store.button as string;
+    return mode === "menus" ? (window as any).vcMenuMode ?? "always" : mode;
 };
 
-// Built fresh on every right click, so it can just read the live Ctrl state: nothing
-// appears in the menu unless Ctrl is down, which keeps the menu looking untouched.
+// Whether these show at all - always, with Ctrl, never - is Additional Settings' choice, made in place().
 const messageCtx: NavContextMenuPatchCallback = (children, { message }: { message: Message; }) => {
-    if (!message || !settings.store.messageMenu || !shouldOffer()) return;
+    if (!message || !settings.store.messageMenu) return;
 
     const channelId = message.channel_id;
 
@@ -221,7 +224,7 @@ export default definePlugin({
     messagePopoverButton: {
         icon: HideIcon,
         render(msg) {
-            const mode = settings.store.button;
+            const mode = hoverMode();
             if (mode === "never") return null;
 
             return {
@@ -236,7 +239,11 @@ export default definePlugin({
 
     async start() {
         // "shift" was the held key before Ctrl
-        if ((settings.store.button as string) === "shift") settings.store.button = "ctrl";
+        if (!settings.store.buttonMoved) {
+            // Ctrl was only ever the default (Shift before it), never a choice anybody made
+            if (["ctrl", "shift"].includes(settings.store.button as string)) settings.store.button = "menus" as any;
+            settings.store.buttonMoved = true;
+        }
         startCtrlTracking();
 
         // Registered before the store is read, not after: reading it is asynchronous, and

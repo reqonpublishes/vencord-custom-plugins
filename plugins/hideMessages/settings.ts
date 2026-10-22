@@ -17,10 +17,18 @@ export const settings = definePluginSettings({
         displayName: "Hide button on hover",
         description: "When the Hide button shows in the bar above a message.",
         options: [
-            { label: "While holding Ctrl", value: "ctrl", default: true },
+            { label: "Same as right-click buttons", value: "menus", default: true },
             { label: "Always", value: "always" },
+            { label: "While holding Ctrl", value: "ctrl" },
             { label: "Never", value: "never" }
         ]
+    },
+    /** Set once the old Ctrl default has been moved over to "Same as right-click buttons" */
+    buttonMoved: {
+        type: OptionType.BOOLEAN,
+        description: "Moved off the old Ctrl default",
+        hidden: true,
+        default: false
     },
     menus: {
         type: OptionType.COMPONENT,

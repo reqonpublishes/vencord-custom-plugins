@@ -197,23 +197,6 @@ function AddMessageModal({ rootProps, seed }: { rootProps: RenderModalProps; see
             </section>
 
             <section className={cl("section")}>
-                <h3 className={cl("label")}>Message</h3>
-                <TextArea
-                    value={content}
-                    onChange={(next: string) => {
-                        setContent(next);
-                        setError(null);
-                    }}
-                    placeholder="What the message says (markdown works)"
-                    rows={3}
-                    autosize
-                    onKeyDown={(e: React.KeyboardEvent) => {
-                        if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) add();
-                    }}
-                />
-            </section>
-
-            <section className={cl("section")}>
                 <h3 className={cl("label")}>Sent</h3>
                 <DateTimeField
                     value={sentAt}
@@ -230,7 +213,7 @@ function AddMessageModal({ rootProps, seed }: { rootProps: RenderModalProps; see
                 </div>
             </section>
 
-            <section className={cl("section", "section-last")}>
+            <section className={cl("section")}>
                 <h3 className={cl("label")}>Appearance</h3>
                 <div className={cl("card")}>
                     <FormSwitch
@@ -253,6 +236,23 @@ function AddMessageModal({ rootProps, seed }: { rootProps: RenderModalProps; see
                         hideBorder
                     />
                 </div>
+            </section>
+
+            <section className={cl("section", "section-last")}>
+                <h3 className={cl("label")}>Message</h3>
+                <TextArea
+                    value={content}
+                    onChange={(next: string) => {
+                        setContent(next);
+                        setError(null);
+                    }}
+                    placeholder="What the message says (markdown works)"
+                    rows={3}
+                    autosize
+                    onKeyDown={(e: React.KeyboardEvent) => {
+                        if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) add();
+                    }}
+                />
 
                 <div className={cl("footnote")}>
                     <LockIcon height={14} width={14} />
