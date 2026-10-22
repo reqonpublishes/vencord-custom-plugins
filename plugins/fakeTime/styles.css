@@ -1,0 +1,32 @@
+/* ---------------------------------------------------------------- the conversation being moved */
+
+.vc-cft-place {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    padding: 8px 10px;
+    border-radius: var(--radius-sm, 8px);
+    background: var(--background-mod-subtle, rgb(128 128 128 / 8%));
+}
+
+.vc-cft-place-face {
+    flex: 0 0 auto;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--background-mod-normal, rgb(128 128 128 / 16%));
+    object-fit: cover;
+}
+
+.vc-cft-place-name {
+    color: var(--text-default, var(--text-normal));
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 18px;
+}
+
+.vc-cft-place-detail {
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 16px;
+}

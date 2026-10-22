@@ -1,0 +1,118 @@
+/* Discord's calendar and the time beside it - the same as Inspect Profiles' */
+
+.vc-cft-date {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.vc-cft-date-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.vc-cft-date-button {
+    display: inline-flex;
+    flex: 1 1 220px;
+    gap: 10px;
+    align-items: center;
+    min-height: 40px;
+    padding: 0 12px;
+    border: 1px solid var(--input-border, var(--border-subtle));
+    border-radius: 8px;
+    background: var(--input-background, var(--background-mod-subtle));
+    color: var(--text-default);
+    font-size: 15px;
+    cursor: pointer;
+}
+
+.vc-cft-date-button:hover {
+    border-color: var(--input-border-hover, var(--border-normal, var(--border-subtle)));
+}
+
+.vc-cft-date-open {
+    border-color: var(--border-strong, rgb(128 128 128 / 45%));
+}
+
+.vc-cft-date-chevron {
+    margin-left: auto;
+    color: var(--interactive-normal, var(--text-muted));
+    transition: transform .15s ease;
+}
+
+.vc-cft-date-open .vc-cft-date-chevron {
+    transform: rotate(180deg);
+}
+
+.vc-cft-calendar {
+    overflow: hidden;
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    background: var(--background-surface-high, var(--modal-background));
+    box-shadow: var(--shadow-high, none);
+}
+
+.vc-cft-time {
+    display: inline-flex;
+    gap: 2px;
+    align-items: center;
+    min-height: 40px;
+    padding: 0 6px 0 10px;
+    border: 1px solid var(--input-border, var(--border-subtle));
+    border-radius: 8px;
+    background: var(--input-background, var(--background-mod-subtle));
+}
+
+.vc-cft-time-num {
+    width: 28px;
+    padding: 4px 0;
+    border: none;
+    border-radius: 4px;
+    background: none;
+    color: var(--text-default);
+    font-size: 15px;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+}
+
+.vc-cft-time-num:focus {
+    outline: none;
+    background: var(--background-mod-normal);
+}
+
+.vc-cft-time-colon {
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.vc-cft-time-ampm {
+    display: flex;
+    gap: 2px;
+    margin-left: 8px;
+    padding: 2px;
+    border-radius: 6px;
+    background: var(--background-mod-subtle);
+}
+
+.vc-cft-ampm {
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: none;
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.vc-cft-ampm-on {
+    background: var(--background-mod-strong, rgb(128 128 128 / 24%));
+    color: var(--text-strong, var(--header-primary));
+}
+
+.vc-cft-date-button:focus-visible,
+.vc-cft-ampm:focus-visible {
+    outline: 2px solid var(--focus-primary, #00b0f4);
+    outline-offset: 2px;
+}

@@ -9,7 +9,7 @@ import { Logger } from "@utils/Logger";
 import { Flux } from "@webpack/common";
 
 import {
-    BellIcon, BoltIcon, BookmarkIcon, ChatAddIcon, ChatOffIcon, CloudIcon, IconComponent, InspectIcon, MailOffIcon, MasksIcon, PersonAddIcon, PersonOffIcon, PhoneAddIcon, ServerIcon, ShieldIcon, SpeedIcon
+    BellIcon, BoltIcon, BookmarkIcon, ChatAddIcon, ChatOffIcon, ClockIcon, CloudIcon, IconComponent, InspectIcon, MailOffIcon, MasksIcon, PersonAddIcon, PersonOffIcon, PhoneAddIcon, ServerIcon, ShieldIcon, SpeedIcon
 } from "./icons";
 
 const logger = new Logger("PluginHub");
@@ -51,6 +51,7 @@ export const ENTRIES: Entry[] = [
     { plugin: "FakeMessages", label: "Fake Messages", icon: ChatAddIcon, section: "fake", about: "Add messages nobody sent" },
     { plugin: "FakeFriends", label: "Fake Friends", icon: PersonAddIcon, section: "fake", about: "Fake friends, friend requests and blocks" },
     { plugin: "FakeCalls", label: "Fake Calls", icon: PhoneAddIcon, section: "fake", about: "Add calls that never happened" },
+    { plugin: "FakeTime", label: "Fake Time", icon: ClockIcon, section: "fake", about: "Move a conversation to another time" },
     { plugin: "FakeNotifications", label: "Fake Notifications", icon: BellIcon, section: "fake", about: "Set the numbers on your badges" },
     { plugin: "FakeMod", label: "Fake Mod", icon: ShieldIcon, section: "fake", about: "Menus that look like moderator tools" },
     { plugin: "Bookmarks", label: "Bookmarks", icon: BookmarkIcon, section: "tools", about: "Bookmark profiles and find them again from Friends" },
