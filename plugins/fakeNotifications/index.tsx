@@ -76,7 +76,7 @@ export default definePlugin({
     /** One line for Additional Settings: which badges have been set */
     hubSummary() {
         const set = [shiftFor("friends") !== null && "friend requests", shiftFor("requests") !== null && "message requests"].filter(Boolean);
-        return set.length ? "Set for " + set.join(" and ") : "No badge numbers set yet";
+        return set.length ? "Badges set" : "";
     },
 
     settingsAboutComponent: () => (

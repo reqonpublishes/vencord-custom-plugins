@@ -9,6 +9,7 @@ import { Logger } from "@utils/Logger";
 import { findStoreLazy } from "@webpack";
 
 import { force, isOn, isView, setOn, usable } from "./hub";
+import { lookingPlain, lookNormal, lookPlain } from "./plain";
 
 const logger = new Logger("PluginHub");
 
@@ -99,10 +100,12 @@ export function check() {
         (window as any).vcShareHideNew = opt().shareHideNew !== false;
 
         spread(raised, true);
+        if (opt().sharePlain) setTimeout(() => isProtecting() && lookPlain(), 0);
     } else {
         const mine = raised ?? [];
         raised = null;
         shareOver();
+        lookNormal();
 
         // Only the ones still meant to be off. Anything switched on by hand during the
         // share was a decision, and is left alone.
@@ -194,7 +197,7 @@ function shareOver() {
 }
 
 /** Whether this page is taken out of the settings sidebar right now */
-export const pageHidden = () => isProtecting() && opt().shareHidePage !== false;
+export const pageHidden = () => isProtecting() && (opt().shareHidePage === true || opt().sharePlain === true);
 
 /** A protection setting changed: say again what is hidden, for a share already running */
 export function refresh() {
@@ -207,6 +210,10 @@ export function refresh() {
         // on. What the running ones already hid stays hidden until the share ends.
         (window as any).vcShareHideNew = opt().shareHideNew !== false;
         widen();
+
+        // switched during a share: takes effect at once
+        if (opt().sharePlain && !lookingPlain()) lookPlain();
+        if (!opt().sharePlain && lookingPlain()) lookNormal();
     }
 
     mark();
@@ -283,6 +290,7 @@ export function stopProtection() {
     // Whatever a share's start has still to switch on is called off, so nothing is started
     // after this plugin has gone.
     cancel();
+    lookNormal();
 
     // let go of whatever is being held, as if the share had ended - at once, since nothing of
     // this plugin's is left running to finish it later

@@ -27,6 +27,18 @@ export const isKept = (name: string) => (Settings.plugins[name] as any)?.persist
 const off = (name: string) => () => !isPluginEnabled(name) || !isKept(name);
 
 /** When a sync last went each way, and what it carried */
+/** What can be synced, in the order the panel shows them */
+export const PARTS: { key: string; plugin: string; label: string; }[] = [
+    { key: "hideMessages", plugin: "HideMessages", label: "Hide Messages" },
+    { key: "hideDMs", plugin: "HideDMs", label: "Hide DMs" },
+    { key: "hideFriends", plugin: "HideFriends", label: "Hide Friends" },
+    { key: "hideServers", plugin: "HideServers", label: "Hide Servers" },
+    { key: "fakeMessages", plugin: "FakeMessages", label: "Fake Messages" },
+    { key: "fakeCalls", plugin: "FakeCalls", label: "Fake Calls" },
+    { key: "fakeNotifications", plugin: "FakeNotifications", label: "Fake Notifications" },
+    { key: "inspectMessages", plugin: "InspectMessages", label: "Inspect Messages" },
+];
+
 export interface Last {
     at: number;
     what: string[];
@@ -55,6 +67,7 @@ export const settings = definePluginSettings({
     },
     hideMessages: {
         type: OptionType.BOOLEAN,
+        hidden: true,
         disabled: off("HideMessages"),
         displayName: "Hide Messages",
         description: "Sync hidden messages and hidden conversations",
@@ -62,6 +75,7 @@ export const settings = definePluginSettings({
     },
     inspectMessages: {
         type: OptionType.BOOLEAN,
+        hidden: true,
         disabled: off("InspectMessages"),
         displayName: "Inspect Messages",
         description: "Sync messages you changed",
@@ -69,6 +83,7 @@ export const settings = definePluginSettings({
     },
     fakeMessages: {
         type: OptionType.BOOLEAN,
+        hidden: true,
         disabled: off("FakeMessages"),
         displayName: "Fake Messages",
         description: "Sync fake messages",
@@ -76,6 +91,7 @@ export const settings = definePluginSettings({
     },
     fakeCalls: {
         type: OptionType.BOOLEAN,
+        hidden: true,
         disabled: off("FakeCalls"),
         displayName: "Fake Calls",
         description: "Sync fake calls",
@@ -83,6 +99,7 @@ export const settings = definePluginSettings({
     },
     fakeNotifications: {
         type: OptionType.BOOLEAN,
+        hidden: true,
         disabled: off("FakeNotifications"),
         displayName: "Fake Notifications",
         description: "Sync the badge numbers",
@@ -90,6 +107,7 @@ export const settings = definePluginSettings({
     },
     hideDMs: {
         type: OptionType.BOOLEAN,
+        hidden: true,
         disabled: off("HideDMs"),
         displayName: "Hide DMs",
         description: "Sync which DMs are hidden",
@@ -97,6 +115,7 @@ export const settings = definePluginSettings({
     },
     hideFriends: {
         type: OptionType.BOOLEAN,
+        hidden: true,
         disabled: off("HideFriends"),
         displayName: "Hide Friends",
         description: "Sync hidden friends, fake blocks and fake requests",
@@ -104,6 +123,7 @@ export const settings = definePluginSettings({
     },
     hideServers: {
         type: OptionType.BOOLEAN,
+        hidden: true,
         disabled: off("HideServers"),
         displayName: "Hide Servers",
         description: "Sync which servers are hidden",

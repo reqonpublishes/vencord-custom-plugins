@@ -68,6 +68,9 @@ export const total = () => {
 /** How many conversations have at least one */
 export const chats = () => added.size;
 
+/** Each conversation with fake calls in it, and how many */
+export const perChat = (): [string, number][] => [...added].map(([channelId, list]) => [channelId, list.length]);
+
 // ---------------------------------------------------------------- persistence
 
 let saveQueued = false;

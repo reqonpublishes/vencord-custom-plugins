@@ -136,33 +136,49 @@
     line-height: 18px;
 }
 
-/* whether a plugin's buttons show in right-click menus, said in words */
-.vc-hub-menu-pill {
+/* a few choices side by side, one of them picked */
+.vc-hub-choice {
     display: inline-flex;
     flex: 0 0 auto;
-    gap: 4px;
-    align-items: center;
-    height: 26px;
-    padding: 0 10px 0 7px;
-    border-radius: 999px;
+    gap: 2px;
+    padding: 2px;
+    border-radius: var(--radius-sm, 8px);
     background: var(--background-mod-subtle, rgb(128 128 128 / 12%));
-    color: var(--text-default);
-    font-size: 12px;
-    font-weight: 600;
+}
+
+.vc-hub-choice-option {
+    padding: 5px 10px;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
     cursor: pointer;
     transition: background-color .15s ease, color .15s ease;
 }
 
-.vc-hub-menu-pill:hover {
-    background: var(--background-mod-normal, rgb(128 128 128 / 20%));
+.vc-hub-choice-option:hover {
+    color: var(--text-default);
 }
 
-.vc-hub-menu-pill-off {
+.vc-hub-choice-on,
+.vc-hub-choice-on:hover {
+    background: var(--background-mod-strong, rgb(128 128 128 / 24%));
+    color: var(--text-strong, var(--header-primary));
+}
+
+/* what a plugin has right now - 3 hidden, 2 fakes - beside its switches */
+.vc-hub-tag {
+    flex: 0 0 auto;
+    max-width: 40%;
+    overflow: hidden;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: var(--background-mod-subtle, rgb(128 128 128 / 12%));
     color: var(--text-muted);
-    text-decoration: line-through;
-}
-
-.vc-hub-menu-pill:focus-visible {
-    outline: 2px solid var(--focus-primary, #00b0f4);
-    outline-offset: 2px;
+    font-size: 12px;
+    font-weight: 500;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }

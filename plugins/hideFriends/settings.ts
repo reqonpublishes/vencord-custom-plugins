@@ -29,19 +29,19 @@ export const settings = definePluginSettings({
     userMenu: {
         type: OptionType.BOOLEAN,
         displayName: "Show in the people menu",
-        description: "Hide Friend and Fake Relationship appear when you right-click a person.",
+        description: "Hide Friend and Fake Relationship show when you right-click someone.",
         default: true
     },
     hideNew: {
         type: OptionType.BOOLEAN,
-        displayName: "Hide friends added while off",
-        description: "When you turn Hide Friends back on, new friends and friend requests from while it was off are hidden too.",
+        displayName: "Hide new friends when turned back on",
+        description: "Friends and requests from while it was off are hidden too.",
         default: false
     },
     persist: {
         type: OptionType.BOOLEAN,
         displayName: "Keep after restart",
-        description: "Everyone you hid or faked stays that way when Discord restarts.",
+        description: "Hidden and faked friends stay after a restart.",
         default: true,
         // switching it off should not leave the old list sitting on disk
         onChange: (value: boolean) => void (value || forgetSaved())
@@ -49,7 +49,7 @@ export const settings = definePluginSettings({
     hideImplicit: {
         type: OptionType.BOOLEAN,
         displayName: "Hide the Implicit tab",
-        description: "Removes the Implicit tab that Vencord's ImplicitRelationships plugin adds to the Friends page.",
+        description: "Removes the Implicit tab ImplicitRelationships adds to Friends.",
         default: true,
         onChange: (value: boolean) => setImplicit(value)
     },

@@ -30,6 +30,7 @@ export function HiddenList() {
                 <>
                     <IconButton
                         icon={EyeOffIcon}
+                        variant="secondary"
                         onClick={() => {
                             // Not the one you are in. Hiding the server on screen leaves you
                             // standing in something that is no longer on the bar to leave by.
@@ -39,17 +40,16 @@ export function HiddenList() {
                     >
                         Hide All
                     </IconButton>
-                    <IconButton
+                    {!!count() && (<IconButton
                         icon={EyeIcon}
                         variant="secondary"
-                        disabled={!count()}
                         onClick={() => {
                             showAll();
                             update();
                         }}
                     >
                         Unhide All
-                    </IconButton>
+                    </IconButton>)}
                 </>
             }
         >

@@ -7,38 +7,40 @@
 import { useForceUpdater } from "@utils/react";
 
 import { PhoneIcon, TrashIcon } from "./icons";
-import { chats, clearAll, total } from "./store";
-import { cl, IconButton, Panel, Row } from "./ui";
+import { placeOf } from "./places";
+import { clearAll, clearChannel, perChat, total } from "./store";
+import { cl, Empty, IconButton, Panel, Row } from "./ui";
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
-/** How many there are, and the one button that takes them all back */
+/** Every conversation with fake calls in it, most first, each with its own way to take them back */
 export function AddedPanel() {
     const update = useForceUpdater();
     const n = total();
+    const places = perChat().filter(([, count]) => count).sort((a, b) => b[1] - a[1]);
 
     return (
-        <Panel title="Your fake calls">
-            <div className={cl("rows")}>
-                <Row
-                    icon={PhoneIcon}
-                    round={false}
-                    name={n ? plural(n, "fake call") : "No fake calls yet"}
-                    detail={n ? `In ${plural(chats(), "conversation")}` : "Right-click a DM or a message in one to add a call"}
-                >
-                    <IconButton
-                        icon={TrashIcon}
-                        variant="dangerSecondary"
-                        disabled={!n}
-                        onClick={() => {
-                            clearAll();
-                            update();
-                        }}
-                    >
-                        Remove All
-                    </IconButton>
-                </Row>
-            </div>
+        <Panel
+            title="Fake calls"
+            count={n}
+            actions={n ? (
+                <IconButton icon={TrashIcon} variant="dangerSecondary" onClick={() => { clearAll(); update(); }}>Remove All</IconButton>
+            ) : undefined}
+        >
+            {!n ? (
+                <Empty icon={PhoneIcon} title="No fake calls" text="Right-click a message in a DM and choose Add Fake Call Here." />
+            ) : (
+                <div className={cl("rows")}>
+                    {places.map(([channelId, count]) => {
+                        const place = placeOf(channelId);
+                        return (
+                            <Row key={channelId} image={place.image} icon={PhoneIcon} name={place.name} detail={[plural(count, "fake call"), place.detail].filter(Boolean).join(" · ")}>
+                                <IconButton icon={TrashIcon} variant="dangerSecondary" onClick={() => { clearChannel(channelId); update(); }}>Remove</IconButton>
+                            </Row>
+                        );
+                    })}
+                </div>
+            )}
         </Panel>
     );
 }

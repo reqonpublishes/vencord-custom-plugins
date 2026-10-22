@@ -24,7 +24,7 @@ export const settings = definePluginSettings({
     },
     menus: {
         type: OptionType.COMPONENT,
-        component: menuChips(() => settings, "Show in menus", "Where Hide Message and Hide Messages appear when you right-click.", [{ key: "messageMenu", label: "Messages" }, { key: "channelMenu", label: "Conversations" }, { key: "userMenu", label: "People" }, { key: "profileMenu", label: "Profiles" }])
+        component: menuChips(() => settings, "Show in menus", "Which menus show Hide Message.", [{ key: "messageMenu", label: "Messages" }, { key: "channelMenu", label: "Conversations" }, { key: "userMenu", label: "People" }, { key: "profileMenu", label: "Profiles" }])
     },
     messageMenu: {
         type: OptionType.BOOLEAN,
@@ -57,7 +57,7 @@ export const settings = definePluginSettings({
     persist: {
         type: OptionType.BOOLEAN,
         displayName: "Keep after restart",
-        description: "Hidden messages stay hidden when Discord restarts.",
+        description: "Hidden messages stay hidden after a restart.",
         default: true,
         // switching it off should not leave the old list sitting on disk
         onChange: (value: boolean) => void (value || forgetSaved())

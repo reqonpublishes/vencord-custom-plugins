@@ -24,13 +24,13 @@ export const settings = definePluginSettings({
     messageMenu: {
         type: OptionType.BOOLEAN,
         displayName: "Show in the message menu",
-        description: "Inspect Message appears when you right-click a message.",
+        description: "Inspect Message shows when you right-click a message.",
         default: true
     },
     persist: {
         type: OptionType.BOOLEAN,
         displayName: "Keep after restart",
-        description: "Changed messages stay changed when Discord restarts.",
+        description: "Changed messages stay changed after a restart.",
         default: true,
         // switching it off should not leave the old list sitting on disk
         onChange: (value: boolean) => void (value || forgetSaved())

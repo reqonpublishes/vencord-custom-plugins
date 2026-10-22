@@ -214,6 +214,7 @@ export default definePlugin({
 
     settingsAboutComponent: () => (
         <About
+            menus
             icon={ShieldIcon}
             title="Menus that look like moderator tools"
             note="Only you see this. Every entry asks, says it was done, and does nothing: nothing is sent and nobody's account or server is touched."
@@ -226,7 +227,7 @@ export default definePlugin({
 
     /** One line for Additional Settings */
     hubSummary() {
-        return `Shown as ${RANK_NAME[rank()]}`;
+        return RANK_NAME[rank()];
     },
 
     contextMenus: {

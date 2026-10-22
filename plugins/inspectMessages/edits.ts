@@ -82,6 +82,15 @@ export function forgetSaved() {
 
 export const hasEdits = () => edits.size > 0;
 export const countEdits = () => edits.size;
+
+/** Every changed message: where it is, what it says now and what it really says, newest first */
+export const listEdits = () => [...edits].map(([id, edit]) => ({
+    id,
+    channelId: edit.channelId,
+    now: edit.content ?? edit.original.content,
+    was: edit.original.content,
+    retimed: edit.timestamp != null && edit.timestamp !== edit.original.timestamp
+})).reverse();
 export const isEdited = (id: string) => edits.has(id);
 export const getOriginal = (id: string) => edits.get(id)?.original;
 

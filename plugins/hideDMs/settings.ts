@@ -14,7 +14,7 @@ import { menuChips } from "./ui";
 export const settings = definePluginSettings({
     menus: {
         type: OptionType.COMPONENT,
-        component: menuChips(() => settings, "Show in menus", "Where Hide DM appears when you right-click.", [{ key: "channelMenu", label: "Conversations" }, { key: "userMenu", label: "People" }])
+        component: menuChips(() => settings, "Show in menus", "Which menus show Hide DM.", [{ key: "channelMenu", label: "Conversations" }, { key: "userMenu", label: "People" }])
     },
     channelMenu: {
         type: OptionType.BOOLEAN,
@@ -32,14 +32,14 @@ export const settings = definePluginSettings({
     },
     hideNew: {
         type: OptionType.BOOLEAN,
-        displayName: "Hide DMs that appear while off",
-        description: "When you turn Hide DMs back on, any DM that showed up while it was off is hidden too. DMs you closed stay closed.",
+        displayName: "Hide new DMs when turned back on",
+        description: "DMs that showed up while it was off are hidden too.",
         default: false
     },
     persist: {
         type: OptionType.BOOLEAN,
         displayName: "Keep after restart",
-        description: "Hidden DMs stay hidden when Discord restarts.",
+        description: "Hidden DMs stay hidden after a restart.",
         default: true,
         // switching it off should not leave the old list sitting on disk
         onChange: (value: boolean) => void (value || forgetSaved())

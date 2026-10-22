@@ -10,11 +10,12 @@ import { SettingsTab, wrapTab } from "@components/settings/tabs/BaseTab";
 import { openPluginModal } from "@components/settings/tabs/plugins/PluginModal";
 import { Switch } from "@components/Switch";
 import { Logger } from "@utils/Logger";
-import { React, showToast } from "@webpack/common";
+import { Alerts, React, showToast } from "@webpack/common";
 
-import { publishHiddenMenus, settings } from ".";
+import { settings } from ".";
+import { deleteAllData } from "./data";
 import { applying, Entry, flipAll, installed, isEnabled, isOn, isView, needsRestart, pluginOf, SECTIONS, setOn, summaryOf, usable } from "./hub";
-import { CheckIcon, CloseIcon, CloudDownIcon, CloudUpIcon, EyeIcon, EyeOffIcon, GearIcon, RefreshIcon } from "./icons";
+import { CloudDownIcon, CloudUpIcon, EyeIcon, EyeOffIcon, GearIcon, RefreshIcon, TrashIcon } from "./icons";
 import { isProtecting, onProtectionChange, raisedForShare } from "./protect";
 import { cl, IconButton } from "./ui";
 
@@ -23,38 +24,12 @@ const logger = new Logger("PluginHub");
 /** Enabled in Vencord but waiting on a restart before it can do anything */
 const isWaiting = (plugin: string) => !isOn(plugin) && isEnabled(plugin) && needsRestart(plugin);
 
-/** Show or hide one plugin's right-click entries, and say which they are */
-function MenuToggle({ plugin, label }: { plugin: string; label: string; }) {
-    const { hiddenMenus } = settings.use(["hiddenMenus"]);
-    const hidden = (hiddenMenus ?? []).includes(plugin);
-    const tip = hidden
-        ? `${label}'s buttons are hidden from right-click menus. Click to show them`
-        : `${label}'s buttons show in right-click menus. Click to hide them`;
-
-    return (
-        <button
-            type="button"
-            className={cl("menu-pill", hidden ? "menu-pill-off" : "")}
-            aria-pressed={!hidden}
-            aria-label={tip}
-            title={tip}
-            onClick={() => {
-                const list: string[] = settings.store.hiddenMenus ?? [];
-                settings.store.hiddenMenus = hidden ? list.filter(name => name !== plugin) : [...list, plugin];
-                publishHiddenMenus();
-            }}
-        >
-            {hidden ? <CloseIcon height={14} width={14} /> : <CheckIcon height={14} width={14} />}
-            <span>Menu</span>
-        </button>
-    );
-}
-
 function PluginRow({ entry, onChange }: { entry: Entry; onChange(): void; }) {
     const { plugin, label, icon: Icon } = entry;
     const enabled = isEnabled(plugin);
     const on = enabled && isOn(plugin);
     const waiting = isWaiting(plugin);
+    const tag = on ? summaryOf(entry) : "";
 
     return (
         <div className={cl("item", on ? "" : "item-off", enabled ? "" : "item-disabled")}>
@@ -65,11 +40,11 @@ function PluginRow({ entry, onChange }: { entry: Entry; onChange(): void; }) {
                 <div className={cl("item-name")}>{label}</div>
                 <div className={cl("item-detail")}>
                     {!enabled
-                        ? "Disabled. Enable it in Vencord's Plugins page to use it here"
-                        : waiting ? "Turns on when Discord restarts" : on ? summaryOf(entry) : entry.off}
+                        ? "Enable it in Vencord's Plugins page to use it here"
+                        : waiting ? "Turns on when Discord restarts" : entry.about}
                 </div>
             </div>
-            {entry.menus && enabled && <MenuToggle plugin={plugin} label={label} />}
+            {tag && <span className={cl("tag")}>{tag}</span>}
             <Button
                 className={cl("cog")}
                 size="iconOnly"
@@ -152,7 +127,71 @@ function SyncRow() {
 }
 
 /** One switch of Screen Share Protection's, as a quieter row under it */
-function ShareSwitch({ name, label, detail }: { name: "streamerMode" | "shareHideNew" | "shareHideMenus" | "shareHidePage" | "shareRestore"; label: string; detail: string; }) {
+/** When the plugins' buttons show in right-click menus - one choice for all of them */
+const MENU_CHOICES: { value: "always" | "shift" | "never"; label: string; }[] = [
+    { value: "always", label: "Always" },
+    { value: "shift", label: "Holding Shift" },
+    { value: "never", label: "Never" },
+];
+
+function MenuButtons() {
+    const { menuButtons } = settings.use(["menuButtons"]);
+    const current = menuButtons ?? "shift";
+
+    return (
+        <div className={cl("item")}>
+            <div className={cl("item-text")}>
+                <div className={cl("item-name")}>Right-click buttons</div>
+                <div className={cl("item-detail")}>
+                    When entries like Hide DM show in right-click menus. Holding Shift keeps menus looking like normal Discord.
+                </div>
+            </div>
+            <div className={cl("choice")} role="radiogroup" aria-label="Right-click buttons">
+                {MENU_CHOICES.map(choice => (
+                    <button
+                        key={choice.value}
+                        type="button"
+                        role="radio"
+                        aria-checked={current === choice.value}
+                        className={cl("choice-option", current === choice.value ? "choice-on" : "")}
+                        onClick={() => void (settings.store.menuButtons = choice.value)}
+                    >
+                        {choice.label}
+                    </button>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+/** Everything saved on this computer, gone - asked about first */
+function DeleteData() {
+    return (
+        <div className={cl("item")}>
+            <div className={cl("item-text")}>
+                <div className={cl("item-name")}>Delete all data</div>
+                <div className={cl("item-detail")}>
+                    Everything these plugins saved on this computer, and their settings. Cloud Sync's link is kept.
+                </div>
+            </div>
+            <IconButton
+                icon={TrashIcon}
+                variant="dangerSecondary"
+                onClick={() => Alerts.show({
+                    title: "Delete all data?",
+                    body: "Everything hidden, faked, edited and bookmarked is gone for good, and every setting goes back to how it came. Discord reloads after.",
+                    confirmText: "Delete Everything",
+                    cancelText: "Cancel",
+                    onConfirm: () => void deleteAllData()
+                })}
+            >
+                Delete
+            </IconButton>
+        </div>
+    );
+}
+
+function ShareSwitch({ name, label, detail }: { name: "streamerMode" | "shareHideNew" | "shareHideMenus" | "shareHidePage" | "sharePlain" | "shareRestore"; label: string; detail: string; }) {
     const value = settings.use([name])[name];
 
     return (
@@ -181,7 +220,7 @@ function ShareOptions() {
             <div className={cl("sub-row", "sub-row-stack")}>
                 <div className={cl("item-text")}>
                     <div className={cl("sub-name")}>Turn on while sharing</div>
-                    <div className={cl("item-detail")}>Plugins you have off are turned on for the share only. Untick any to leave them alone.</div>
+                    <div className={cl("item-detail")}>Turned on for the share, even if you have them off.</div>
                 </div>
                 <div className={cl("menu-chips")} role="group" aria-label="Turn on while sharing">
                     {views.map(({ plugin, label, icon: Icon }) => {
@@ -204,10 +243,11 @@ function ShareOptions() {
             </div>
 
             <ShareSwitch name="streamerMode" label="Also when Streamer Mode is on" detail="Discord can turn Streamer Mode on by itself when it sees OBS or another recorder." />
-            <ShareSwitch name="shareHideNew" label="Hide new friends, DMs and servers" detail="Anything that appeared since those plugins were last on is hidden while you share, and shown again after. Your hidden lists don't change." />
-            <ShareSwitch name="shareHideMenus" label="Hide plugin menus" detail="Removes these plugins' right-click entries and the Bookmarked tab. Hold Shift to see the entries anyway." />
-            <ShareSwitch name="shareHidePage" label="Hide this page" detail="Removes Additional Settings from the settings sidebar." />
-            <ShareSwitch name="shareRestore" label="Turn them off when sharing stops" detail="Plugins turned on for the share go back off. Turn this off to keep them on." />
+            <ShareSwitch name="shareHideNew" label="Hide anything new" detail="New friends, DMs and servers stay hidden until the share ends." />
+            <ShareSwitch name="shareHideMenus" label="Hide right-click buttons" detail="No plugin buttons in menus, or the Bookmarked tab. Shift still shows them." />
+            <ShareSwitch name="shareHidePage" label="Hide this page" detail="Takes Additional Settings out of the sidebar." />
+            <ShareSwitch name="sharePlain" label="Look like plain Discord" detail="Hides Vencord and turns off your other plugins. The hide and fake plugins stay on." />
+            <ShareSwitch name="shareRestore" label="Turn plugins back off after" detail="Plugins turned on for the share go back off when it ends." />
         </div>
     );
 }
@@ -238,14 +278,14 @@ function HubPage() {
                             <div className={cl("item-name")}>
                                 {!views.length
                                     ? "None of these plugins are enabled"
-                                    : live ? `${live} of ${views.length} are changing what you see` : "You are seeing the real Discord"}
+                                    : live ? `${live} of ${views.length} plugins on` : "You are seeing the real Discord"}
                             </div>
                             <div className={cl("item-detail")}>
                                 {!views.length
                                     ? "Enable the ones you want in Vencord's Plugins page, then switch them here."
                                     : live
-                                        ? "Show Real turns them all off so you see your real friends, messages, calls and servers. Nothing is forgotten."
-                                        : "Everything you hid or faked is kept, and comes back when you turn it on again."}
+                                        ? "Show Real turns them all off. Nothing you hid or faked is lost."
+                                        : "Everything you hid or faked comes back when you turn them on."}
                             </div>
                         </div>
                         <IconButton
@@ -271,13 +311,15 @@ function HubPage() {
                         </IconButton>
                     </div>
 
+                    <MenuButtons />
+
                     <div className={cl("item", shareProtection !== false ? "item-open" : "")}>
                         <div className={cl("item-text")}>
                             <div className={cl("item-name")}>Screen Share Protection</div>
                             <div className={cl("item-detail")}>
                                 {protecting
                                     ? "On now. Your screen is being shared."
-                                    : "When you share your screen, the plugins below turn on and their menus are hidden. Everything goes back when you stop."}
+                                    : "Keeps everything hidden while you share your screen. Everything goes back when you stop."}
                             </div>
                         </div>
                         <Switch checked={shareProtection !== false} onChange={next => void (settings.store.shareProtection = next)} />
@@ -310,6 +352,11 @@ function HubPage() {
                         </section>
                     );
                 })}
+
+                <section className={cl("section")}>
+                    <h2 className={cl("heading")}>Your data</h2>
+                    <DeleteData />
+                </section>
             </div>
         </SettingsTab>
     );

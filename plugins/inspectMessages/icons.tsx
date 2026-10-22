@@ -30,6 +30,8 @@ const icon = (d: string): IconComponent => function Icon({ height = 20, width = 
     );
 };
 
+export const CalendarIcon = icon("M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zM9 14H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2zm-8 4H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2z");
+export const ChevronDownIcon = icon("M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z");
 export const InspectIcon = icon("M5 3h3v2H6a1 1 0 0 0-1 1v2H3V5a2 2 0 0 1 2-2Zm14 0a2 2 0 0 1 2 2v3h-2V6a1 1 0 0 0-1-1h-2V3h3ZM5 16v2a1 1 0 0 0 1 1h2v2H5a2 2 0 0 1-2-2v-3h2ZM9.7 7.2a1 1 0 0 0-1.3 1.2l3.4 10.2a1 1 0 0 0 1.8.1l1.7-3.4 3.4-1.7a1 1 0 0 0-.1-1.8L9.7 7.2Z");
 export const LockIcon = icon("M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z");
 export const PencilIcon = icon("M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z");

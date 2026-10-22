@@ -229,6 +229,69 @@
     text-transform: uppercase;
 }
 
+/* ---------------------------------------------------------------- where the menu entries show */
+
+.vc-cfc-menus {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 20px;
+}
+
+.vc-cfc-menus-title {
+    color: var(--header-primary, var(--text-default));
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 20px;
+}
+
+.vc-cfc-menus-detail {
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 18px;
+}
+
+.vc-cfc-menu-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.vc-cfc-menu-chip {
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+    padding: 6px 12px;
+    border: 1px solid var(--border-subtle, rgb(128 128 128 / 24%));
+    border-radius: 999px;
+    background: none;
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 18px;
+    cursor: pointer;
+}
+
+.vc-cfc-menu-chip:hover {
+    background: var(--background-mod-subtle, rgb(128 128 128 / 8%));
+    color: var(--text-default);
+}
+
+.vc-cfc-menu-chip:focus-visible {
+    outline: 2px solid var(--focus-primary, #00b0f4);
+    outline-offset: 2px;
+}
+
+.vc-cfc-menu-chip-on {
+    border-color: transparent;
+    background: var(--background-mod-strong, rgb(128 128 128 / 24%));
+    color: var(--text-strong, var(--header-primary));
+}
+
+.vc-cfc-menu-chip-on:hover {
+    background: var(--background-mod-strong, rgb(128 128 128 / 24%));
+}
+
 /* ---------------------------------------------------------------- modal form */
 
 /*
@@ -285,7 +348,7 @@
 }
 
 .vc-cfc-input:focus {
-    border-color: var(--brand-500, var(--brand-experiment));
+    border-color: var(--border-strong, rgb(128 128 128 / 45%));
     outline: none;
 }
 
@@ -337,8 +400,9 @@
 
 .vc-cfc-chip-on,
 .vc-cfc-chip-on:hover {
-    border-color: var(--brand-500, #5865f2);
-    background: color-mix(in srgb, var(--brand-500, #5865f2) 26%, transparent);
+    border-color: transparent;
+    background: var(--background-mod-strong, rgb(128 128 128 / 24%));
+    color: var(--text-strong, var(--header-primary));
 }
 
 /* a choice between people or options: bigger than a chip, one of them always picked */
@@ -371,8 +435,9 @@
 
 .vc-cfc-choice-on,
 .vc-cfc-choice-on:hover {
-    border-color: var(--brand-500, #5865f2);
-    background: color-mix(in srgb, var(--brand-500, #5865f2) 22%, transparent);
+    border-color: transparent;
+    background: var(--background-mod-strong, rgb(128 128 128 / 24%));
+    color: var(--text-strong, var(--header-primary));
 }
 
 .vc-cfc-choice img,
@@ -450,67 +515,4 @@
 
 .vc-cfc-footnote svg {
     flex: 0 0 auto;
-}
-
-/* ---------------------------------------------------------------- where the menu entries show */
-
-.vc-cfc-menus {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    margin-bottom: 20px;
-}
-
-.vc-cfc-menus-title {
-    color: var(--header-primary, var(--text-default));
-    font-size: 16px;
-    font-weight: 500;
-    line-height: 20px;
-}
-
-.vc-cfc-menus-detail {
-    color: var(--text-muted);
-    font-size: 14px;
-    line-height: 18px;
-}
-
-.vc-cfc-menu-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 8px;
-}
-
-.vc-cfc-menu-chip {
-    display: inline-flex;
-    gap: 6px;
-    align-items: center;
-    padding: 6px 12px;
-    border: 1px solid var(--border-subtle, rgb(128 128 128 / 24%));
-    border-radius: 999px;
-    background: none;
-    color: var(--text-muted);
-    font-size: 14px;
-    line-height: 18px;
-    cursor: pointer;
-}
-
-.vc-cfc-menu-chip:hover {
-    background: var(--background-mod-subtle, rgb(128 128 128 / 8%));
-    color: var(--text-default);
-}
-
-.vc-cfc-menu-chip:focus-visible {
-    outline: 2px solid var(--focus-primary, #00b0f4);
-    outline-offset: 2px;
-}
-
-.vc-cfc-menu-chip-on {
-    border-color: var(--brand-500, #5865f2);
-    background: color-mix(in srgb, var(--brand-500, #5865f2) 16%, transparent);
-    color: var(--text-default);
-}
-
-.vc-cfc-menu-chip-on:hover {
-    background: color-mix(in srgb, var(--brand-500, #5865f2) 24%, transparent);
 }

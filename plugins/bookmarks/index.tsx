@@ -73,11 +73,18 @@ function personOf(user?: User, channel?: Channel): any {
     return (channel as any)?.type === 1 && recipients[0] ? UserStore.getUser(recipients[0]) : null;
 }
 
+/** Whether Shift was held on the press that opened the menu, read before Discord builds it */
+let shiftHeld = false;
+const noteShift = (event: MouseEvent) => void (shiftHeld = event.shiftKey);
+window.addEventListener("contextmenu", noteShift, true);
+window.addEventListener("mousedown", noteShift, true);
+
 const menu: NavContextMenuPatchCallback = (children, { user, channel }: { user?: User; channel?: Channel; }) => {
     // A shared screen should not show who is worth keeping within reach.
     if (shared()) return;
-    // Hidden from Additional Settings
-    if ((window as any).vcHiddenMenus?.includes("Bookmarks")) return;
+    // When right-click buttons show at all, as chosen on Additional Settings
+    const mode: string = (window as any).vcMenuMode ?? "always";
+    if (mode === "never" || (mode === "shift" && !shiftHeld)) return;
 
     const person = personOf(user, channel);
     if (!person?.id || person.id === UserStore.getCurrentUser()?.id) return;
@@ -113,6 +120,7 @@ export default definePlugin({
 
     settingsAboutComponent: () => (
         <About
+            menus
             icon={BookmarkIcon}
             title="Keep people within reach after closing their DM"
             note="Kept on this computer only. Nobody is told they were bookmarked."
@@ -161,7 +169,7 @@ export default definePlugin({
     /** One line for Additional Settings */
     hubSummary() {
         const n = count();
-        return n ? `${n} ${n === 1 ? "person" : "people"} bookmarked` : "Nobody bookmarked yet";
+        return n ? `${n} bookmarked` : "";
     },
 
     renderPage() {

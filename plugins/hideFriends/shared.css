@@ -283,11 +283,11 @@
 }
 
 .vc-chf-menu-chip-on {
-    border-color: var(--brand-500, #5865f2);
-    background: color-mix(in srgb, var(--brand-500, #5865f2) 16%, transparent);
-    color: var(--text-default);
+    border-color: transparent;
+    background: var(--background-mod-strong, rgb(128 128 128 / 24%));
+    color: var(--text-strong, var(--header-primary));
 }
 
 .vc-chf-menu-chip-on:hover {
-    background: color-mix(in srgb, var(--brand-500, #5865f2) 24%, transparent);
+    background: var(--background-mod-strong, rgb(128 128 128 / 24%));
 }

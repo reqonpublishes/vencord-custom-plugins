@@ -181,7 +181,7 @@
 }
 
 .vc-cip-status-on .vc-cip-status-dot {
-    background: var(--brand-500, #5865f2);
+    background: var(--text-default);
 }
 
 .vc-cip-status-text {
@@ -220,7 +220,7 @@
 
 .vc-cip-tab-on,
 .vc-cip-tab-on:hover {
-    border-bottom-color: var(--brand-500, #5865f2);
+    border-bottom-color: var(--text-strong, var(--header-primary));
     color: var(--text-strong, var(--header-primary));
 }
 
@@ -362,11 +362,11 @@
 }
 
 .vc-cip-hero-banner.vc-cip-drop-over {
-    border-color: var(--brand-500, #5865f2);
+    border-color: var(--text-default);
 }
 
 .vc-cip-hero-avatar.vc-cip-drop-over {
-    border-color: var(--brand-500, #5865f2);
+    border-color: var(--text-default);
 }
 
 /* a picture's controls, one line each */
@@ -439,8 +439,8 @@
 
 .vc-cip-segment-on,
 .vc-cip-segment-on:hover {
-    background: var(--brand-500, #5865f2);
-    color: var(--white, #fff);
+    background: var(--background-mod-strong, rgb(128 128 128 / 24%));
+    color: var(--text-strong, var(--header-primary));
 }
 
 /* ---------------------------------------------------------------- rows */
@@ -535,7 +535,13 @@
     color: var(--interactive-hover, var(--text-default));
 }
 
+/* taking something away reads as red before you reach it, as Discord's own delete buttons do */
+.vc-cip-icon-danger {
+    color: var(--text-feedback-critical, var(--status-danger));
+}
+
 .vc-cip-icon-danger:hover {
+    background: color-mix(in srgb, var(--status-danger, #da373c) 14%, transparent);
     color: var(--text-feedback-critical, var(--status-danger));
 }
 
@@ -623,13 +629,13 @@
 
 .vc-cip-badge-on,
 .vc-cip-badge-on:hover {
-    border-color: var(--brand-500, #5865f2);
-    background: color-mix(in srgb, var(--brand-500, #5865f2) 14%, transparent);
+    border-color: transparent;
+    background: var(--background-mod-strong, rgb(128 128 128 / 24%));
 }
 
 .vc-cip-badge-tick {
     flex: 0 0 auto;
-    color: var(--brand-500, #5865f2);
+    color: var(--text-default);
 }
 
 /* ---------------------------------------------------------------- presets */
@@ -654,7 +660,7 @@
 }
 
 .vc-cip-action:hover {
-    border-color: var(--brand-500, #5865f2);
+    border-color: var(--border-strong, rgb(128 128 128 / 45%));
     background: var(--background-mod-normal);
 }
 
@@ -721,7 +727,7 @@
 }
 
 .vc-cip-date-open {
-    border-color: var(--brand-500, #5865f2);
+    border-color: var(--border-strong, rgb(128 128 128 / 45%));
 }
 
 .vc-cip-date-chevron {
@@ -794,8 +800,8 @@
 }
 
 .vc-cip-ampm-on {
-    background: var(--brand-500, #5865f2);
-    color: var(--white, #fff);
+    background: var(--background-mod-strong, rgb(128 128 128 / 24%));
+    color: var(--text-strong, var(--header-primary));
 }
 
 .vc-cip-date-button:focus-visible,
@@ -845,8 +851,8 @@
 
 .vc-cip-shop-on,
 .vc-cip-shop-on:hover {
-    border-color: var(--brand-500, #5865f2);
-    background: color-mix(in srgb, var(--brand-500, #5865f2) 14%, transparent);
+    border-color: var(--text-muted);
+    background: var(--background-mod-strong, rgb(128 128 128 / 24%));
 }
 
 .vc-cip-shop-pic {

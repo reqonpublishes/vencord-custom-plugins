@@ -67,6 +67,7 @@ export function HiddenList() {
                 <>
                     <IconButton
                         icon={EyeOffIcon}
+                        variant="secondary"
                         onClick={() => {
                             hideAllFriends();
                             update();
@@ -74,28 +75,26 @@ export function HiddenList() {
                     >
                         Hide All
                     </IconButton>
-                    <IconButton
+                    {!!n.hidden && (<IconButton
                         icon={EyeIcon}
                         variant="secondary"
-                        disabled={!n.hidden}
                         onClick={() => {
                             showAllFriends();
                             update();
                         }}
                     >
                         Unhide All
-                    </IconButton>
-                    <IconButton
+                    </IconButton>)}
+                    {!!any && (<IconButton
                         icon={UndoIcon}
                         variant="dangerSecondary"
-                        disabled={!any}
                         onClick={() => {
                             restoreEverything();
                             update();
                         }}
                     >
                         Reset
-                    </IconButton>
+                    </IconButton>)}
                 </>
             }
         >

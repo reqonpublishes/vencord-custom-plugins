@@ -328,11 +328,12 @@ export default definePlugin({
             n.dismissed && `${plural(n.dismissed, "request")} hidden`
         ].filter(Boolean);
 
-        return parts.length ? parts.join(", ") : "Nobody hidden or faked yet";
+        return parts.length ? parts.join(", ") : "";
     },
 
     settingsAboutComponent: () => (
         <About
+            menus
             icon={PersonOffIcon}
             title="Hide friends, or fake a relationship"
             steps={[

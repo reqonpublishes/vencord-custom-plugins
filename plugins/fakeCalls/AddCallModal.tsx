@@ -8,6 +8,7 @@ import { FormSwitch } from "@components/FormSwitch";
 import { ModalAction, RenderModalProps } from "@vencord/discord-types";
 import { ChannelStore, Modal, openModal, UserStore, useState } from "@webpack/common";
 
+import { DateField } from "./DateField";
 import { GroupIcon, LockIcon, PersonIcon } from "./icons";
 import { addCall } from "./store";
 import { cl } from "./ui";
@@ -24,10 +25,6 @@ function fromInputValue(value: string) {
     return isNaN(date.getTime()) ? null : date;
 }
 
-const splitValue = (value: string) => {
-    const at = value.indexOf("T");
-    return at === -1 ? [value, "00:00:00"] : [value.slice(0, at), value.slice(at + 1)];
-};
 
 function Chip({ onClick, children, on }: { onClick(): void; children: string; on?: boolean; }) {
     return (
@@ -86,7 +83,6 @@ function AddCallModal({ rootProps, seed }: { rootProps: RenderModalProps; seed: 
     const [missed, setMissed] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const [date, time] = splitValue(startedAt);
 
     const add = () => {
         const began = fromInputValue(startedAt);
@@ -139,21 +135,12 @@ function AddCallModal({ rootProps, seed }: { rootProps: RenderModalProps; seed: 
 
             <section className={cl("section")}>
                 <h3 className={cl("label")}>Started</h3>
-                <div className={cl("field")}>
-                    <input
-                        type="date"
-                        className={cl("input")}
-                        value={date}
-                        onChange={e => setStartedAt(`${e.currentTarget.value || date}T${time}`)}
-                    />
-                    <input
-                        type="time"
-                        step={1}
-                        className={cl("input", "input-time")}
-                        value={time}
-                        onChange={e => setStartedAt(`${date}T${e.currentTarget.value || time}`)}
-                    />
-                </div>
+                <DateField
+                    value={isNaN(new Date(startedAt).getTime()) ? Date.now() : new Date(startedAt).getTime()}
+                    withTime
+                    maxToday={false}
+                    onChange={next => setStartedAt(toInputValue(new Date(next)))}
+                />
                 <div className={cl("line")}>
                     <div />
                     <div className={cl("chips")}>

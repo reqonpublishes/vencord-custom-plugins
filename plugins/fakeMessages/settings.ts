@@ -14,7 +14,7 @@ import { menuChips } from "./ui";
 export const settings = definePluginSettings({
     menus: {
         type: OptionType.COMPONENT,
-        component: menuChips(() => settings, "Show in menus", "Where Add Fake Message Here and Add Fake Message appear when you right-click.", [{ key: "messageMenu", label: "Messages" }, { key: "channelMenu", label: "Conversations" }])
+        component: menuChips(() => settings, "Show in menus", "Which menus show Add Fake Message.", [{ key: "messageMenu", label: "Messages" }, { key: "channelMenu", label: "Conversations" }])
     },
     messageMenu: {
         type: OptionType.BOOLEAN,
@@ -33,7 +33,7 @@ export const settings = definePluginSettings({
     persist: {
         type: OptionType.BOOLEAN,
         displayName: "Keep after restart",
-        description: "Fake messages stay when Discord restarts.",
+        description: "Fake messages stay after a restart.",
         default: true,
         // switching it off should not leave the old list sitting on disk
         onChange: (value: boolean) => void (value || forgetSaved())

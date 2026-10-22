@@ -4,11 +4,12 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+import { Settings } from "@api/Settings";
 import { Logger } from "@utils/Logger";
 import { React, showToast } from "@webpack/common";
 
-import { CheckIcon, CloudDownIcon, CloudUpIcon, CopyIcon, IconComponent, LinkIcon, RefreshIcon } from "./icons";
-import { Last, settings } from "./settings";
+import { CheckIcon, CloudDownIcon, CloudUpIcon, CopyIcon, EyeIcon, EyeOffIcon, IconComponent, LinkIcon, RefreshIcon } from "./icons";
+import { Last, PARTS, settings } from "./settings";
 import { looksLikeLink, makeLink } from "./shelf";
 import { bringDown, sendUp } from "./sync";
 import { cl, IconButton, Panel } from "./ui";
@@ -103,6 +104,12 @@ export function SyncPanel() {
         }
     };
 
+    // The link works like a password, so it is dots until asked for - and stays dots while the
+    // screen is shared, whatever was asked.
+    const [shown, setShown] = React.useState(false);
+    const shared = !!(window as any).vcScreenShared;
+    const visible = shown && !shared;
+
     const copy = async () => {
         try {
             await navigator.clipboard.writeText(held);
@@ -133,7 +140,7 @@ export function SyncPanel() {
 
                 <div className={cl("field")}>
                     <input
-                        type="text"
+                        type={visible || !held ? "text" : "password"}
                         spellCheck={false}
                         aria-label="Sync link"
                         className={cl("input", bad ? "input-bad" : "")}
@@ -144,6 +151,11 @@ export function SyncPanel() {
                             setSaid(null);
                         }}
                     />
+                    {!!held && (
+                        <IconButton icon={visible ? EyeOffIcon : EyeIcon} variant="secondary" disabled={shared} onClick={() => setShown(v => !v)}>
+                            {visible ? "Hide" : "Show"}
+                        </IconButton>
+                    )}
                     <IconButton icon={CopyIcon} variant="secondary" disabled={!held || !!busy} onClick={copy}>
                         Copy
                     </IconButton>
@@ -181,6 +193,32 @@ export function SyncPanel() {
             {said && <div className={cl("said", "said-" + said.kind)}>{said.text}</div>}
 
             <div className={cl("group-title")}>What to sync</div>
+            <WhatToSync />
         </Panel>
+    );
+}
+
+/** Which plugins' data is sent and replaced - ticked ones only, and only plugins that are on */
+function WhatToSync() {
+    const values = settings.use(PARTS.map(part => part.key) as any) as unknown as Record<string, boolean | undefined>;
+
+    return (
+        <div className={cl("menu-chips")} role="group" aria-label="What to sync">
+            {PARTS.filter(part => Settings.plugins[part.plugin]?.enabled).map(part => {
+                const on = values[part.key] !== false;
+                return (
+                    <button
+                        key={part.key}
+                        type="button"
+                        className={cl("menu-chip", on ? "menu-chip-on" : "")}
+                        aria-pressed={on}
+                        onClick={() => void ((settings.store as any)[part.key] = !on)}
+                    >
+                        {on && <CheckIcon height={14} width={14} />}
+                        <span>{part.label}</span>
+                    </button>
+                );
+            })}
+        </div>
     );
 }

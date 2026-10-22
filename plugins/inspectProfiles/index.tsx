@@ -26,7 +26,7 @@ import { About, menuChips } from "./ui";
 const settings = definePluginSettings({
     entries: {
         type: OptionType.COMPONENT,
-        component: menuChips(() => settings, "Right-click entries", "Which of these appear when you right-click somebody. Everything is also in the Inspect window.",
+        component: menuChips(() => settings, "Right-click entries", "Which entries show when you right-click someone.",
             [{ key: "inspectEntry", label: "Inspect Profile" }, { key: "stealEntry", label: "Steal Profile" }, { key: "resetEntry", label: "Reset Profile" }])
     },
     menus: {
@@ -152,6 +152,7 @@ export default definePlugin({
 
     settingsAboutComponent: () => (
         <About
+            menus
             icon={InspectIcon}
             title="Make any profile look how you want"
             steps={[
@@ -233,7 +234,7 @@ export default definePlugin({
     hubSummary() {
         const n = editedIds().length;
         const p = presetNames().length;
-        return n || p ? `${n} profile${n === 1 ? "" : "s"} changed, ${p} preset${p === 1 ? "" : "s"}` : "No profiles changed yet";
+        return [n && `${n} changed`, p && `${p} preset${p === 1 ? "" : "s"}`].filter(Boolean).join(", ");
     },
 
     /** Told by Cloud Sync that the saved copy was replaced, so the next start reads it again */

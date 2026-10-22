@@ -166,11 +166,12 @@ export default definePlugin({
     /** One line for Additional Settings: how many are hidden */
     hubSummary() {
         const n = count();
-        return n ? `${plural(n, "DM")} hidden` : "No DMs hidden yet";
+        return n ? `${plural(n, "DM")} hidden` : "";
     },
 
     settingsAboutComponent: () => (
         <About
+            menus
             icon={EyeOffIcon}
             title="Hide conversations from your DM list"
             steps={[

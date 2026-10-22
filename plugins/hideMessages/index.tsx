@@ -177,11 +177,12 @@ export default definePlugin({
             channels && plural(channels, "whole conversation")
         ].filter(Boolean);
 
-        return parts.length ? parts.join(", ") + " hidden" : "Nothing hidden yet";
+        return parts.length ? parts.join(", ") + " hidden" : "";
     },
 
     settingsAboutComponent: () => (
         <About
+            menus
             icon={EyeOffIcon}
             title="Hide messages from your own view"
             steps={[

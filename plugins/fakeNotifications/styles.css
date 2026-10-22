@@ -19,7 +19,7 @@
 }
 
 .vc-cfn-number:focus {
-    border-color: var(--brand-500, var(--brand-experiment));
+    border-color: var(--border-strong, rgb(128 128 128 / 45%));
     outline: none;
 }
 

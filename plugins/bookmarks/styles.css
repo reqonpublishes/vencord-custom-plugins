@@ -22,7 +22,7 @@
 }
 
 .vc-bm-search:focus {
-    border-color: var(--border-focus, var(--brand-500));
+    border-color: var(--border-strong, rgb(128 128 128 / 45%));
     outline: none;
 }
 

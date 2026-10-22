@@ -8,6 +8,7 @@ import { FormSwitch } from "@components/FormSwitch";
 import { ModalAction, RenderModalProps } from "@vencord/discord-types";
 import { ChannelStore, Modal, openModal, TextArea, UserStore, useState } from "@webpack/common";
 
+import { DateField } from "./DateField";
 import { LockIcon, PersonIcon } from "./icons";
 import { addMessage } from "./store";
 import { cl } from "./ui";
@@ -25,10 +26,6 @@ function fromInputValue(value: string) {
     return isNaN(date.getTime()) ? null : date;
 }
 
-const splitValue = (value: string) => {
-    const at = value.indexOf("T");
-    return at === -1 ? [value, "00:00:00"] : [value.slice(0, at), value.slice(at + 1)];
-};
 
 function Chip({ onClick, children }: { onClick(): void; children: string; }) {
     return (
@@ -38,27 +35,12 @@ function Chip({ onClick, children }: { onClick(): void; children: string; }) {
     );
 }
 
-/** A date box and a time box side by side, instead of one long field */
+/** The day from Discord's own calendar, and the time beside it - the seconds are kept as they were */
 function DateTimeField({ value, onChange }: { value: string; onChange(next: string): void; }) {
-    const [date, time] = splitValue(value);
+    const at = new Date(value);
+    const ms = isNaN(at.getTime()) ? Date.now() : at.getTime();
 
-    return (
-        <div className={cl("field")}>
-            <input
-                type="date"
-                className={cl("input")}
-                value={date}
-                onChange={e => onChange(`${e.currentTarget.value || date}T${time}`)}
-            />
-            <input
-                type="time"
-                step={1}
-                className={cl("input", "input-time")}
-                value={time}
-                onChange={e => onChange(`${date}T${e.currentTarget.value || time}`)}
-            />
-        </div>
-    );
+    return <DateField value={ms} withTime maxToday={false} onChange={next => onChange(toInputValue(new Date(next)))} />;
 }
 
 /** Somebody the message could be from, as a button with their face on it */

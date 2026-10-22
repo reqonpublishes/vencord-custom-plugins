@@ -7,38 +7,40 @@
 import { useForceUpdater } from "@utils/react";
 
 import { ChatIcon, TrashIcon } from "./icons";
-import { chats, clearAll, total } from "./store";
-import { cl, IconButton, Panel, Row } from "./ui";
+import { placeOf } from "./places";
+import { asRecord, clearAll, clearChannel, total } from "./store";
+import { cl, Empty, IconButton, Panel, Row } from "./ui";
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
-/** How many there are, and the one button that takes them all back */
+/** Every conversation with fake messages in it, most first, each with its own way to take them back */
 export function AddedPanel() {
     const update = useForceUpdater();
     const n = total();
+    const places = Object.entries(asRecord()).filter(([, list]) => list.length).sort((a, b) => b[1].length - a[1].length);
 
     return (
-        <Panel title="Your fake messages">
-            <div className={cl("rows")}>
-                <Row
-                    icon={ChatIcon}
-                    round={false}
-                    name={n ? plural(n, "fake message") : "No fake messages yet"}
-                    detail={n ? `In ${plural(chats(), "conversation")}` : "Right-click a message or a conversation to add one"}
-                >
-                    <IconButton
-                        icon={TrashIcon}
-                        variant="dangerSecondary"
-                        disabled={!n}
-                        onClick={() => {
-                            clearAll();
-                            update();
-                        }}
-                    >
-                        Remove All
-                    </IconButton>
-                </Row>
-            </div>
+        <Panel
+            title="Fake messages"
+            count={n}
+            actions={n ? (
+                <IconButton icon={TrashIcon} variant="dangerSecondary" onClick={() => { clearAll(); update(); }}>Remove All</IconButton>
+            ) : undefined}
+        >
+            {!n ? (
+                <Empty icon={ChatIcon} title="No fake messages" text="Right-click a message and choose Add Fake Message Here." />
+            ) : (
+                <div className={cl("rows")}>
+                    {places.map(([channelId, list]) => {
+                        const place = placeOf(channelId);
+                        return (
+                            <Row key={channelId} image={place.image} icon={ChatIcon} name={place.name} detail={[plural(list.length, "fake message"), place.detail].filter(Boolean).join(" · ")}>
+                                <IconButton icon={TrashIcon} variant="dangerSecondary" onClick={() => { clearChannel(channelId); update(); }}>Remove</IconButton>
+                            </Row>
+                        );
+                    })}
+                </div>
+            )}
         </Panel>
     );
 }

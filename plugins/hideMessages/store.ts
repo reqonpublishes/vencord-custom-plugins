@@ -157,6 +157,17 @@ export const hasHidesIn = (channelId: string) =>
     || !!hiddenMessages.get(channelId)?.size
     || !!hiddenRanges.get(channelId)?.length;
 
+/** What is hidden in each conversation, for the settings page */
+export function perChat(): { channelId: string; messages: number; ranges: number; whole: boolean; }[] {
+    const ids = new Set([...hiddenChannels.keys(), ...hiddenMessages.keys(), ...hiddenRanges.keys()]);
+    return [...ids].map(channelId => ({
+        channelId,
+        messages: hiddenMessages.get(channelId)?.size ?? 0,
+        ranges: hiddenRanges.get(channelId)?.length ?? 0,
+        whole: hiddenChannels.has(channelId)
+    })).filter(entry => entry.whole || entry.messages || entry.ranges);
+}
+
 /** What is hidden right now, for the settings page */
 export function stats() {
     let messages = 0;

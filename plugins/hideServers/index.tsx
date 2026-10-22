@@ -102,11 +102,12 @@ export default definePlugin({
     /** One line for Additional Settings: how many are hidden */
     hubSummary() {
         const n = count();
-        return n ? `${plural(n, "server")} hidden` : "No servers hidden yet";
+        return n ? `${plural(n, "server")} hidden` : "";
     },
 
     settingsAboutComponent: () => (
         <About
+            menus
             icon={EyeOffIcon}
             title="Hide servers from your server list"
             steps={[

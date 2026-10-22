@@ -23,13 +23,18 @@ export function IconButton({ icon: Icon, children, ...props }: ButtonProps & { i
 }
 
 /** The card at the top of a plugin's settings: what it does and how to reach it */
-export function About({ icon: Icon, title, steps, note = "Only you see this. Nothing is sent to Discord and nobody is notified." }: {
+export function About({ icon: Icon, title, steps, menus, note = "Only you see this. Nothing is sent to Discord and nobody is notified." }: {
     icon: IconComponent;
     title: string;
     steps: ReactNode[];
+    /** whether the steps mention right-click buttons, which may only show while Shift is held */
+    menus?: boolean;
     /** the reassurance under the steps, or false where there is nothing to reassure about */
     note?: string | false;
 }) {
+    // chosen on Additional Settings, and left on the window for every plugin to read
+    const shiftOnly = menus && (window as any).vcMenuMode === "shift";
+
     return (
         <div className={cl("about")}>
             <div className={cl("about-head")}>
@@ -41,6 +46,11 @@ export function About({ icon: Icon, title, steps, note = "Only you see this. Not
             <ul className={cl("steps")}>
                 {steps.map((step, i) => <li key={i}>{step}</li>)}
             </ul>
+            {shiftOnly && (
+                <div className={cl("private")}>
+                    <span>Right-click buttons show while you hold <kbd>Shift</kbd>. Change this on Additional Settings.</span>
+                </div>
+            )}
             {note && (
                 <div className={cl("private")}>
                     <LockIcon height={14} width={14} />

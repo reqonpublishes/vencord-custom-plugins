@@ -19,7 +19,7 @@ const settings = definePluginSettings({
     hiddenHistory: {
         type: OptionType.BOOLEAN,
         displayName: "Scroll past blocked messages",
-        description: "When you scroll up into a long run of blocked or ignored messages, keep loading until there is something to see. Discord stops after one page, so the chat sits on its loading placeholder.",
+        description: "Keeps loading through blocked and ignored messages when you scroll up, so a chat never sits on its placeholder.",
         default: true
     }
 });

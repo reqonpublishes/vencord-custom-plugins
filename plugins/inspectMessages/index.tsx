@@ -128,11 +128,12 @@ export default definePlugin({
     /** One line for Additional Settings: how many messages read differently */
     hubSummary() {
         const n = countEdits();
-        return n ? plural(n, "changed message") : "No changed messages yet";
+        return n ? plural(n, "changed message") : "";
     },
 
     settingsAboutComponent: () => (
         <About
+            menus
             icon={InspectGlyph}
             title="Change how a message looks to you"
             steps={[

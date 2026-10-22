@@ -61,7 +61,7 @@
 }
 
 .vc-cim-input:focus {
-    border-color: var(--brand-500, var(--brand-experiment));
+    border-color: var(--border-strong, rgb(128 128 128 / 45%));
     outline: none;
 }
 
@@ -183,4 +183,51 @@
  */
 body:not(.vc-cim-shift-down) .vc-cim-shift-only {
     display: none !important;
+}
+
+/* ---------------------------------------------------------------- changed messages, before and after */
+
+.vc-cim-edit {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: var(--background-mod-subtle, rgb(128 128 128 / 8%));
+}
+
+.vc-cim-edit-text {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.vc-cim-edit-where {
+    overflow: hidden;
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 16px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vc-cim-edit-now,
+.vc-cim-edit-was {
+    overflow: hidden;
+    font-size: 14px;
+    line-height: 18px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vc-cim-edit-now {
+    color: var(--text-default);
+}
+
+/* what it really says, struck through under what it says now */
+.vc-cim-edit-was {
+    color: var(--text-muted);
+    text-decoration: line-through;
 }

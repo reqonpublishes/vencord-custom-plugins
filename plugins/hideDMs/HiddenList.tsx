@@ -32,6 +32,7 @@ export function HiddenList() {
                 <>
                     <IconButton
                         icon={EyeOffIcon}
+                        variant="secondary"
                         onClick={() => {
                             // Not the one on screen: you would be left looking at a
                             // conversation that is no longer in the list beside it.
@@ -41,17 +42,16 @@ export function HiddenList() {
                     >
                         Hide All
                     </IconButton>
-                    <IconButton
+                    {!!count() && (<IconButton
                         icon={EyeIcon}
                         variant="secondary"
-                        disabled={!count()}
                         onClick={() => {
                             showAll();
                             update();
                         }}
                     >
                         Unhide All
-                    </IconButton>
+                    </IconButton>)}
                 </>
             }
         >

@@ -36,42 +36,49 @@ export const settings = definePluginSettings({
     shareProtection: {
         type: OptionType.BOOLEAN,
         displayName: "Screen Share Protection",
-        description: "While you share your screen, every plugin is switched on, including the ones you turned off, and their menu entries and this page are kept out of sight. Everything goes back to how you had it when you stop.",
+        description: "Keeps everything hidden while you share your screen. Everything goes back when you stop.",
         default: true,
         onChange: () => refresh()
     },
     streamerMode: {
         type: OptionType.BOOLEAN,
         displayName: "Also when Streamer Mode is on",
-        description: "Discord can turn Streamer Mode on by itself when it sees OBS or another recorder.",
+        description: "Discord turns it on by itself when it sees OBS or another recorder.",
         default: true,
         onChange: () => refresh()
     },
     shareHideNew: {
         type: OptionType.BOOLEAN,
-        displayName: "Hide new friends, DMs and servers",
-        description: "Anything that appeared since those plugins were last on is hidden while you share, and shown again after. Your hidden lists don't change.",
+        displayName: "Hide anything new",
+        description: "New friends, DMs and servers stay hidden until the share ends.",
         default: true,
         onChange: () => refresh()
     },
     shareHideMenus: {
         type: OptionType.BOOLEAN,
-        displayName: "Hide plugin menus",
-        description: "Removes these plugins' right-click entries and the Bookmarked tab while you share. Hold Shift to see the entries anyway.",
+        displayName: "Hide right-click buttons",
+        description: "No plugin buttons in menus, or the Bookmarked tab, while you share. Shift still shows them.",
         default: true,
         onChange: () => refresh()
     },
     shareHidePage: {
         type: OptionType.BOOLEAN,
         displayName: "Hide this page",
-        description: "Removes Additional Settings from the settings sidebar while you share.",
-        default: true,
+        description: "Takes Additional Settings out of the sidebar while you share.",
+        default: false,
+        onChange: () => refresh()
+    },
+    sharePlain: {
+        type: OptionType.BOOLEAN,
+        displayName: "Look like plain Discord",
+        description: "Hides Vencord and turns off your other plugins while you share. The hide and fake plugins stay on.",
+        default: false,
         onChange: () => refresh()
     },
     shareRestore: {
         type: OptionType.BOOLEAN,
-        displayName: "Turn them off when sharing stops",
-        description: "Plugins turned on for the share go back off. Turn this off to keep them on.",
+        displayName: "Turn plugins back off after",
+        description: "Plugins turned on for the share go back off when it ends.",
         default: true
     },
     // Plugins left alone during a share. Picked on the Additional Settings page.
@@ -80,22 +87,22 @@ export const settings = definePluginSettings({
         default: [] as string[],
         onChange: () => refresh()
     },
-    // Plugins whose right-click entries are hidden. Switched on the Additional Settings page.
-    hiddenMenus: {
+    // When the plugins' right-click buttons show: "always", "shift" or "never". Chosen on the page.
+    menuButtons: {
         type: OptionType.CUSTOM,
-        default: [] as string[],
-        onChange: () => publishHiddenMenus()
+        default: "shift" as "always" | "shift" | "never",
+        onChange: () => publishMenuMode()
     }
 });
 
 /**
- * Tell the other plugins whose right-click entries to leave out.
+ * Tell the other plugins when to show their right-click buttons.
  *
  * Left on the window, as the screen share is, so none of them depends on this one: with it
- * gone, the list is gone and every entry is back.
+ * gone, the choice is gone and every button shows.
  */
-export function publishHiddenMenus(on = true) {
-    (window as any).vcHiddenMenus = on ? [...(settings.store.hiddenMenus ?? [])] : [];
+export function publishMenuMode(on = true) {
+    (window as any).vcMenuMode = on ? settings.store.menuButtons ?? "shift" : undefined;
 }
 
 /** Put this page in Discord's settings sidebar, or take it out */
@@ -123,7 +130,7 @@ let pending: ReturnType<typeof setTimeout> | null = null;
 
 export default definePlugin({
     name: "PluginHub",
-    description: "Adds Additional Settings under Vencord: every one of these plugins in one place, each with its own switch, plus one button to see the real Discord.",
+    description: "Additional Settings under Vencord: every one of these plugins in one place, with Screen Share Protection.",
     tags: ["Utility"],
     authors: [{ name: "reqon", id: 497562304498368513n }],
 
@@ -145,7 +152,7 @@ export default definePlugin({
 
     start() {
         listed(true);
-        publishHiddenMenus();
+        publishMenuMode();
         unwatch = onProtectionChange(() => listed(!pageHidden()));
 
         // After this turn of the loop, by which time Vencord has started every plugin it is
@@ -165,7 +172,7 @@ export default definePlugin({
         pending = null;
 
         stopProtection();
-        publishHiddenMenus(false);
+        publishMenuMode(false);
         unwatch?.();
         unwatch = null;
         listed(false);

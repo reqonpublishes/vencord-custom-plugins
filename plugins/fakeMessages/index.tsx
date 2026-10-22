@@ -19,7 +19,6 @@ import { ChatAddIcon, PencilIcon, TrashIcon } from "./icons";
 import { place } from "./menu";
 import { settings } from "./settings";
 import {
-    chats,
     clearChannel,
     countIn,
     getFake,
@@ -162,11 +161,12 @@ export default definePlugin({
     /** One line for Additional Settings: how many there are */
     hubSummary() {
         const n = total();
-        return n ? `${plural(n, "fake message")} in ${plural(chats(), "conversation")}` : "No fake messages yet";
+        return n ? plural(n, "fake message") : "";
     },
 
     settingsAboutComponent: () => (
         <About
+            menus
             icon={ChatAddIcon}
             title="Add messages nobody sent"
             steps={[

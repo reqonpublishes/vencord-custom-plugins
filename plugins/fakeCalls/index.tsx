@@ -18,7 +18,6 @@ import { startLive, stopLive } from "./live";
 import { place } from "./menu";
 import { settings } from "./settings";
 import {
-    chats,
     clearChannel,
     countIn,
     interceptor,
@@ -139,11 +138,12 @@ export default definePlugin({
     /** One line for Additional Settings: how many there are */
     hubSummary() {
         const n = total();
-        return n ? `${plural(n, "fake call")} in ${plural(chats(), "conversation")}` : "No fake calls yet";
+        return n ? plural(n, "fake call") : "";
     },
 
     settingsAboutComponent: () => (
         <About
+            menus
             icon={PhoneAddIcon}
             title="Add calls that never happened"
             steps={[
