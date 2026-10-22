@@ -272,8 +272,9 @@ function HubPage() {
     return (
         <SettingsTab>
             <div className={cl("page")}>
-                {/* where things stand, and the one switch for all of it - not a section of its own */}
-                <div className={cl("section")}>
+                {/* where things stand, the one switch for all of it, and the protection you reach for before a call */}
+                <section className={cl("section")}>
+                    <h2 className={cl("heading")}>Overview</h2>
                     <div className={cl("item")}>
                         <div className={cl("tile")}><EyeIcon height={20} width={20} /></div>
                         <div className={cl("item-text")}>
@@ -286,12 +287,12 @@ function HubPage() {
                                 {!views.length
                                     ? "Switch them on below."
                                     : live
-                                        ? "Show Real switches them all off."
+                                        ? "Turn Off shows the real Discord."
                                         : "Nothing you hid or faked is lost."}
                             </div>
                         </div>
                         <IconButton
-                            icon={live ? EyeIcon : EyeOffIcon}
+                            icon={live ? EyeOffIcon : EyeIcon}
                             size="medium"
                             variant={live ? "primary" : "secondary"}
                             disabled={!views.length}
@@ -299,7 +300,7 @@ function HubPage() {
                                 const result = flipAll(settings.store.paused ?? []);
 
                                 // Not the ones a share switched on. You had those off, and Turn
-                                // Back On should not be what turns them on for good.
+                                // On should not be what turns them on for good.
                                 const lent = raisedForShare();
                                 settings.store.paused = result.remember.filter(name => !lent.includes(name));
                                 update();
@@ -309,7 +310,7 @@ function HubPage() {
                                         : `${result.changed} switched off`, "success");
                             }}
                         >
-                            {live ? "Show Real" : "Turn Back On"}
+                            {live ? "Turn Off" : "Turn On"}
                         </IconButton>
                     </div>
 
@@ -323,7 +324,35 @@ function HubPage() {
                             <IconButton icon={RefreshIcon} variant="secondary" onClick={() => location.reload()}>Reload Now</IconButton>
                         </div>
                     )}
-                </div>
+
+                    <div className={cl("item", shareProtection !== false && shareOpen ? "item-open" : "")}>
+                        <div className={cl("tile")}><ScreenShareIcon height={20} width={20} /></div>
+                        <div className={cl("item-text")}>
+                            <div className={cl("item-name")}>Screen Share Protection</div>
+                            <div className={cl("item-detail")}>
+                                {protecting
+                                    ? "On now, while you share."
+                                    : "Hides everything while you share."}
+                            </div>
+                        </div>
+                        {shareProtection !== false && (
+                            <Button
+                                className={cl("cog", shareOpen ? "cog-open" : "")}
+                                size="iconOnly"
+                                variant="none"
+                                aria-expanded={shareOpen}
+                                aria-label={shareOpen ? "Hide the options" : "Show the options"}
+                                title={shareOpen ? "Hide the options" : "Show the options"}
+                                onClick={() => setShareOpen(open => !open)}
+                            >
+                                <ChevronDownIcon height={20} width={20} />
+                            </Button>
+                        )}
+                        <Switch checked={shareProtection !== false} onChange={next => void (settings.store.shareProtection = next)} />
+                    </div>
+
+                    {shareProtection !== false && shareOpen && <ShareOptions />}
+                </section>
 
                 {SECTIONS.map(({ id, title }) => {
                     const rows = all.filter(entry => entry.section === id);
@@ -356,42 +385,11 @@ function HubPage() {
                     );
                 })}
 
+                {/* set once and left alone, so below everything you come back for */}
                 <section className={cl("section")}>
                     <h2 className={cl("heading")}>Buttons</h2>
                     <ButtonChoice setting="menuButtons" icon={MenuIcon} name="Menu buttons" detail="When plugin options show in right-click menus." />
                     <ButtonChoice setting="hoverButtons" icon={CursorIcon} name="Hover buttons" detail="When plugin buttons show above messages." />
-                </section>
-
-                <section className={cl("section")}>
-                    <h2 className={cl("heading")}>Screen Share</h2>
-                    <div className={cl("item", shareProtection !== false && shareOpen ? "item-open" : "")}>
-                        <div className={cl("tile")}><ScreenShareIcon height={20} width={20} /></div>
-                        <div className={cl("item-text")}>
-                            <div className={cl("item-name")}>Screen Share Protection</div>
-                            <div className={cl("item-detail")}>
-                                {protecting
-                                    ? "On now, while you share."
-                                    : "Hides everything while you share."}
-                            </div>
-                        </div>
-                        {shareProtection !== false && (
-                            <Button
-                                className={cl("cog", shareOpen ? "cog-open" : "")}
-                                size="iconOnly"
-                                variant="none"
-                                aria-expanded={shareOpen}
-                                aria-label={shareOpen ? "Hide the options" : "Show the options"}
-                                title={shareOpen ? "Hide the options" : "Show the options"}
-                                onClick={() => setShareOpen(open => !open)}
-                            >
-                                <ChevronDownIcon height={20} width={20} />
-                            </Button>
-                        )}
-                        <Switch checked={shareProtection !== false} onChange={next => void (settings.store.shareProtection = next)} />
-                    </div>
-
-                    {shareProtection !== false && shareOpen && <ShareOptions />}
-
                 </section>
 
                 <section className={cl("section")}>

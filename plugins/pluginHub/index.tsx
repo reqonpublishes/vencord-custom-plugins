@@ -32,7 +32,7 @@ export const settings = definePluginSettings({
             </IconButton>
         )
     },
-    // Which plugins were on when Show Real was pressed, so Turn Back On brings back those
+    // Which plugins were on when Turn Off was pressed, so Turn On brings back those
     // and not every plugin there is.
     paused: {
         type: OptionType.CUSTOM,
@@ -178,7 +178,7 @@ export default definePlugin({
             steps={[
                 <>Open Discord's settings and look under <strong>Vencord</strong> for <strong>Additional Settings</strong>.</>,
                 <>Turn a plugin off there to see the real thing, and on again to get your version back. Nothing is forgotten.</>,
-                <><strong>Show Real</strong> turns them all off at once.</>,
+                <><strong>Turn Off</strong> switches them all off at once.</>,
                 <><strong>Screen Share Protection</strong> switches them all back on while you share your screen.</>
             ]}
         />

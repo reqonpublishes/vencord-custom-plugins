@@ -8,7 +8,7 @@
  * A toast that replaces whatever toast is showing instead of waiting behind it.
  *
  * Discord shows one toast at a time and queues the rest. Something pressed ten times in a
- * row - Show Real, Ctrl+Z - then plays ten toasts back one after another, long after anybody
+ * row - Turn Off, Ctrl+Z - then plays ten toasts back one after another, long after anybody
  * cares. Only the newest is worth reading, so the queue and the toast on screen are cleared
  * first.
  */
