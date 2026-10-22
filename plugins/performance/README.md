@@ -1,4 +1,4 @@
-# Smoother
+# Performance
 
 Fixes the places Discord gets stuck.
 
@@ -17,7 +17,7 @@ loading placeholder forever. Nothing is broken. It is loading, just in a way you
 
 So every scroll pages a little further back, nothing on screen changes, and it looks stuck.
 
-With Smoother, one scroll keeps loading by itself, a page at a time, for as long as each page is
+With Performance on, one scroll keeps loading by itself, a page at a time, for as long as each page is
 all hidden messages. As soon as a page has something to show, Discord takes over as it always
 does.
 

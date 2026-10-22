@@ -91,7 +91,7 @@ export function lookPlain() {
 
     const kept = new Set(ENTRIES.filter(isView).map(entry => entry.plugin));
     // and ours that draw nothing: Ctrl+R stays quick, chats keep loading
-    kept.add("PluginHub").add("QuickRestart").add("Smoother");
+    kept.add("PluginHub").add("QuickRestart").add("Performance");
     const needed = neededByKept(PM, kept);
 
     for (const [name, plugin] of Object.entries<any>(PM.plugins)) {

@@ -56,7 +56,7 @@ export const ENTRIES: Entry[] = [
     { plugin: "Bookmarks", label: "Bookmarks", icon: BookmarkIcon, section: "tools", about: "Bookmark profiles and find them again from Friends" },
     { plugin: "CloudSync", label: "Cloud Sync", icon: CloudIcon, section: "tools", about: "Sync all of this with your phone" },
     { plugin: "QuickRestart", label: "Quick Restart", icon: BoltIcon, section: "tools", about: "Ctrl+R restarts about five times faster" },
-    { plugin: "Smoother", label: "Smoother", icon: SpeedIcon, section: "tools", about: "Keeps chats loading when you scroll up" }
+    { plugin: "Performance", label: "Performance", icon: SpeedIcon, section: "tools", about: "Fixes the places Discord gets slow or stuck" }
 ];
 
 /** Whether a plugin changes what Discord shows, rather than being a tool */

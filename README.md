@@ -25,7 +25,7 @@ Custom plugins for [Vencord](https://vencord.dev).
 | **[Bookmarks](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/bookmarks)** | Bookmark anyone's profile and find them again in a Bookmarked tab on the Friends page, even after closing their DM. |
 | **[Cloud&nbsp;Sync](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/cloudSync)** | Sync everything these plugins hold between this computer and your phone with one private code. Nothing syncs until you press a button. |
 | **[Quick&nbsp;Restart](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/quickRestart)** | Ctrl+R restarts Discord about five times faster. |
-| **[Smoother](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/smoother)** | Fixes chats that get stuck on their loading placeholder when you scroll up through blocked messages. |
+| **[Performance](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/performance)** | Fixes the places Discord gets slow or stuck - like chats sitting on their loading placeholder when you scroll up through blocked messages. |
 
 Click a plugin for how to use it and what its settings do.
 

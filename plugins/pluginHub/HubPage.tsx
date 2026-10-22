@@ -108,7 +108,7 @@ function SyncRow() {
                 <div className={cl("item-name")}>Sync now</div>
                 <div className={cl("item-detail")}>
                     {link
-                        ? "To Cloud uploads what this computer has. From Cloud replaces it."
+                        ? "Upload this computer's copy, or replace it with the cloud's"
                         : "Make a sync code in Cloud Sync's settings first"}
                 </div>
             </div>
@@ -171,7 +171,7 @@ function DeleteData() {
             <div className={cl("item-text")}>
                 <div className={cl("item-name")}>Delete all data</div>
                 <div className={cl("item-detail")}>
-                    Everything these plugins saved on this computer, and their settings. Cloud Sync's code is kept.
+                    Everything these plugins saved here, and their settings. Your sync code stays.
                 </div>
             </div>
             <IconButton
@@ -350,8 +350,13 @@ function HubPage() {
                     return (
                         <section className={cl("section")} key={id}>
                             <h2 className={cl("heading")}>{title}</h2>
-                            {rows.map(entry => <PluginRow key={entry.plugin} entry={entry} onChange={update} />)}
-                            {id === "tools" && <SyncRow />}
+                            {rows.map(entry => (
+                                <React.Fragment key={entry.plugin}>
+                                    <PluginRow entry={entry} onChange={update} />
+                                    {/* straight under the plugin it belongs to */}
+                                    {entry.plugin === "CloudSync" && <SyncRow />}
+                                </React.Fragment>
+                            ))}
                         </section>
                     );
                 })}

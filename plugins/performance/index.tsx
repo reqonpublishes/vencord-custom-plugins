@@ -6,14 +6,14 @@
 
 import "./shared.css";
 
-import { definePluginSettings } from "@api/Settings";
+import { definePluginSettings, migratePluginSettings } from "@api/Settings";
 import { Logger } from "@utils/Logger";
 import definePlugin, { OptionType } from "@utils/types";
 
 import { SpeedIcon } from "./icons";
 import { About } from "./ui";
 
-const logger = new Logger("Smoother");
+const logger = new Logger("Performance");
 
 const settings = definePluginSettings({
     hiddenHistory: {
@@ -70,9 +70,11 @@ function keepLoading(manager: any): boolean {
     }
 }
 
+migratePluginSettings("Performance", "Smoother");
+
 export default definePlugin({
-    name: "Smoother",
-    description: "Fixes the places Discord gets stuck. Scrolling up through blocked or ignored messages keeps loading instead of sitting on the loading placeholder.",
+    name: "Performance",
+    description: "Fixes the places Discord gets slow or stuck. Scrolling up through blocked or ignored messages keeps loading instead of sitting on the loading placeholder.",
     tags: ["Utility"],
     authors: [{ name: "reqon", id: 497562304498368513n }],
     // a fix for Discord, not something to opt into
@@ -83,7 +85,7 @@ export default definePlugin({
     settingsAboutComponent: () => (
         <About
             icon={SpeedIcon}
-            title="Discord, without the stuck bits"
+            title="Discord, without the slow and stuck bits"
             note={false}
             steps={[
                 <>Scroll up in a chat full of blocked or ignored messages and it keeps loading until there is something to see, instead of sitting on the loading placeholder.</>,
