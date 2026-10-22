@@ -8,9 +8,10 @@ import { Button } from "@components/Button";
 import { useForceUpdater } from "@utils/react";
 import { React, UserStore, UserUtils } from "@webpack/common";
 
-import { clearAll, counts, Fake, fakeAs, infoOf, listed, unfake } from "./friends";
+import { clearAll, counts, Fake, fakeAs, fakeOf, infoOf, listed, unfake } from "./friends";
 import { CheckIcon, PersonAddIcon, UndoIcon } from "./icons";
 import { cl, Empty, IconButton, Panel, Row } from "./ui";
+import { remember } from "./undo";
 
 const CHOICES: { fake: Fake; label: string; done: string; }[] = [
     { fake: "friended", label: "Friend", done: "is now your friend" },
@@ -44,7 +45,9 @@ function AddById({ onChange }: { onChange(): void; }) {
             const user: any = UserStore.getUser(wanted) ?? await UserUtils.getUser(wanted);
             if (!user) throw new Error("missing");
 
+            const was = fakeOf(wanted);
             fakeAs(wanted, fake);
+            remember("Add Fake", () => was ? fakeAs(wanted, was) : unfake(wanted));
             setSaid({ text: `${user.globalName ?? user.username} ${CHOICES.find(one => one.fake === fake)!.done}.`, bad: false });
             setId("");
             onChange();
@@ -112,7 +115,9 @@ function Group({ title, rows, onChange }: { title: string; rows: [string, string
                             size="small"
                             variant="secondary"
                             onClick={() => {
+                                const was = fakeOf(id);
                                 unfake(id);
+                                if (was) remember("Remove Fake", () => fakeAs(id, was));
                                 onChange();
                             }}
                         >

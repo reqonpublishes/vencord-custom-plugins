@@ -18,6 +18,7 @@ import { place } from "./menu";
 import { settings } from "./settings";
 import { count, forgetFresh, hideChat, hideFresh, hideWaiting, hidJustNow, invalidate, isHidden, isLoaded, isWaiting, listNow, load, noteMessage, noteReal, pause, reapply, resume, setOn, showAll, showChat } from "./store";
 import { About } from "./ui";
+import { done } from "./undo";
 
 /**
  * Work out which conversation a menu is about.
@@ -40,7 +41,9 @@ function entry(channelId: string) {
             label={away ? "Unhide DM" : "Hide DM"}
             icon={Icon}
             leadingAccessory={{ type: "icon", icon: Icon }}
-            action={() => away ? showChat(channelId) : hideChat(channelId)}
+            action={() => away
+                ? done("Unhide DM", () => showChat(channelId), () => hideChat(channelId))
+                : done("Hide DM", () => hideChat(channelId), () => showChat(channelId))}
         />
     );
 }

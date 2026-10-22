@@ -7,9 +7,10 @@
 import { Button } from "@components/Button";
 import { useForceUpdater } from "@utils/react";
 
-import { clearAll, counts, hideAllFriends, infoOf, listed, restoreRequest, showAllFriends, showFriend } from "./friends";
+import { clearAll, counts, dismissRequest, hideAllFriends, hideFriend, infoOf, listed, restoreRequest, showAllFriends, showFriend } from "./friends";
 import { EyeIcon, EyeOffIcon, PersonOffIcon } from "./icons";
 import { cl, Empty, IconButton, Panel, Row } from "./ui";
+import { done } from "./undo";
 
 function Group({ title, rows, run, onChange }: {
     title: string;
@@ -98,8 +99,8 @@ export function HiddenList() {
 
             {!!any && (
                 <div className={cl("rows")}>
-                    <Group title="Friends" rows={all.hidden} run={showFriend} onChange={update} />
-                    <Group title="Friend requests" rows={all.dismissed} run={restoreRequest} onChange={update} />
+                    <Group title="Friends" rows={all.hidden} run={id => done("Unhide Friend", () => showFriend(id), () => hideFriend(id))} onChange={update} />
+                    <Group title="Friend requests" rows={all.dismissed} run={id => done("Unhide Friend Request", () => restoreRequest(id), () => dismissRequest(id))} onChange={update} />
                 </div>
             )}
         </Panel>

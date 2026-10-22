@@ -25,17 +25,27 @@ import {
     hideRange,
     interceptor,
     onChannelSelect,
+    restoreChat,
     showChannel,
+    snapshotChat,
     startStore,
     stats,
     stopStore
 } from "./store";
 import { About } from "./ui";
+import { remember } from "./undo";
 
 const HideIcon: GatedIcon = EyeOffIcon;
 const ShowIcon: GatedIcon = EyeIcon;
 
 const CtrlHideIcon = ctrlGated(HideIcon);
+
+/** Do something to a chat's hides so that Ctrl+Z puts the chat back exactly as it was */
+function undoable(channelId: string, label: string, run: () => void) {
+    const before = snapshotChat(channelId);
+    run();
+    remember(label, () => restoreChat(channelId, before));
+}
 
 let interceptorRegistered = false;
 
@@ -61,7 +71,7 @@ const messageCtx: NavContextMenuPatchCallback = (children, { message }: { messag
             label="Hide Message"
             icon={ChatOffIcon}
             leadingAccessory={{ type: "icon", icon: ChatOffIcon }}
-            action={() => hideMessage(channelId, message.id)}
+            action={() => undoable(channelId, "Hide Message", () => hideMessage(channelId, message.id))}
         />
     );
 
@@ -80,7 +90,8 @@ const messageCtx: NavContextMenuPatchCallback = (children, { message }: { messag
                     return;
                 }
 
-                hideRange(channelId, anchor!.messageId, message.id);
+                const from = anchor!.messageId;
+                undoable(channelId, "Hide Messages", () => hideRange(channelId, from, message.id));
                 anchor = null;
             }}
         />
@@ -110,7 +121,7 @@ function channelEntries(channelId: string) {
             label="Hide Messages"
             icon={ChatOffIcon}
             leadingAccessory={{ type: "icon", icon: ChatOffIcon }}
-            action={() => hideChannel(channelId)}
+            action={() => undoable(channelId, "Hide Messages", () => hideChannel(channelId))}
         />
     ];
 
@@ -122,7 +133,7 @@ function channelEntries(channelId: string) {
                 label="Unhide Messages"
                 icon={ShowIcon}
                 leadingAccessory={{ type: "icon", icon: ShowIcon }}
-                action={() => showChannel(channelId)}
+                action={() => undoable(channelId, "Unhide Messages", () => showChannel(channelId))}
             />
         );
     }
@@ -242,7 +253,7 @@ export default definePlugin({
                 icon: mode === "ctrl" || isShared() ? CtrlHideIcon : HideIcon,
                 message: msg,
                 channel: ChannelStore.getChannel(msg.channel_id),
-                onClick: () => hideMessage(msg.channel_id, msg.id)
+                onClick: () => undoable(msg.channel_id, "Hide Message", () => hideMessage(msg.channel_id, msg.id))
             };
         }
     },

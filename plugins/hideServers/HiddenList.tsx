@@ -7,10 +7,11 @@
 import { useForceUpdater } from "@utils/react";
 import { SelectedGuildStore } from "@webpack/common";
 
-import { channelCount, channelInfo, hiddenChannels, showAllChannels, showChannel } from "./channels";
+import { channelCount, channelInfo, hiddenChannels, hideChannel, showAllChannels, showChannel } from "./channels";
 import { EyeIcon, EyeOffIcon, HashIcon } from "./icons";
-import { count, hideAll, infoOf, names, showAll, showServer } from "./store";
+import { count, hideAll, hideServer, infoOf, names, showAll, showServer } from "./store";
 import { cl, Empty, IconButton, Panel, RoundButton, Row } from "./ui";
+import { done } from "./undo";
 
 /**
  * The servers currently hidden, and the way back.
@@ -71,7 +72,7 @@ export function HiddenList() {
 
                         return (
                             <Row key={guildId} round={false} image={info.image} name={info.name} detail={info.detail}>
-                                <RoundButton icon={EyeIcon} label="Unhide" onClick={() => { showServer(guildId); update(); }} />
+                                <RoundButton icon={EyeIcon} label="Unhide" onClick={() => { done("Unhide Server", () => showServer(guildId), () => hideServer(guildId)); update(); }} />
                             </Row>
                         );
                     })}
@@ -81,7 +82,7 @@ export function HiddenList() {
 
                         return (
                             <Row key={channelId} icon={HashIcon} round={false} name={info.name} detail={info.detail}>
-                                <RoundButton icon={EyeIcon} label="Unhide" onClick={() => { showChannel(channelId); update(); }} />
+                                <RoundButton icon={EyeIcon} label="Unhide" onClick={() => { done("Unhide Channel", () => showChannel(channelId), () => hideChannel(channelId)); update(); }} />
                             </Row>
                         );
                     })}

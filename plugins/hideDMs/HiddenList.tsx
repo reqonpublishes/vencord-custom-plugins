@@ -9,8 +9,9 @@ import { useForceUpdater } from "@utils/react";
 import { SelectedChannelStore } from "@webpack/common";
 
 import { EyeIcon, EyeOffIcon, GroupIcon } from "./icons";
-import { count, hideAll, infoOf, names, showAll, showChat } from "./store";
+import { count, hideAll, hideChat, infoOf, names, showAll, showChat } from "./store";
 import { cl, Empty, IconButton, Panel, Row } from "./ui";
+import { done } from "./undo";
 
 /**
  * The conversations currently hidden, and the way back.
@@ -80,7 +81,7 @@ export function HiddenList() {
                                     size="small"
                                     variant="secondary"
                                     onClick={() => {
-                                        showChat(channelId);
+                                        done("Unhide DM", () => showChat(channelId), () => hideChat(channelId));
                                         update();
                                     }}
                                 >

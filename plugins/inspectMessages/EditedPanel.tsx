@@ -6,10 +6,11 @@
 
 import { useForceUpdater } from "@utils/react";
 
-import { clearAllEdits, listEdits, resetEdit } from "./edits";
+import { clearAllEdits, listEdits, resetEdit, restoreEdit, snapshotEdit } from "./edits";
 import { PencilIcon, UndoIcon } from "./icons";
 import { placeOf } from "./places";
 import { cl, Empty, IconButton, Panel } from "./ui";
+import { remember } from "./undo";
 
 /** Every changed message: what it says now, what it really says, and a way back for each */
 export function EditedPanel() {
@@ -37,7 +38,7 @@ export function EditedPanel() {
                                     <div className={cl("edit-now")}>{edit.now || <em>No text</em>}</div>
                                     {edit.was !== edit.now && <div className={cl("edit-was")}>{edit.was || <em>No text</em>}</div>}
                                 </div>
-                                <IconButton icon={UndoIcon} variant="secondary" onClick={() => { resetEdit(edit.id); update(); }}>Revert</IconButton>
+                                <IconButton icon={UndoIcon} variant="secondary" onClick={() => { const before = snapshotEdit(edit.id); resetEdit(edit.id); remember("Revert Message", () => restoreEdit(edit.id, before)); update(); }}>Revert</IconButton>
                             </div>
                         );
                     })}

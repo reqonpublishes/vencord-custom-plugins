@@ -12,6 +12,7 @@ import { LockIcon } from "./icons";
 import { placeOf } from "./places";
 import { describe, latestReal, resetShift, setShift, shiftOf } from "./store";
 import { cl } from "./ui";
+import { remember } from "./undo";
 
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
@@ -48,7 +49,9 @@ function TimeModal({ rootProps, channelId }: { rootProps: RenderModalProps; chan
     const place = placeOf(channelId);
 
     const apply = () => {
+        const before = shiftOf(channelId);
         setShift(channelId, shift);
+        remember("Fake Time", () => setShift(channelId, before));
         rootProps.onClose();
     };
 
@@ -57,7 +60,7 @@ function TimeModal({ rootProps, channelId }: { rootProps: RenderModalProps; chan
         { text: "Cancel", variant: "secondary", onClick: rootProps.onClose }
     ];
     if (shiftOf(channelId)) {
-        actions.push({ text: "Reset", variant: "critical-primary", onClick: () => { resetShift(channelId); rootProps.onClose(); } });
+        actions.push({ text: "Reset", variant: "critical-primary", onClick: () => { const before = shiftOf(channelId); resetShift(channelId); remember("Reset Fake Time", () => setShift(channelId, before)); rootProps.onClose(); } });
     }
 
     return (

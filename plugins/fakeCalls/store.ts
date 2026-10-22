@@ -176,6 +176,9 @@ export function addCall(call: Omit<FakeCall, "id">): FakeCall {
     return one;
 }
 
+/** The calls added in a chat, for taking one back after it is removed */
+export const callsIn = (channelId: string): FakeCall[] => [...(added.get(channelId) ?? [])];
+
 export function removeCall(channelId: string, messageId: string): boolean {
     const list = added.get(channelId);
     if (!list) return false;

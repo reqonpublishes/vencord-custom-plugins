@@ -10,8 +10,23 @@ import { ChannelStore, NavigationRouter, React, UserStore } from "@webpack/commo
 
 import { ChatIcon, ChevronDownIcon, EyeIcon, EyeOffIcon } from "./icons";
 import { placeOf } from "./places";
-import { clearAll, detailsFor, perChat, previewOf, showChannel, showMessage, showRange, showWhole } from "./store";
+import { clearAll, detailsFor, perChat, previewOf, restoreChat, showChannel, showMessage, showRange, showWhole, snapshotChat } from "./store";
 import { cl, Empty, IconButton, Panel, RoundButton, Row } from "./ui";
+import { remember } from "./undo";
+
+/** Change one chat's hides so that Ctrl+Z puts it back */
+function undoable(channelId: string, label: string, run: () => void) {
+    const before = snapshotChat(channelId);
+    run();
+    remember(label, () => restoreChat(channelId, before));
+}
+
+/** Unhide everything, so that Ctrl+Z hides it all again */
+function unhideAll() {
+    const before = perChat().map(({ channelId }) => [channelId, snapshotChat(channelId)] as const);
+    clearAll();
+    remember("Unhide All", () => before.forEach(([channelId, snap]) => restoreChat(channelId, snap)));
+}
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
@@ -59,10 +74,10 @@ function Inside({ channelId, onChange }: { channelId: string; onChange(): void; 
     return (
         <div className={cl("inside")}>
             {since && (
-                <Item name="Everything before" time={sentAt(since)} text="New messages still show" unhide={run(() => showWhole(channelId))} />
+                <Item name="Everything before" time={sentAt(since)} text="New messages still show" unhide={run(() => undoable(channelId, "Unhide Messages", () => showWhole(channelId)))} />
             )}
             {ranges.map(([from, to]) => (
-                <Item key={from + to} name="Messages" time={`${sentAt(from)} – ${sentAt(to)}`} unhide={run(() => showRange(channelId, from, to))} />
+                <Item key={from + to} name="Messages" time={`${sentAt(from)} – ${sentAt(to)}`} unhide={run(() => undoable(channelId, "Unhide Messages", () => showRange(channelId, from, to)))} />
             ))}
             {messages.map(id => {
                 const preview = previewOf(channelId, id);
@@ -75,7 +90,7 @@ function Inside({ channelId, onChange }: { channelId: string; onChange(): void; 
                         name={preview?.n || "Message"}
                         time={sentAt(id)}
                         text={preview ? preview.t || "No text" : "Not loaded - open the chat to load it"}
-                        unhide={run(() => showMessage(channelId, id))}
+                        unhide={run(() => undoable(channelId, "Unhide Message", () => showMessage(channelId, id)))}
                     />
                 );
             })}
@@ -99,7 +114,7 @@ export function HiddenPanel() {
             title="Hidden messages"
             count={places.length}
             actions={places.length ? (
-                <IconButton icon={EyeIcon} variant="secondary" onClick={() => { clearAll(); update(); }}>Unhide All</IconButton>
+                <IconButton icon={EyeIcon} variant="secondary" onClick={() => { unhideAll(); update(); }}>Unhide All</IconButton>
             ) : undefined}
         >
             {!places.length ? (
@@ -122,7 +137,7 @@ export function HiddenPanel() {
                                     onClick={() => setOpen(isOpen ? null : channelId)}
                                 >
                                     <RoundButton icon={ChatIcon} label="Open Chat" onClick={() => openChat(channelId)} />
-                                    <RoundButton icon={EyeIcon} label="Unhide All Here" onClick={() => { showChannel(channelId); update(); }} />
+                                    <RoundButton icon={EyeIcon} label="Unhide All Here" onClick={() => { undoable(channelId, "Unhide Messages", () => showChannel(channelId)); update(); }} />
                                     <ChevronDownIcon className={cl("chevron")} height={18} width={18} />
                                 </Row>
                                 {isOpen && <Inside channelId={channelId} onChange={update} />}

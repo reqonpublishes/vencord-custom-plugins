@@ -10,8 +10,9 @@ import { Message, ModalAction, RenderModalProps } from "@vencord/discord-types";
 import { Modal, openModal, TextArea, useState } from "@webpack/common";
 
 import { DateField } from "./DateField";
-import { applyEdit, getHighlight, getOriginal, isEdited, looksLikePing, resetEdit, toDate } from "./edits";
+import { applyEdit, getHighlight, getOriginal, isEdited, looksLikePing, resetEdit, restoreEdit, snapshotEdit, toDate } from "./edits";
 import { LockIcon } from "./icons";
+import { remember } from "./undo";
 
 export const cl = classNameFactory("vc-cim-");
 
@@ -94,12 +95,16 @@ function InspectModal({ rootProps, message }: { rootProps: RenderModalProps; mes
             if (!edited) return setError("Pick a valid edited date and time.");
         }
 
+        const before = snapshotEdit(message.id);
         applyEdit(message, { content, timestamp: date, editedTimestamp: edited, highlight });
+        remember("Inspect Message", () => restoreEdit(message.id, before));
         rootProps.onClose();
     }
 
     function revert() {
+        const before = snapshotEdit(message.id);
         resetEdit(message.id);
+        remember("Revert Message", () => restoreEdit(message.id, before));
         rootProps.onClose();
     }
 

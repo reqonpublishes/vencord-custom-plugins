@@ -10,13 +10,14 @@ import { SettingsTab, wrapTab } from "@components/settings/tabs/BaseTab";
 import { openPluginModal } from "@components/settings/tabs/plugins/PluginModal";
 import { Switch } from "@components/Switch";
 import { Logger } from "@utils/Logger";
-import { Alerts, React, showToast } from "@webpack/common";
+import { Alerts, React } from "@webpack/common";
 
 import { settings } from ".";
 import { deleteAllData } from "./data";
 import { applying, Entry, flipAll, installed, isEnabled, isOn, isView, needsRestart, pluginOf, SECTIONS, setOn, summaryOf, usable } from "./hub";
-import { ChevronDownIcon, CloudDownIcon, CloudUpIcon, CursorIcon, EyeIcon, EyeOffIcon, GearIcon, IconComponent, MenuIcon, RefreshIcon, ShieldIcon, SyncIcon, TrashIcon } from "./icons";
+import { ChevronDownIcon, CloudDownIcon, CloudUpIcon, CursorIcon, EyeIcon, EyeOffIcon, GearIcon, IconComponent, MenuIcon, RefreshIcon, ShieldIcon, SyncIcon, TrashIcon, UndoIcon } from "./icons";
 import { isProtecting, onProtectionChange, raisedForShare } from "./protect";
+import { say } from "./say";
 import { cl, IconButton } from "./ui";
 
 const logger = new Logger("PluginHub");
@@ -58,8 +59,8 @@ function PluginRow({ entry, onChange }: { entry: Entry; onChange(): void; }) {
                 onChange={next => {
                     const result = setOn(plugin, next);
 
-                    if (result === "failed") showToast({ text: `Could not turn ${label} ${next ? "on" : "off"}`, variant: "critical" });
-                    if (result === "restart") showToast({ text: `${label} turns on when Discord restarts`, variant: "default" });
+                    if (result === "failed") say(`Could not turn ${label} ${next ? "on" : "off"}`, "critical");
+                    if (result === "restart") say(`${label} turns on when Discord restarts`, "default");
 
                     onChange();
                 }}
@@ -87,14 +88,14 @@ function SyncRow() {
             if (which === "up") {
                 const { sent, skipped } = await sync.sendUp();
                 Settings.plugins.CloudSync.lastUp = { at: Date.now(), what: sent };
-                showToast({ text: "Synced to cloud" + skippedNote(skipped), variant: "success" });
+                say("Synced to cloud" + skippedNote(skipped), "success");
             } else {
                 const { applied, skipped } = await sync.bringDown();
                 Settings.plugins.CloudSync.lastDown = { at: Date.now(), what: applied };
-                showToast({ text: "Synced from cloud" + skippedNote(skipped), variant: "success" });
+                say("Synced from cloud" + skippedNote(skipped), "success");
             }
         } catch (e) {
-            showToast({ text: e instanceof Error ? e.message : String(e), variant: "critical" });
+            say(e instanceof Error ? e.message : String(e), "critical");
             logger.error("Sync failed", e);
         } finally {
             setBusy("");
@@ -257,7 +258,7 @@ function HubPage() {
     const [shareOpen, setShareOpen] = React.useState(false);
     const update = () => redraw(n => n + 1);
 
-    const { shareProtection } = settings.use(["shareProtection"]);
+    const { shareProtection, undo } = settings.use(["shareProtection", "undo"]);
     const protecting = isProtecting();
 
     // A share starting or ending switches plugins behind this page's back.
@@ -304,9 +305,9 @@ function HubPage() {
                                 settings.store.paused = result.remember.filter(name => !lent.includes(name));
                                 update();
 
-                                showToast({ text: result.on
+                                say(result.on
                                         ? `${result.changed} turned back on${result.restart ? ", the rest after a restart" : ""}`
-                                        : `${result.changed} turned off. You are seeing the real Discord`, variant: "success" });
+                                        : `${result.changed} turned off. You are seeing the real Discord`, "success");
                             }}
                         >
                             {live ? "Show Real" : "Turn Back On"}
@@ -315,6 +316,15 @@ function HubPage() {
 
                     <ButtonChoice setting="menuButtons" icon={MenuIcon} name="Menu buttons" detail="When Inspect, Hide and Fake show in right-click menus." />
                     <ButtonChoice setting="hoverButtons" icon={CursorIcon} name="Hover buttons" detail="When Inspect and Hide show in the bar above a message." />
+
+                    <div className={cl("item")}>
+                        <div className={cl("tile")}><UndoIcon height={20} width={20} /></div>
+                        <div className={cl("item-text")}>
+                            <div className={cl("item-name")}>Ctrl+Z undo</div>
+                            <div className={cl("item-detail")}>Takes back the last thing you hid or faked.</div>
+                        </div>
+                        <Switch checked={undo !== false} onChange={next => void (settings.store.undo = next)} />
+                    </div>
 
                     <div className={cl("item", shareProtection !== false && shareOpen ? "item-open" : "")}>
                         <div className={cl("tile")}><ShieldIcon height={20} width={20} /></div>

@@ -463,6 +463,20 @@ export function applyEdit(message: Message, patch: EditPatch) {
     render(message.id, entry);
 }
 
+/** One message's edit as it is now - or none - so Ctrl+Z can put it back exactly */
+export function snapshotEdit(id: string) {
+    const entry = edits.get(id);
+    return entry ? { ...entry, original: { ...entry.original } } : null;
+}
+
+export function restoreEdit(id: string, snap: ReturnType<typeof snapshotEdit>) {
+    if (!snap) return resetEdit(id);
+
+    edits.set(id, snap);
+    save();
+    render(id, snap);
+}
+
 /** Undo one message and forget it */
 export function resetEdit(id: string) {
     const entry = edits.get(id);

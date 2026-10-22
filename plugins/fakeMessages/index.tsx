@@ -19,6 +19,8 @@ import { ChatAddIcon, PencilIcon, TrashIcon } from "./icons";
 import { place } from "./menu";
 import { settings } from "./settings";
 import {
+    addMessage,
+    asRecord,
     clearChannel,
     countIn,
     getFake,
@@ -34,6 +36,7 @@ import {
     total
 } from "./store";
 import { About } from "./ui";
+import { remember } from "./undo";
 
 let interceptorRegistered = false;
 
@@ -88,7 +91,11 @@ const messageCtx: NavContextMenuPatchCallback = (children, { message }: { messag
                 color="danger"
                 icon={TrashIcon}
                 leadingAccessory={{ type: "icon", icon: TrashIcon }}
-                action={() => removeMessage(channelId, message.id)}
+                action={() => {
+                    const was = getFake(channelId, message.id);
+                    removeMessage(channelId, message.id);
+                    if (was) remember("Remove Fake Message", () => { const { id: _id, ...again } = was; addMessage(again); });
+                }}
             />
         );
         return;
@@ -138,7 +145,11 @@ const channelCtx: NavContextMenuPatchCallback = (children, props: { channel?: Ch
             color="danger"
             icon={TrashIcon}
             leadingAccessory={{ type: "icon", icon: TrashIcon }}
-            action={() => clearChannel(channelId)}
+            action={() => {
+                const was = asRecord()[channelId] ?? [];
+                clearChannel(channelId);
+                remember("Remove Fake Messages", () => was.forEach(({ id: _id, ...again }) => addMessage(again)));
+            }}
         />
     );
 };

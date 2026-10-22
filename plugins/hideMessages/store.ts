@@ -989,6 +989,42 @@ function dropShown(channelId: string) {
     else stopObserver();
 }
 
+/** Everything hidden in one chat as it is now, so it can be put back exactly - for Ctrl+Z */
+export function snapshotChat(channelId: string) {
+    return {
+        messages: new Set(hiddenMessages.get(channelId) ?? []),
+        ranges: (hiddenRanges.get(channelId) ?? []).map(range => [...range] as Range),
+        cutoff: hiddenChannels.get(channelId),
+        previews: Object.fromEntries(Object.entries(previews).filter(([key]) => key.startsWith(channelId + ":")))
+    };
+}
+
+/** Put a chat's hides back to a snapshot, showing and hiding whatever that changes */
+export function restoreChat(channelId: string, snap: ReturnType<typeof snapshotChat>) {
+    const wholeBefore = hiddenChannels.get(channelId);
+
+    if (snap.messages.size) hiddenMessages.set(channelId, new Set(snap.messages));
+    else hiddenMessages.delete(channelId);
+    if (snap.ranges.length) hiddenRanges.set(channelId, snap.ranges);
+    else hiddenRanges.delete(channelId);
+    if (snap.cutoff !== undefined) hiddenChannels.set(channelId, snap.cutoff);
+    else hiddenChannels.delete(channelId);
+
+    for (const key of Object.keys(previews)) if (key.startsWith(channelId + ":")) delete previews[key];
+    Object.assign(previews, snap.previews);
+    savePreviews();
+
+    dropShown(channelId);
+    applyToLoaded(channelId);
+    if (wholeBefore !== snap.cutoff) {
+        blankPages.delete(channelId);
+        releaseBackfill(channelId);
+        refresh(channelId);
+    }
+
+    writeNow();
+}
+
 /** Bring back one hidden message */
 export function showMessage(channelId: string, messageId: string) {
     const ids = hiddenMessages.get(channelId);

@@ -9,9 +9,10 @@ import { ChannelStore, NavigationRouter, useEffect, useState } from "@webpack/co
 
 import { ChatIcon, ClockIcon, UndoIcon } from "./icons";
 import { placeOf } from "./places";
-import { describe, onChange, resetAll, resetShift, shifted } from "./store";
+import { describe, onChange, resetAll, resetShift, setShift, shifted } from "./store";
 import { openFakeTime } from "./TimeModal";
 import { cl, Empty, IconButton, Panel, RoundButton, Row } from "./ui";
+import { remember } from "./undo";
 
 function openChat(channelId: string) {
     const channel = ChannelStore.getChannel(channelId);
@@ -51,7 +52,7 @@ export function ShiftedList() {
                                 onClick={() => openFakeTime(channelId)}
                             >
                                 <RoundButton icon={ChatIcon} label="Open Chat" onClick={() => openChat(channelId)} />
-                                <RoundButton icon={UndoIcon} label="Reset" danger onClick={() => resetShift(channelId)} />
+                                <RoundButton icon={UndoIcon} label="Reset" danger onClick={() => { resetShift(channelId); remember("Reset Fake Time", () => setShift(channelId, ms)); }} />
                             </Row>
                         );
                     })}

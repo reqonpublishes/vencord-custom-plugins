@@ -10,8 +10,9 @@ import { ChannelStore, Modal, openModal, TextArea, UserStore, useState } from "@
 
 import { DateField } from "./DateField";
 import { LockIcon, PersonIcon } from "./icons";
-import { addMessage } from "./store";
+import { addMessage, removeMessage } from "./store";
 import { cl } from "./ui";
+import { remember } from "./undo";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
@@ -116,7 +117,7 @@ function AddMessageModal({ rootProps, seed }: { rootProps: RenderModalProps; see
         if (!authorId.trim()) return setError("Choose who the message is from.");
         if (!content.trim()) return setError("Type what the message says.");
 
-        addMessage({
+        const made = addMessage({
             channelId: seed.channelId,
             authorId: authorId.trim(),
             content,
@@ -124,6 +125,7 @@ function AddMessageModal({ rootProps, seed }: { rootProps: RenderModalProps; see
             edited: edited || undefined,
             highlight: highlight || undefined
         });
+        remember("Add Fake Message", () => removeMessage(made.channelId, made.id));
 
         rootProps.onClose();
     };

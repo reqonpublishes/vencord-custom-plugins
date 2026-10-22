@@ -36,6 +36,7 @@ import { BlockIcon, IconComponent, MailIcon, PersonAddIcon, PersonRemoveIcon, Se
 import { place } from "./menu";
 import { settings } from "./settings";
 import { About } from "./ui";
+import { done } from "./undo";
 
 /** Each kind of fake, what it is called, and where it sits in the menu */
 export const KINDS: { fake: Fake; add: string; remove: string; icon: IconComponent; rank: number; }[] = [
@@ -86,12 +87,12 @@ const userCtx: NavContextMenuPatchCallback = (children, { user }: { user?: User;
     const now = fakeOf(id);
     if (now) {
         const kind = KINDS.find(one => one.fake === now)!;
-        place(children, kind.rank, item("remove", kind.remove, PersonRemoveIcon, () => unfake(id)));
+        place(children, kind.rank, item("remove", kind.remove, PersonRemoveIcon, () => done(kind.remove, () => unfake(id), () => fakeAs(id, now))));
         return;
     }
 
     for (const kind of KINDS) {
-        if (offered(kind.fake, id)) place(children, kind.rank, item(kind.fake, kind.add, kind.icon, () => fakeAs(id, kind.fake)));
+        if (offered(kind.fake, id)) place(children, kind.rank, item(kind.fake, kind.add, kind.icon, () => done(kind.add, () => fakeAs(id, kind.fake), () => unfake(id))));
     }
 };
 

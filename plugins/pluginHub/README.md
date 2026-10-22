@@ -40,3 +40,9 @@ thing off with the **Screen Share Protection** switch at the top of Additional S
 ## Is this safe?
 
 Yes. It only switches plugins on and off, the same way Vencord's own Plugins page does.
+
+## Ctrl+Z
+
+Ctrl+Z takes back the last thing you hid, faked, inspected or moved in time - whichever plugin
+did it, up to 30 steps back. In a text box with something typed in it, Ctrl+Z still undoes
+your typing. Switch it off on Additional Settings under **Ctrl+Z undo**.

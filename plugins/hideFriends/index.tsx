@@ -41,6 +41,7 @@ import { place } from "./menu";
 import { unwatchMutuals, watchMutuals } from "./mutuals";
 import { setRunning, settings } from "./settings";
 import { About } from "./ui";
+import { done } from "./undo";
 
 /** One entry, with its icon on both sides of the label the way Discord draws its own */
 const item = (id: string, label: string, Icon: IconComponent, action: () => void) => (
@@ -63,11 +64,11 @@ const userCtx: NavContextMenuPatchCallback = (children, { user }: { user?: User;
 
     const type = realType(id);
 
-    if (isHidden(id)) place(children, 30, item("show", "Unhide Friend", EyeIcon, () => showFriend(id)));
-    else if (type === FRIEND && !isFriended(id)) place(children, 30, item("hide", "Hide Friend", PersonOffIcon, () => hideFriend(id)));
+    if (isHidden(id)) place(children, 30, item("show", "Unhide Friend", EyeIcon, () => done("Unhide Friend", () => showFriend(id), () => hideFriend(id))));
+    else if (type === FRIEND && !isFriended(id)) place(children, 30, item("hide", "Hide Friend", PersonOffIcon, () => done("Hide Friend", () => hideFriend(id), () => showFriend(id))));
 
-    if (isDismissed(id)) place(children, 31, item("restore", "Unhide Friend Request", EyeIcon, () => restoreRequest(id)));
-    else if (type === PENDING_INCOMING) place(children, 31, item("dismiss", "Hide Friend Request", PersonRemoveIcon, () => dismissRequest(id)));
+    if (isDismissed(id)) place(children, 31, item("restore", "Unhide Friend Request", EyeIcon, () => done("Unhide Friend Request", () => restoreRequest(id), () => dismissRequest(id))));
+    else if (type === PENDING_INCOMING) place(children, 31, item("dismiss", "Hide Friend Request", PersonRemoveIcon, () => done("Hide Friend Request", () => dismissRequest(id), () => restoreRequest(id))));
 };
 
 /** Whether somebody the share hid, as `id:type`, is still hidden - see realList */

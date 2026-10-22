@@ -20,6 +20,7 @@ import { unwatchMutuals, watchMutuals } from "./mutuals";
 import { settings } from "./settings";
 import { count, forgetFresh, hideFresh, hideServer, invalidate, isHidden, isLoaded, listNow, load, showServer, start, stop } from "./store";
 import { About } from "./ui";
+import { done } from "./undo";
 
 const guildCtx: NavContextMenuPatchCallback = (children, { guild }: { guild?: Guild; }) => {
     if (!guild?.id || !settings.store.guildMenu) return;
@@ -34,7 +35,9 @@ const guildCtx: NavContextMenuPatchCallback = (children, { guild }: { guild?: Gu
             label={away ? "Unhide Server" : "Hide Server"}
             icon={Icon}
             leadingAccessory={{ type: "icon", icon: Icon }}
-            action={() => away ? showServer(guild.id) : hideServer(guild.id)}
+            action={() => away
+                ? done("Unhide Server", () => showServer(guild.id), () => hideServer(guild.id))
+                : done("Hide Server", () => hideServer(guild.id), () => showServer(guild.id))}
         />
     );
 };
@@ -53,7 +56,9 @@ const channelCtx: NavContextMenuPatchCallback = (children, { channel }: { channe
             label={away ? "Unhide Channel" : "Hide Channel"}
             icon={Icon}
             leadingAccessory={{ type: "icon", icon: Icon }}
-            action={() => away ? showChannel(channel!.id) : hideChannel(channel!.id)}
+            action={() => away
+                ? done("Unhide Channel", () => showChannel(channel!.id), () => hideChannel(channel!.id))
+                : done("Hide Channel", () => hideChannel(channel!.id), () => showChannel(channel!.id))}
         />
     );
 };

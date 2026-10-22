@@ -146,17 +146,12 @@ export function place(children: any[], rank: number, ...items: any[]) {
 
     if (!label || !Icon) return void insert(list, keyed);
 
-    const folder = list.find(item => item?.key === `fold-${kind}`);
+    let folder = list.find(item => item?.key === `fold-${kind}`);
     if (folder) return void insert(folder.props.children, keyed);
 
-    const loose = list.filter(item => !String(item?.key ?? "").startsWith("fold-") && placeOf(item).kind === kind);
-    if (loose.length + keyed.length < 2) return void insert(list, keyed);
-
-    // A second entry of this kind: the two go into a folder named for it
+    // Its own entry even for a single option: the menu reads the same every time
     const inside: any[] = [];
-    insert(inside, [...loose, ...keyed]);
-    for (const item of loose) list.splice(list.indexOf(item), 1);
-
+    insert(inside, keyed);
     insert(list, [
         <Menu.MenuItem
             key={`fold-${kind}`}

@@ -18,6 +18,8 @@ import { startLive, stopLive } from "./live";
 import { place } from "./menu";
 import { settings } from "./settings";
 import {
+    addCall,
+    callsIn,
     clearChannel,
     countIn,
     interceptor,
@@ -32,6 +34,7 @@ import {
     total
 } from "./store";
 import { About } from "./ui";
+import { remember } from "./undo";
 
 let interceptorRegistered = false;
 
@@ -55,7 +58,11 @@ const messageCtx: NavContextMenuPatchCallback = (children, { message }: { messag
                 color="danger"
                 icon={TrashIcon}
                 leadingAccessory={{ type: "icon", icon: TrashIcon }}
-                action={() => removeCall(channelId, message.id)}
+                action={() => {
+                    const was = callsIn(channelId).find(one => one.id === message.id);
+                    removeCall(channelId, message.id);
+                    if (was) remember("Remove Fake Call", () => { const { id: _id, ...again } = was; addCall(again); });
+                }}
             />
         );
         return;
@@ -103,7 +110,11 @@ function entries(children: any[], channelId: string) {
             color="danger"
             icon={TrashIcon}
             leadingAccessory={{ type: "icon", icon: TrashIcon }}
-            action={() => clearChannel(channelId)}
+            action={() => {
+                const was = callsIn(channelId);
+                clearChannel(channelId);
+                remember("Remove Fake Calls", () => was.forEach(({ id: _id, ...again }) => addCall(again)));
+            }}
         />
     );
 }

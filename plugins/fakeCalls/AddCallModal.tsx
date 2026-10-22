@@ -10,8 +10,9 @@ import { ChannelStore, Modal, openModal, UserStore, useState } from "@webpack/co
 
 import { DateField } from "./DateField";
 import { GroupIcon, LockIcon, PersonIcon } from "./icons";
-import { addCall } from "./store";
+import { addCall, removeCall } from "./store";
 import { cl } from "./ui";
+import { remember } from "./undo";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
@@ -115,13 +116,14 @@ function AddCallModal({ rootProps, seed }: { rootProps: RenderModalProps; seed: 
         const everyone = [...new Set([authorId, ...others, me?.id].filter(Boolean))] as string[];
         const participants = missed ? everyone.filter(id => id !== me?.id) : everyone;
 
-        addCall({
+        const made = addCall({
             channelId: seed.channelId,
             authorId,
             startedAt: began.getTime(),
             endedAt: ongoing ? null : began.getTime() + Math.round(length * 60_000),
             participants: participants.length ? participants : [authorId]
         });
+        remember("Add Fake Call", () => removeCall(made.channelId, made.id));
 
         rootProps.onClose();
     };

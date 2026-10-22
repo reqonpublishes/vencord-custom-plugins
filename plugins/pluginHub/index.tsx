@@ -98,6 +98,14 @@ export const settings = definePluginSettings({
         type: OptionType.CUSTOM,
         default: "ctrl" as "always" | "ctrl" | "never",
         onChange: () => publishMenuMode()
+    },
+    // Whether Ctrl+Z takes back the last hide or fake. Switched on the page.
+    undo: {
+        type: OptionType.BOOLEAN,
+        description: "Ctrl+Z takes back the last hide or fake",
+        hidden: true,
+        default: true,
+        onChange: () => publishMenuMode()
     }
 });
 
@@ -111,6 +119,7 @@ export const settings = definePluginSettings({
 export function publishMenuMode(on = true) {
     (window as any).vcMenuMode = on ? settings.store.menuButtons ?? "ctrl" : undefined;
     (window as any).vcHoverMode = on ? settings.store.hoverButtons ?? "ctrl" : undefined;
+    (window as any).vcUndoOff = on && settings.store.undo === false;
 }
 
 /** Put this page in Discord's settings sidebar, or take it out */
