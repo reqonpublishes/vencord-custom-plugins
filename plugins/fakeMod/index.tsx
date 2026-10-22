@@ -216,7 +216,7 @@ const messageCtx: NavContextMenuPatchCallback = (children, { message }: { messag
 
 export default definePlugin({
     name: "FakeMod",
-    description: "Adds moderator tools to menus that do nothing.",
+    description: "Fake moderator tools in your menus.",
     authors: [{ name: "reqon", id: 497562304498368513n }],
 
     settings,

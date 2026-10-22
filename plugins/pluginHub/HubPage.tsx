@@ -15,7 +15,7 @@ import { Alerts, React } from "@webpack/common";
 import { settings } from ".";
 import { deleteAllData } from "./data";
 import { applying, Entry, flipAll, installed, isEnabled, isOn, isView, needsRestart, pluginOf, SECTIONS, setOn, summaryOf, usable } from "./hub";
-import { ChevronDownIcon, CloudDownIcon, CloudUpIcon, CursorIcon, EyeIcon, EyeOffIcon, GearIcon, IconComponent, MenuIcon, RefreshIcon, ShieldIcon, SyncIcon, TrashIcon, UndoIcon } from "./icons";
+import { ChevronDownIcon, CloudDownIcon, CloudUpIcon, CursorIcon, EyeIcon, EyeOffIcon, GearIcon, IconComponent, MenuIcon, RefreshIcon, ScreenShareIcon, SyncIcon, TrashIcon, UndoIcon } from "./icons";
 import { isProtecting, onProtectionChange, raisedForShare } from "./protect";
 import { say } from "./say";
 import { cl, IconButton } from "./ui";
@@ -40,7 +40,7 @@ function PluginRow({ entry, onChange }: { entry: Entry; onChange(): void; }) {
             <div className={cl("item-text")}>
                 <div className={cl("item-name")}>{label}</div>
                 <div className={cl("item-detail")}>
-                    {waiting ? "Turns on when Discord restarts" : entry.about}
+                    {waiting ? "Turns on when Discord restarts." : pluginOf(plugin)?.description ?? entry.about}
                 </div>
             </div>
             {tag && <span className={cl("tag")}>{tag}</span>}
@@ -109,8 +109,8 @@ function SyncRow() {
                 <div className={cl("item-name")}>Sync now</div>
                 <div className={cl("item-detail")}>
                     {link
-                        ? "Send or fetch without opening Cloud Sync"
-                        : "Make a sync code in Cloud Sync first"}
+                        ? "Send or fetch without opening Cloud Sync."
+                        : "Make a sync code in Cloud Sync first."}
                 </div>
             </div>
             <div className={cl("actions")}>
@@ -170,7 +170,7 @@ function DeleteData() {
             <div className={cl("item-text")}>
                 <div className={cl("item-name")}>Delete all data</div>
                 <div className={cl("item-detail")}>
-                    Everything these plugins saved here, and their settings. Your sync code stays.
+                    Erases what these plugins saved, except your sync code.
                 </div>
             </div>
             <IconButton
@@ -272,9 +272,8 @@ function HubPage() {
     return (
         <SettingsTab>
             <div className={cl("page")}>
-                <section className={cl("section")}>
-                    <h2 className={cl("heading")}>Overview</h2>
-
+                {/* where things stand, and the one switch for all of it - not a section of its own */}
+                <div className={cl("section")}>
                     <div className={cl("item")}>
                         <div className={cl("tile")}><EyeIcon height={20} width={20} /></div>
                         <div className={cl("item-text")}>
@@ -314,20 +313,59 @@ function HubPage() {
                         </IconButton>
                     </div>
 
+                    {waiting && (
+                        <div className={cl("item")}>
+                            <div className={cl("tile")}><RefreshIcon height={20} width={20} /></div>
+                            <div className={cl("item-text")}>
+                                <div className={cl("item-name")}>A restart is needed</div>
+                                <div className={cl("item-detail")}>A plugin you switched on needs a reload.</div>
+                            </div>
+                            <IconButton icon={RefreshIcon} variant="secondary" onClick={() => location.reload()}>Reload Now</IconButton>
+                        </div>
+                    )}
+                </div>
+
+                {SECTIONS.map(({ id, title }) => {
+                    const rows = all.filter(entry => entry.section === id);
+                    if (!rows.length) return null;
+
+                    return (
+                        <section className={cl("section")} key={id}>
+                            <h2 className={cl("heading")}>{title}</h2>
+                            {rows.map(entry => (
+                                <React.Fragment key={entry.plugin}>
+                                    {/* Undo is a tool like the rest, before the sync pair at the end */}
+                                    {entry.plugin === "CloudSync" && (
+                                        <>
+                                        <div className={cl("item")}>
+                                            <div className={cl("tile")}><UndoIcon height={20} width={20} /></div>
+                                            <div className={cl("item-text")}>
+                                                <div className={cl("item-name")}>Undo</div>
+                                                <div className={cl("item-detail")}>Ctrl+Z undoes your last change.</div>
+                                            </div>
+                                            <Switch checked={undo !== false} onChange={next => void (settings.store.undo = next)} />
+                                        </div>
+                                        </>
+                                    )}
+                                    <PluginRow entry={entry} onChange={update} />
+                                    {/* straight under the plugin it belongs to */}
+                                    {entry.plugin === "CloudSync" && <SyncRow />}
+                                </React.Fragment>
+                            ))}
+                        </section>
+                    );
+                })}
+
+                <section className={cl("section")}>
+                    <h2 className={cl("heading")}>Buttons</h2>
                     <ButtonChoice setting="menuButtons" icon={MenuIcon} name="Menu buttons" detail="When plugin options show in right-click menus." />
                     <ButtonChoice setting="hoverButtons" icon={CursorIcon} name="Hover buttons" detail="When plugin buttons show above messages." />
+                </section>
 
-                    <div className={cl("item")}>
-                        <div className={cl("tile")}><UndoIcon height={20} width={20} /></div>
-                        <div className={cl("item-text")}>
-                            <div className={cl("item-name")}>Ctrl+Z undo</div>
-                            <div className={cl("item-detail")}>Undoes your last change.</div>
-                        </div>
-                        <Switch checked={undo !== false} onChange={next => void (settings.store.undo = next)} />
-                    </div>
-
+                <section className={cl("section")}>
+                    <h2 className={cl("heading")}>Screen Share</h2>
                     <div className={cl("item", shareProtection !== false && shareOpen ? "item-open" : "")}>
-                        <div className={cl("tile")}><ShieldIcon height={20} width={20} /></div>
+                        <div className={cl("tile")}><ScreenShareIcon height={20} width={20} /></div>
                         <div className={cl("item-text")}>
                             <div className={cl("item-name")}>Screen Share Protection</div>
                             <div className={cl("item-detail")}>
@@ -354,37 +392,7 @@ function HubPage() {
 
                     {shareProtection !== false && shareOpen && <ShareOptions />}
 
-                    {waiting && (
-                        <div className={cl("item")}>
-                            <div className={cl("tile")}><RefreshIcon height={20} width={20} /></div>
-                            <div className={cl("item-text")}>
-                                <div className={cl("item-name")}>A restart is needed</div>
-                                <div className={cl("item-detail")}>
-                                    A plugin enabled since Discord loaded can only turn on after a reload.
-                                </div>
-                            </div>
-                            <IconButton icon={RefreshIcon} variant="secondary" onClick={() => location.reload()}>Reload Now</IconButton>
-                        </div>
-                    )}
                 </section>
-
-                {SECTIONS.map(({ id, title }) => {
-                    const rows = all.filter(entry => entry.section === id);
-                    if (!rows.length) return null;
-
-                    return (
-                        <section className={cl("section")} key={id}>
-                            <h2 className={cl("heading")}>{title}</h2>
-                            {rows.map(entry => (
-                                <React.Fragment key={entry.plugin}>
-                                    <PluginRow entry={entry} onChange={update} />
-                                    {/* straight under the plugin it belongs to */}
-                                    {entry.plugin === "CloudSync" && <SyncRow />}
-                                </React.Fragment>
-                            ))}
-                        </section>
-                    );
-                })}
 
                 <section className={cl("section")}>
                     <h2 className={cl("heading")}>Your data</h2>
