@@ -118,7 +118,7 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 export default definePlugin({
     name: "InspectMessages",
-    description: "Change what any message says, when it was sent and whether it shows as edited. Hold Ctrl to reveal the buttons. Nothing is sent to Discord and nobody else sees it.",
+    description: "Change what any message says, when it was sent and whether it shows as edited. Nothing is sent to Discord and nobody else sees it.",
     tags: ["Chat", "Utility"],
     authors: [{ name: "reqon", id: 497562304498368513n }],
     enabledByDefault: true,
@@ -138,7 +138,7 @@ export default definePlugin({
             icon={InspectGlyph}
             title="Change how a message looks to you"
             steps={[
-                <>Hold <kbd>Ctrl</kbd> and hover a message, or right-click it, and choose <strong>Inspect Message</strong>.</>,
+                <>Hover a message, or right-click it, and choose <strong>Inspect Message</strong>.</>,
                 <>Change the text, the time it was sent, the edited tag or the mention highlight.</>,
                 <>Open it again and press <strong>Revert</strong> to show the real message.</>
             ]}

@@ -100,21 +100,34 @@ const messageCtx: NavContextMenuPatchCallback = (children, { message }: { messag
     }
 };
 
-function channelEntry(channelId: string) {
-    // covers both a wholesale hidden channel and individually hidden messages in it
-    const hidden = hasHidesIn(channelId);
-    const Icon = hidden ? ShowIcon : ChatOffIcon;
-
-    return (
+function channelEntries(channelId: string) {
+    // Hiding is always on offer - again, it takes in everything sent since the last time - and
+    // so is taking it back, once anything here is hidden at all.
+    const entries = [
         <Menu.MenuItem
             id="vc-chm-channel"
             key="vc-chm-channel"
-            label={hidden ? "Unhide Messages" : "Hide Messages"}
-            icon={Icon}
-            leadingAccessory={{ type: "icon", icon: Icon }}
-            action={() => hidden ? showChannel(channelId) : hideChannel(channelId)}
+            label="Hide Messages"
+            icon={ChatOffIcon}
+            leadingAccessory={{ type: "icon", icon: ChatOffIcon }}
+            action={() => hideChannel(channelId)}
         />
-    );
+    ];
+
+    if (hasHidesIn(channelId)) {
+        entries.push(
+            <Menu.MenuItem
+                id="vc-chm-channel-show"
+                key="vc-chm-channel-show"
+                label="Unhide Messages"
+                icon={ShowIcon}
+                leadingAccessory={{ type: "icon", icon: ShowIcon }}
+                action={() => showChannel(channelId)}
+            />
+        );
+    }
+
+    return entries;
 }
 
 /**
@@ -135,7 +148,7 @@ const channelCtx: NavContextMenuPatchCallback = (children, { channel }: { channe
     if (!settings.store.channelMenu) return;
 
     const channelId = resolveChannelId(channel);
-    if (channelId) place(children, 10, channelEntry(channelId));
+    if (channelId) place(children, 10, ...channelEntries(channelId));
 };
 
 /** Right-clicking a person, in the friends list or anywhere else */
@@ -143,7 +156,7 @@ const userCtx: NavContextMenuPatchCallback = (children, { channel, user }: { cha
     if (!settings.store.userMenu) return;
 
     const channelId = resolveChannelId(channel, user);
-    if (channelId) place(children, 10, channelEntry(channelId));
+    if (channelId) place(children, 10, ...channelEntries(channelId));
 };
 
 /** The ... menu on someone's profile, which hands us a user rather than a channel */
@@ -153,7 +166,7 @@ const profileCtx: NavContextMenuPatchCallback = (children, { user }: { user?: Us
     const channelId = resolveChannelId(undefined, user);
     if (!channelId) return;
 
-    place(children, 10, channelEntry(channelId));
+    place(children, 10, ...channelEntries(channelId));
 };
 
 migratePluginSettings("HideMessages", "CustomPluginHideMessages", "CustomHideMessages");
@@ -162,7 +175,7 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 export default definePlugin({
     name: "HideMessages",
-    description: "Hide a message, a range of them, or a whole conversation's history. Hold Ctrl to reveal the buttons. Nothing is deleted and nobody else is affected.",
+    description: "Hide a message, a range of them, or a whole conversation's history. Nothing is deleted and nobody else is affected.",
     tags: ["Chat", "Appearance", "Privacy"],
     authors: [{ name: "reqon", id: 497562304498368513n }],
     enabledByDefault: true,
@@ -187,7 +200,7 @@ export default definePlugin({
             icon={ChatOffIcon}
             title="Hide messages from your own view"
             steps={[
-                <>Hold <kbd>Ctrl</kbd> and hover a message, or right-click it, and choose <strong>Hide Message</strong>.</>,
+                <>Hover a message, or right-click it, and choose <strong>Hide Message</strong>.</>,
                 <><strong>Hide From Here...</strong> then <strong>Hide Up To Here</strong> hides everything between two messages.</>,
                 <>Right-click a DM, channel or person and choose <strong>Hide Messages</strong> to hide the whole history.</>
             ]}
