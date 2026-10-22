@@ -9,10 +9,11 @@ import "./shared.css";
 import { NavContextMenuPatchCallback } from "@api/ContextMenu";
 import { migratePluginSettings } from "@api/Settings";
 import definePlugin from "@utils/types";
-import { Guild } from "@vencord/discord-types";
+import { Channel, Guild } from "@vencord/discord-types";
 import { FluxDispatcher, Menu } from "@webpack/common";
 
-import { EyeIcon, EyeOffIcon } from "./icons";
+import { canHide, channelCount, hideChannel, invalidateChannels, isChannelHidden, loadChannels, showChannel, startChannels, stopChannels } from "./channels";
+import { EyeIcon, EyeOffIcon, HashIcon, ServerIcon } from "./icons";
 import { knownList } from "./known";
 import { place } from "./menu";
 import { unwatchMutuals, watchMutuals } from "./mutuals";
@@ -24,7 +25,7 @@ const guildCtx: NavContextMenuPatchCallback = (children, { guild }: { guild?: Gu
     if (!guild?.id || !settings.store.guildMenu) return;
 
     const away = isHidden(guild.id);
-    const Icon = away ? EyeIcon : EyeOffIcon;
+    const Icon = away ? EyeIcon : ServerIcon;
 
     place(children, 20,
         <Menu.MenuItem
@@ -34,6 +35,25 @@ const guildCtx: NavContextMenuPatchCallback = (children, { guild }: { guild?: Gu
             icon={Icon}
             leadingAccessory={{ type: "icon", icon: Icon }}
             action={() => away ? showServer(guild.id) : hideServer(guild.id)}
+        />
+    );
+};
+
+/** A channel in a server: taken off the channel list, or put back */
+const channelCtx: NavContextMenuPatchCallback = (children, { channel }: { channel?: Channel; }) => {
+    if (!canHide(channel) || !settings.store.channelMenu) return;
+
+    const away = isChannelHidden(channel!.id);
+    const Icon = away ? EyeIcon : HashIcon;
+
+    place(children, 21,
+        <Menu.MenuItem
+            id="vc-chs-channel"
+            key="vc-chs-channel"
+            label={away ? "Unhide Channel" : "Hide Channel"}
+            icon={Icon}
+            leadingAccessory={{ type: "icon", icon: Icon }}
+            action={() => away ? showChannel(channel!.id) : hideChannel(channel!.id)}
         />
     );
 };
@@ -93,7 +113,7 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 export default definePlugin({
     name: "HideServers",
-    description: "Hide servers from your server list. You stay in every one of them and nobody is told.",
+    description: "Hide servers from your server list, and channels from a server's channel list. You stay in all of them and nobody is told.",
     tags: ["Servers", "Appearance", "Privacy"],
     authors: [{ name: "reqon", id: 497562304498368513n }],
     enabledByDefault: true,
@@ -102,29 +122,33 @@ export default definePlugin({
 
     /** One line for Additional Settings: how many are hidden */
     hubSummary() {
-        const n = count();
-        return n ? `${plural(n, "server")} hidden` : "";
+        const parts = [count() && plural(count(), "server"), channelCount() && plural(channelCount(), "channel")].filter(Boolean);
+        return parts.length ? parts.join(", ") + " hidden" : "";
     },
 
     settingsAboutComponent: () => (
         <About
             menus
             icon={EyeOffIcon}
-            title="Hide servers from your server list"
+            title="Hide servers and channels"
             steps={[
-                <>Right-click a server and choose <strong>Hide Server</strong>.</>,
-                <>You stay in it and still get its messages. It is just not shown in your server list.</>,
+                <>Right-click a server and choose <strong>Hide Server</strong>, or a channel and choose <strong>Hide Channel</strong>.</>,
+                <>You stay in it and still get its messages. It is just not shown in the list.</>,
                 <>Unhide any of them from the list below.</>
             ]}
         />
     ),
 
     contextMenus: {
-        "guild-context": guildCtx
+        "guild-context": guildCtx,
+        "channel-context": channelCtx
     },
 
     /** Told by Cloud Sync that the saved copy was replaced, so the next start reads it again */
-    dataChanged: invalidate,
+    dataChanged() {
+        invalidate();
+        invalidateChannels();
+    },
 
     async start() {
         // Only the first start reads from disk. After that the list is already in memory,
@@ -138,7 +162,11 @@ export default definePlugin({
             // which case the newer start does this.
             if (mine !== runs) return;
         }
+        await loadChannels();
+        if (mine !== runs) return;
+
         start();
+        startChannels();
         watchMutuals();
         FluxDispatcher.subscribe("CONNECTION_OPEN", afterConnect);
         FluxDispatcher.subscribe("GUILD_CREATE", onListChange);
@@ -161,6 +189,7 @@ export default definePlugin({
         unwatchMutuals();
         // The bar goes back to how Discord has it; the list of what was hidden is kept.
         stop();
+        stopChannels();
         known.giveBack(forgetFresh);
     }
 });

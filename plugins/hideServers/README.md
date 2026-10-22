@@ -1,5 +1,8 @@
 # Hide Servers
 
+Hide servers from your server list, and channels from a server's channel list. Right-click a
+channel → **Hide Options** → **Hide Channel**; unhide it from the list in settings.
+
 Take a server off your server list — or all of them at once — in your own Discord only.
 
 > [!NOTE]

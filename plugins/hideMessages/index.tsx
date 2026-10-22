@@ -14,7 +14,7 @@ import { Channel, Message, User } from "@vencord/discord-types";
 import { ChannelStore, FluxDispatcher, Menu, SelectedChannelStore } from "@webpack/common";
 
 import { ctrlGated, GatedIcon, isCtrlHeldForMenu, startCtrlTracking, stopCtrlTracking } from "./ctrlGate";
-import { CloseIcon, EyeIcon, EyeOffIcon, FlagIcon } from "./icons";
+import { ChatOffIcon, CloseIcon, EyeIcon, EyeOffIcon, FlagIcon } from "./icons";
 import { isShared, place } from "./menu";
 import { settings } from "./settings";
 import {
@@ -59,8 +59,8 @@ const messageCtx: NavContextMenuPatchCallback = (children, { message }: { messag
             id="vc-chm-message"
             key="vc-chm-message"
             label="Hide Message"
-            icon={HideIcon}
-            leadingAccessory={{ type: "icon", icon: HideIcon }}
+            icon={ChatOffIcon}
+            leadingAccessory={{ type: "icon", icon: ChatOffIcon }}
             action={() => hideMessage(channelId, message.id)}
         />
     );
@@ -72,8 +72,8 @@ const messageCtx: NavContextMenuPatchCallback = (children, { message }: { messag
             id="vc-chm-range"
             key="vc-chm-range"
             label={armed ? "Hide Up To Here" : "Hide From Here..."}
-            icon={armed ? HideIcon : FlagIcon}
-            leadingAccessory={{ type: "icon", icon: armed ? HideIcon : FlagIcon }}
+            icon={armed ? ChatOffIcon : FlagIcon}
+            leadingAccessory={{ type: "icon", icon: armed ? ChatOffIcon : FlagIcon }}
             action={() => {
                 if (!armed) {
                     anchor = { channelId, messageId: message.id };
@@ -103,7 +103,7 @@ const messageCtx: NavContextMenuPatchCallback = (children, { message }: { messag
 function channelEntry(channelId: string) {
     // covers both a wholesale hidden channel and individually hidden messages in it
     const hidden = hasHidesIn(channelId);
-    const Icon = hidden ? ShowIcon : HideIcon;
+    const Icon = hidden ? ShowIcon : ChatOffIcon;
 
     return (
         <Menu.MenuItem

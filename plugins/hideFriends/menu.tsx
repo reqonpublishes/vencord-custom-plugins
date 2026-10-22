@@ -15,7 +15,8 @@ import { Menu, React } from "@webpack/common";
  * what lets them agree without depending on each other.
  *
  * Inspecting comes first and stays as it is, since it is the one used most. Hiding and faking
- * each fold into one entry - Hide, Fake - that opens to the rest, so the menu stays short. A
+ * each fold into one entry - Hide Options, Fake Options - that opens to the rest, so the menu
+ * stays short. A
  * kind with a single entry is shown as that entry: a folder holding one thing is a wasted
  * click. The group sits above Discord's last one (Copy ID, View Avatar), not under it.
  */
@@ -31,10 +32,10 @@ const icon = (path: string) => ({ height = 24, width = 24, className }: { height
 );
 
 /** The kinds, in the order they show, the place numbers each takes, and what each folds into */
-const KINDS: { below: number; label?: string; icon?: ReturnType<typeof icon>; }[] = [
+const KINDS: { below: number; id?: string; label?: string; icon?: ReturnType<typeof icon>; }[] = [
     { below: 10 },
-    { below: 35, label: "Hide", icon: icon(EYE_OFF) },
-    { below: Infinity, label: "Fake", icon: icon(WAND) }
+    { below: 35, id: "hide", label: "Hide Options", icon: icon(EYE_OFF) },
+    { below: Infinity, id: "fake", label: "Fake Options", icon: icon(WAND) }
 ];
 
 const kindOf = (rank: number) => KINDS.findIndex(({ below }) => rank < below);
@@ -138,7 +139,7 @@ export function place(children: any[], rank: number, ...items: any[]) {
     if (!Array.isArray(list)) return void children.push(...items);
 
     const kind = kindOf(rank);
-    const { label, icon: Icon } = KINDS[kind];
+    const { id, label, icon: Icon } = KINDS[kind];
     const keyed = items
         .filter(Boolean)
         .map((item, i) => React.cloneElement(item, { key: `${kind}|${rank}:${i}:${item.key ?? item.props?.id ?? ""}` }));
@@ -159,7 +160,7 @@ export function place(children: any[], rank: number, ...items: any[]) {
     insert(list, [
         <Menu.MenuItem
             key={`fold-${kind}`}
-            id={`vc-local-${label.toLowerCase()}`}
+            id={`vc-local-${id}`}
             label={label}
             icon={Icon}
             leadingAccessory={{ type: "icon", icon: Icon }}

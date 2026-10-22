@@ -12,7 +12,7 @@ import definePlugin from "@utils/types";
 import { Channel, User } from "@vencord/discord-types";
 import { ChannelStore, FluxDispatcher, Menu } from "@webpack/common";
 
-import { EyeIcon, EyeOffIcon } from "./icons";
+import { EyeIcon, EyeOffIcon, MailOffIcon } from "./icons";
 import { knownList } from "./known";
 import { place } from "./menu";
 import { settings } from "./settings";
@@ -31,7 +31,7 @@ function resolveChannelId(channel?: Channel, user?: User) {
 
 function entry(channelId: string) {
     const away = isHidden(channelId);
-    const Icon = away ? EyeIcon : EyeOffIcon;
+    const Icon = away ? EyeIcon : MailOffIcon;
 
     return (
         <Menu.MenuItem
@@ -47,6 +47,8 @@ function entry(channelId: string) {
 
 const channelCtx: NavContextMenuPatchCallback = (children, { channel }: { channel?: Channel; }) => {
     if (!settings.store.channelMenu) return;
+    // a DM or a group DM: a server's channels are Hide Servers' to hide
+    if (channel && channel.type !== 1 && channel.type !== 3) return;
 
     const channelId = resolveChannelId(channel);
     if (channelId) place(children, 20, entry(channelId));

@@ -7,6 +7,7 @@
 import { definePluginSettings } from "@api/Settings";
 import { OptionType } from "@utils/types";
 
+import { forgetSavedChannels } from "./channels";
 import { HiddenList } from "./HiddenList";
 import { forgetSaved } from "./store";
 
@@ -15,6 +16,12 @@ export const settings = definePluginSettings({
         type: OptionType.BOOLEAN,
         displayName: "Show in the server menu",
         description: "Hide Server shows when you right-click a server.",
+        default: true
+    },
+    channelMenu: {
+        type: OptionType.BOOLEAN,
+        displayName: "Show in the channel menu",
+        description: "Hide Channel shows when you right-click a channel in a server.",
         default: true
     },
     hideNew: {
@@ -26,10 +33,14 @@ export const settings = definePluginSettings({
     persist: {
         type: OptionType.BOOLEAN,
         displayName: "Keep after restart",
-        description: "Hidden servers stay hidden after a restart.",
+        description: "Hidden servers and channels stay hidden after a restart.",
         default: true,
         // switching it off should not leave the old list sitting on disk
-        onChange: (value: boolean) => void (value || forgetSaved())
+        onChange: (value: boolean) => {
+            if (value) return;
+            forgetSaved();
+            forgetSavedChannels();
+        }
     },
     hidden: {
         type: OptionType.COMPONENT,

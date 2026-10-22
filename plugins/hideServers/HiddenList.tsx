@@ -4,13 +4,13 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { Button } from "@components/Button";
 import { useForceUpdater } from "@utils/react";
 import { SelectedGuildStore } from "@webpack/common";
 
-import { EyeIcon, EyeOffIcon } from "./icons";
+import { channelCount, channelInfo, hiddenChannels, showAllChannels, showChannel } from "./channels";
+import { EyeIcon, EyeOffIcon, HashIcon } from "./icons";
 import { count, hideAll, infoOf, names, showAll, showServer } from "./store";
-import { cl, Empty, IconButton, Panel, Row } from "./ui";
+import { cl, Empty, IconButton, Panel, RoundButton, Row } from "./ui";
 
 /**
  * The servers currently hidden, and the way back.
@@ -21,11 +21,12 @@ import { cl, Empty, IconButton, Panel, Row } from "./ui";
 export function HiddenList() {
     const update = useForceUpdater();
     const held = names();
+    const channels = hiddenChannels();
 
     return (
         <Panel
-            title="Hidden servers"
-            count={count()}
+            title="Hidden"
+            count={count() + channelCount()}
             actions={
                 <>
                     <IconButton
@@ -40,11 +41,12 @@ export function HiddenList() {
                     >
                         Hide All
                     </IconButton>
-                    {!!count() && (<IconButton
+                    {!!(count() + channelCount()) && (<IconButton
                         icon={EyeIcon}
                         variant="secondary"
                         onClick={() => {
                             showAll();
+                            showAllChannels();
                             update();
                         }}
                     >
@@ -53,31 +55,33 @@ export function HiddenList() {
                 </>
             }
         >
-            {!held.length && (
+            {!held.length && !channels.length && (
                 <Empty
                     icon={EyeOffIcon}
-                    title="No hidden servers"
-                    text="Right-click a server and choose Hide Server, or hide them all at once."
+                    title="Nothing hidden"
+                    text="Right-click a server and choose Hide Server, or a channel and choose Hide Channel."
                 />
             )}
 
-            {!!held.length && (
+            {!!(held.length || channels.length) && (
                 <div className={cl("rows")}>
+                    {!!held.length && <div className={cl("group-title")}>Servers &mdash; {held.length}</div>}
                     {held.map(([guildId]) => {
                         const info = infoOf(guildId);
 
                         return (
                             <Row key={guildId} round={false} image={info.image} name={info.name} detail={info.detail}>
-                                <Button
-                                    size="small"
-                                    variant="secondary"
-                                    onClick={() => {
-                                        showServer(guildId);
-                                        update();
-                                    }}
-                                >
-                                    Unhide
-                                </Button>
+                                <RoundButton icon={EyeIcon} label="Unhide" onClick={() => { showServer(guildId); update(); }} />
+                            </Row>
+                        );
+                    })}
+                    {!!channels.length && <div className={cl("group-title")}>Channels &mdash; {channels.length}</div>}
+                    {channels.map(([channelId]) => {
+                        const info = channelInfo(channelId);
+
+                        return (
+                            <Row key={channelId} icon={HashIcon} round={false} name={info.name} detail={info.detail}>
+                                <RoundButton icon={EyeIcon} label="Unhide" onClick={() => { showChannel(channelId); update(); }} />
                             </Row>
                         );
                     })}
