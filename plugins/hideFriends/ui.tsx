@@ -6,6 +6,7 @@
 
 import { classNameFactory } from "@api/Styles";
 import { Button, ButtonProps } from "@components/Button";
+import { Tooltip } from "@webpack/common";
 import type { ReactNode } from "react";
 
 import { IconComponent, LockIcon } from "./icons";
@@ -19,6 +20,28 @@ export function IconButton({ icon: Icon, children, ...props }: ButtonProps & { i
             <Icon className={cl("btn-icon")} height={16} width={16} />
             {children}
         </Button>
+    );
+}
+
+/** An icon-only button with its name on hover. Clicks on it do not reach the row it sits on. */
+export function RoundButton({ icon: Icon, label, danger, onClick }: { icon: IconComponent; label: string; danger?: boolean; onClick(): void; }) {
+    return (
+        <Tooltip text={label}>
+            {(props: any) => (
+                <button
+                    {...props}
+                    type="button"
+                    aria-label={label}
+                    className={cl("round", danger ? "round-danger" : "")}
+                    onClick={event => {
+                        event.stopPropagation();
+                        onClick();
+                    }}
+                >
+                    <Icon height={18} width={18} />
+                </button>
+            )}
+        </Tooltip>
     );
 }
 
@@ -80,21 +103,31 @@ export function Panel({ title, count, actions, children }: { title?: string; cou
 }
 
 /** One entry in a list: a picture, a name, a quieter line under it, and what can be done */
-export function Row({ image, icon: Icon, round = true, name, detail, children }: {
+export function Row({ image, icon: Icon, round = true, name, detail, children, onClick, title }: {
     image?: string | null;
     icon?: IconComponent;
     round?: boolean;
-    name: string;
-    detail?: string;
+    name: ReactNode;
+    detail?: ReactNode;
     children?: ReactNode;
+    /** the row itself opens something - the person, the chat */
+    onClick?(): void;
+    title?: string;
 }) {
     return (
-        <div className={cl("row")}>
+        <div
+            className={cl("row", onClick ? "row-click" : "")}
+            title={title}
+            role={onClick ? "button" : undefined}
+            tabIndex={onClick ? 0 : undefined}
+            onClick={onClick}
+            onKeyDown={onClick && (event => event.key === "Enter" && onClick())}
+        >
             {image
                 ? <img className={cl("avatar", round ? "avatar-round" : "avatar-square")} src={image} alt="" />
                 : (
                     <div className={cl("avatar", "avatar-blank", round ? "avatar-round" : "avatar-square")}>
-                        {Icon ? <Icon height={16} width={16} /> : name.slice(0, 1).toUpperCase()}
+                        {Icon ? <Icon height={16} width={16} /> : String(name).slice(0, 1).toUpperCase()}
                     </div>
                 )}
             <div className={cl("row-text")}>

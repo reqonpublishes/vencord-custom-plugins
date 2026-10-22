@@ -235,16 +235,12 @@ function InspectModal({ rootProps, message }: { rootProps: RenderModalProps; mes
                         setError(null);
                     }}
                 />
-                <div className={cl("row")}>
-                    <div className={cl("chips")}>
-                        {OFFSETS.map(({ label, ms }) => (
-                            <Chip key={label} onClick={() => nudge(ms)}>{label}</Chip>
-                        ))}
-                    </div>
-                    <div className={cl("chips")}>
-                        <Chip onClick={() => setTimestamp(toInputValue(new Date()))}>Now</Chip>
-                        <Chip onClick={() => setTimestamp(toInputValue(originalDate))}>Original</Chip>
-                    </div>
+                <div className={cl("shifts")}>
+                    {OFFSETS.map(({ label, ms }) => (
+                        <Chip key={label} onClick={() => nudge(ms)}>{label}</Chip>
+                    ))}
+                    <Chip onClick={() => setTimestamp(toInputValue(new Date()))}>Now</Chip>
+                    <Chip onClick={() => setTimestamp(toInputValue(originalDate))}>Original</Chip>
                 </div>
             </section>
 
@@ -284,13 +280,11 @@ function InspectModal({ rootProps, message }: { rootProps: RenderModalProps; mes
                                     setError(null);
                                 }}
                             />
-                            <div className={cl("row", "row-end")}>
-                                <div className={cl("chips")}>
-                                    <Chip onClick={() => setEditedAt(toInputValue(new Date()))}>Now</Chip>
-                                    <Chip onClick={() => setEditedAt(timestamp)} title="Same moment the message was sent">
-                                        Match sent
-                                    </Chip>
-                                </div>
+                            <div className={cl("shifts", "shifts-end")}>
+                                <Chip onClick={() => setEditedAt(toInputValue(new Date()))}>Now</Chip>
+                                <Chip onClick={() => setEditedAt(timestamp)} title="Same moment the message was sent">
+                                    Match sent
+                                </Chip>
                             </div>
                         </div>
                     )}

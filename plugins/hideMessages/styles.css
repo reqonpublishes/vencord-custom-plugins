@@ -5,3 +5,110 @@
 body:not(.vc-chm-ctrl-down) .vc-chm-ctrl-only {
     display: none !important;
 }
+
+/* ---------------------------------------------------------------- the list in settings */
+
+.vc-chm-chat {
+    border-radius: var(--radius-sm, 8px);
+    background: var(--background-mod-subtle, rgb(128 128 128 / 8%));
+}
+
+.vc-chm-chat > .vc-chm-row {
+    background: transparent;
+}
+
+.vc-chm-chevron {
+    flex: 0 0 auto;
+    margin-left: 2px;
+    color: var(--icon-subtle, var(--text-muted));
+    transition: transform .15s ease;
+}
+
+.vc-chm-chat-open .vc-chm-chevron {
+    transform: rotate(180deg);
+}
+
+.vc-chm-inside {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-height: 320px;
+    margin: 0 8px 8px;
+    padding-top: 6px;
+    border-top: 1px solid var(--border-subtle, rgb(128 128 128 / 16%));
+    overflow-y: auto;
+    scrollbar-width: thin;
+}
+
+.vc-chm-item {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    padding: 6px 4px 6px 6px;
+    border-radius: 6px;
+}
+
+.vc-chm-item:hover {
+    background: var(--background-mod-subtle, rgb(128 128 128 / 8%));
+}
+
+.vc-chm-item-face {
+    flex: 0 0 auto;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.vc-chm-item-face-blank {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--background-mod-normal, rgb(128 128 128 / 16%));
+    color: var(--icon-subtle, var(--text-muted));
+}
+
+.vc-chm-item-text {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.vc-chm-item-head {
+    display: flex;
+    gap: 6px;
+    align-items: baseline;
+}
+
+.vc-chm-item-name {
+    color: var(--text-default, var(--text-normal));
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 16px;
+}
+
+.vc-chm-item-time {
+    color: var(--text-muted);
+    font-size: 11px;
+    line-height: 16px;
+    white-space: nowrap;
+}
+
+.vc-chm-item-body {
+    overflow: hidden;
+    color: var(--text-muted);
+    font-size: 13px;
+    line-height: 16px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vc-chm-item .vc-chm-round {
+    width: 28px;
+    height: 28px;
+    opacity: 0;
+}
+
+.vc-chm-item:hover .vc-chm-round,
+.vc-chm-item .vc-chm-round:focus-visible {
+    opacity: 1;
+}

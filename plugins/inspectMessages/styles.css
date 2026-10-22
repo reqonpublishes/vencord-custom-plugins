@@ -79,28 +79,22 @@
     filter: invert(55%);
 }
 
-/* nudges on the left, jump-to buttons on the right, wrapping as one unit each */
-.vc-cim-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    align-items: center;
-    justify-content: space-between;
+/* six nudges of one width, then Now and Original, edge to edge with the date above */
+.vc-cim-shifts {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr)) repeat(2, auto);
+    gap: 4px;
     margin-top: 8px;
 }
 
-.vc-cim-row-end {
-    justify-content: flex-end;
-}
-
-.vc-cim-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
+.vc-cim-shifts-end {
+    grid-template-columns: repeat(2, auto);
+    justify-content: end;
 }
 
 .vc-cim-chip {
-    padding: 5px 10px;
+    height: 28px;
+    padding: 0 10px;
     border-radius: 6px;
     background: var(--background-mod-subtle, rgb(128 128 128 / 10%));
     color: var(--text-default);

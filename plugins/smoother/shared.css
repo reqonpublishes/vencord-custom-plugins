@@ -130,8 +130,6 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
-    max-height: 296px;
-    overflow-y: auto;
 }
 
 .vc-smooth-row {
@@ -142,6 +140,47 @@
     padding: 8px 10px;
     border-radius: var(--radius-sm, 8px);
     background: var(--background-mod-subtle, rgb(128 128 128 / 8%));
+}
+
+/* a row that opens something: lit under the pointer */
+.vc-smooth-row-click {
+    cursor: pointer;
+    transition: background-color .12s ease;
+}
+
+.vc-smooth-row-click:hover,
+.vc-smooth-row-click:focus-visible {
+    background: var(--background-mod-normal, rgb(128 128 128 / 14%));
+    outline: none;
+}
+
+/* an icon-only button, as on Discord's own friends rows */
+.vc-smooth-round {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: var(--background-mod-subtle, rgb(128 128 128 / 14%));
+    color: var(--icon-subtle, var(--text-muted));
+    cursor: pointer;
+    transition: color .12s ease, background-color .12s ease;
+}
+
+.vc-smooth-round:hover,
+.vc-smooth-round:focus-visible {
+    background: var(--background-mod-strong, rgb(128 128 128 / 24%));
+    color: var(--icon-strong, var(--text-default));
+    outline: none;
+}
+
+.vc-smooth-round-danger:hover,
+.vc-smooth-round-danger:focus-visible {
+    color: var(--text-feedback-critical, var(--status-danger, #f23f43));
 }
 
 .vc-smooth-avatar {
@@ -235,7 +274,6 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
-    margin-bottom: 20px;
 }
 
 .vc-smooth-menus-title {

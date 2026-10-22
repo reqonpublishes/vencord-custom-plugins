@@ -190,3 +190,18 @@
     font-size: 14px;
     line-height: 20px;
 }
+
+/* ---------------------------------------------------------------- the list in settings */
+
+.vc-bm-panel .vc-bm-search {
+    margin-bottom: 8px;
+    padding: 7px 10px;
+    font-size: 14px;
+}
+
+.vc-bm-none-found {
+    padding: 12px 0;
+    color: var(--text-muted);
+    font-size: 13px;
+    text-align: center;
+}

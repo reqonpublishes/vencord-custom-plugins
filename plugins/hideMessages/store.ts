@@ -52,6 +52,24 @@ const SCROLLER = '[data-list-id^="chat-messages"]';
 const SYNTHETIC = "__vcHideMessages";
 
 const KEY = "HideMessages_Hidden";
+
+/**
+ * Who sent each hidden message and what it said, as it was when hidden - so the list in
+ * settings can show the message rather than a number. Kept on this computer only: the phone
+ * shares which messages are hidden, not what they said.
+ */
+const PREVIEWS_KEY = "HideMessages_Previews";
+
+export interface Preview {
+    /** author id, for their picture */
+    a: string;
+    /** author's name */
+    n: string;
+    /** the text, cut short */
+    t: string;
+}
+
+let previews: Record<string, Preview> = {};
 const logger = new Logger("HideMessages");
 
 type Range = [from: string, to: string];
@@ -542,6 +560,8 @@ function load() {
 async function readSaved() {
     if (!settings.store.persist) return;
 
+    previews = await get<Record<string, Preview>>(PREVIEWS_KEY) ?? {};
+
     const stored = await get<Stored>(KEY);
     if (!stored) return;
 
@@ -586,6 +606,7 @@ function toCutoff(value: string | string[]): string {
 /** Called when the persist setting is switched off, so nothing is left behind on disk */
 export function forgetSaved() {
     del(KEY);
+    del(PREVIEWS_KEY);
 }
 
 // ---------------------------------------------------------------- message loads
@@ -824,6 +845,7 @@ export function onChannelSelect(channelId: string | null) {
 // ---------------------------------------------------------------- actions
 
 export function hideMessage(channelId: string, messageId: string) {
+    remember(channelId, messageId);
     addHidden(channelId, messageId);
     addRule(channelId, messageId);
     writeNow();
@@ -855,6 +877,7 @@ export function hideChannel(channelId: string) {
  * takes. Nothing is refetched, which is also why this can't half-work.
  */
 export function showChannel(channelId: string) {
+    forgetPreviews(channelId);
     hiddenChannels.delete(channelId);
     hiddenMessages.delete(channelId);
     hiddenRanges.delete(channelId);
@@ -877,6 +900,7 @@ function unpaint() {
 }
 
 function showEverything() {
+    previews = {};
     hiddenMessages.clear();
     hiddenRanges.clear();
     hiddenChannels.clear();
@@ -894,7 +918,106 @@ export function clearAll() {
     // there is nothing to reload, and nothing should be said to Discord.
     if (open && enabled) refresh(open);
 
+    savePreviews();
     if (settings.store.persist) writeNow();
+}
+
+// ---------------------------------------------------------------- one at a time, from settings
+
+/** Write down who sent a message and what it said, while Discord still has it */
+function remember(channelId: string, messageId: string) {
+    const message: any = MessageStore.getMessage(channelId, messageId);
+    if (!message) return;
+
+    const text = String(message.content ?? "").replace(/\s+/g, " ").trim()
+        || (message.attachments?.length ? "Attachment" : message.embeds?.length ? "Embed" : message.stickerItems?.length ? "Sticker" : "");
+
+    previews[keyFor(channelId, messageId)] = {
+        a: message.author?.id ?? "",
+        n: message.author?.globalName ?? message.author?.username ?? "",
+        t: text.slice(0, 160)
+    };
+    savePreviews();
+}
+
+function forgetPreviews(channelId: string, messageId?: string) {
+    const prefix = keyFor(channelId, messageId ?? "");
+    for (const key of Object.keys(previews)) if (messageId ? key === prefix : key.startsWith(prefix)) delete previews[key];
+    savePreviews();
+}
+
+function savePreviews() {
+    if (settings.store.persist) set(PREVIEWS_KEY, previews);
+}
+
+/** What one hidden message was, from what was written down or from what Discord has loaded */
+export function previewOf(channelId: string, messageId: string): Preview | null {
+    const saved = previews[keyFor(channelId, messageId)];
+    if (saved) return saved;
+
+    const message: any = MessageStore.getMessage(channelId, messageId);
+    if (!message) return null;
+
+    return { a: message.author?.id ?? "", n: message.author?.globalName ?? message.author?.username ?? "", t: String(message.content ?? "").slice(0, 160) };
+}
+
+/** Everything hidden in one conversation, oldest first, for the list in settings */
+export function detailsFor(channelId: string) {
+    return {
+        messages: [...(hiddenMessages.get(channelId) ?? [])].sort(cmpId),
+        ranges: [...(hiddenRanges.get(channelId) ?? [])],
+        since: hiddenChannels.get(channelId) ?? null
+    };
+}
+
+/** Rules for anything in this channel that is no longer hidden are taken out of the sheet */
+function dropShown(channelId: string) {
+    let dropped = false;
+
+    for (const key of [...appliedRules]) {
+        if (!key.startsWith(channelId + ":")) continue;
+        if (isHidden(channelId, key.slice(channelId.length + 1))) continue;
+
+        appliedRules.delete(key);
+        dropped = true;
+    }
+
+    if (!dropped) return;
+
+    rebuildStyle();
+    if (appliedRules.size) scheduleSweep();
+    else stopObserver();
+}
+
+/** Bring back one hidden message */
+export function showMessage(channelId: string, messageId: string) {
+    const ids = hiddenMessages.get(channelId);
+    if (!ids?.delete(messageId)) return;
+    if (!ids.size) hiddenMessages.delete(channelId);
+
+    forgetPreviews(channelId, messageId);
+    dropShown(channelId);
+    writeNow();
+}
+
+/** Bring back one hidden stretch */
+export function showRange(channelId: string, from: string, to: string) {
+    const left = (hiddenRanges.get(channelId) ?? []).filter(([a, b]) => a !== from || b !== to);
+    if (left.length) hiddenRanges.set(channelId, left);
+    else hiddenRanges.delete(channelId);
+
+    dropShown(channelId);
+    writeNow();
+}
+
+/** Bring back a conversation hidden as a whole, leaving single messages and stretches hidden */
+export function showWhole(channelId: string) {
+    if (!hiddenChannels.delete(channelId)) return;
+
+    blankPages.delete(channelId);
+    releaseBackfill(channelId);
+    refresh(channelId);
+    writeNow();
 }
 
 // ---------------------------------------------------------------- lifecycle

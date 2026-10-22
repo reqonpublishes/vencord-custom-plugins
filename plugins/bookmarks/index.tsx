@@ -75,7 +75,11 @@ function personOf(user?: User, channel?: Channel): any {
 
 /** Whether Ctrl was held on the press that opened the menu, read before Discord builds it */
 let ctrlHeld = false;
-const noteCtrl = (event: MouseEvent) => void (ctrlHeld = event.ctrlKey);
+const noteCtrl = (event: MouseEvent) => {
+    // a press inside an open menu is choosing an entry, not opening a menu
+    if ((event.target as Element | null)?.closest?.('[role="menu"]')) return;
+    ctrlHeld = event.ctrlKey;
+};
 window.addEventListener("contextmenu", noteCtrl, true);
 window.addEventListener("mousedown", noteCtrl, true);
 

@@ -56,8 +56,13 @@ const menuMode = (): string => (window as any).vcMenuMode ?? "always";
 let ctrl = false;
 
 // Whichever press opened the menu, whether a right click or a click on a "..." button. Read
-// in the capture phase so it is known before Discord starts building the menu.
-const noteCtrl = (event: MouseEvent) => void (ctrl = event.ctrlKey);
+// in the capture phase so it is known before Discord starts building the menu. A press inside
+// a menu that is already open is choosing an entry, not opening one: reading it would take the
+// entries away the moment Ctrl is let go, under the pointer that is about to click them.
+const noteCtrl = (event: MouseEvent) => {
+    if ((event.target as Element | null)?.closest?.('[role="menu"]')) return;
+    ctrl = event.ctrlKey;
+};
 window.addEventListener("contextmenu", noteCtrl, true);
 window.addEventListener("mousedown", noteCtrl, true);
 
