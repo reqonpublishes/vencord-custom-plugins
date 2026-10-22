@@ -8,7 +8,7 @@ import { Settings } from "@api/Settings";
 import { findByCodeLazy, findStoreLazy } from "@webpack";
 import { ContextMenuApi, IconUtils, Menu, TextInput, useEffect, useMemo, useRef, useState } from "@webpack/common";
 
-import { CloseIcon, StarIcon, UndoIcon } from "./icons";
+import { CheckIcon, CloseIcon, StarIcon, UndoIcon } from "./icons";
 import { keepList, keptList, loadPicture, pictureNow } from "./shopCache";
 import { Look, NOTHING } from "./store";
 import { cl } from "./ui";
@@ -94,6 +94,9 @@ function LazyPicture({ src }: { src: string; }) {
 
     return <img ref={ref} src={shown} alt="" />;
 }
+
+/** Marks the one worn */
+const Tick = () => <span className={cl("shop-tick")}><CheckIcon height={12} width={12} /></span>;
 
 /** Everything of one kind in Discord's catalogue, under the collection each belongs to */
 function liveEntries(kind: Kind): Entry[] {
@@ -251,11 +254,11 @@ export function CollectiblesTab({ look, set }: { look: Look; set(change: Partial
 
             <div className={cl("shop-grid")}>
                 <button className={cl("shop-tile", value === undefined ? "shop-on" : "")} onClick={() => clear(undefined)}>
-                    <div className={cl("shop-pic", "shop-pic-icon")}><UndoIcon height={28} width={28} /></div>
+                    <div className={cl("shop-pic", "shop-pic-icon")}><UndoIcon height={28} width={28} />{value === undefined && <Tick />}</div>
                     <span className={cl("shop-name")}>Real</span>
                 </button>
                 <button className={cl("shop-tile", value === NOTHING ? "shop-on" : "")} onClick={() => clear(NOTHING)}>
-                    <div className={cl("shop-pic", "shop-pic-icon")}><CloseIcon height={28} width={28} /></div>
+                    <div className={cl("shop-pic", "shop-pic-icon")}><CloseIcon height={28} width={28} />{value === NOTHING && <Tick />}</div>
                     <span className={cl("shop-name")}>None</span>
                 </button>
             </div>
@@ -288,6 +291,7 @@ export function CollectiblesTab({ look, set }: { look: Look; set(change: Partial
                                     <div className={cl("shop-pic", `shop-pic-${kind}`)}>
                                         {e.picture && <LazyPicture key={e.picture} src={e.picture} />}
                                         {starred.has(e.skuId) && <span className={cl("shop-star")}><StarIcon height={12} width={12} /></span>}
+                                        {isWorn[kind](look, e) && <Tick />}
                                     </div>
                                     <span className={cl("shop-name")}>{e.name}</span>
                                 </button>

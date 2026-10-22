@@ -48,7 +48,7 @@ export function ProfilesPanel() {
                 actions={
                     <>
                         {me && <IconButton icon={PersonIcon} variant="primary" onClick={() => openInspect(me)}>Inspect My Profile</IconButton>}
-                        <IconButton icon={UndoIcon} variant="secondary" disabled={!ids.length} onClick={() => revertAll()}>Show All Real</IconButton>
+                        {!!ids.length && <IconButton icon={UndoIcon} variant="secondary" onClick={() => revertAll()}>Show All Real</IconButton>}
                     </>
                 }
             >

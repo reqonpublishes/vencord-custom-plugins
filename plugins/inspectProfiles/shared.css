@@ -263,17 +263,18 @@
     gap: 6px;
     align-items: center;
     padding: 6px 12px;
-    border: 1px solid var(--border-subtle, rgb(128 128 128 / 24%));
     border-radius: 999px;
-    background: none;
+    background: var(--background-mod-subtle, rgb(128 128 128 / 10%));
     color: var(--text-muted);
     font-size: 14px;
     line-height: 18px;
     cursor: pointer;
+    font-weight: 500;
+    transition: background-color .15s ease, color .15s ease;
 }
 
 .vc-cip-menu-chip:hover {
-    background: var(--background-mod-subtle, rgb(128 128 128 / 8%));
+    background: var(--background-mod-normal, rgb(128 128 128 / 16%));
     color: var(--text-default);
 }
 
@@ -283,7 +284,6 @@
 }
 
 .vc-cip-menu-chip-on {
-    border-color: transparent;
     background: var(--background-mod-strong, rgb(128 128 128 / 24%));
     color: var(--text-strong, var(--header-primary));
 }
@@ -381,9 +381,8 @@
     gap: 6px;
     align-items: center;
     padding: 5px 10px;
-    border: 1px solid rgb(128 128 128 / 18%);
     border-radius: 6px;
-    background: rgb(128 128 128 / 12%);
+    background: var(--background-mod-subtle, rgb(128 128 128 / 10%));
     color: var(--text-default, var(--text-normal));
     font-size: 12px;
     font-weight: 500;
@@ -395,12 +394,11 @@
 }
 
 .vc-cip-chip:hover {
-    background: rgb(128 128 128 / 24%);
+    background: var(--background-mod-normal, rgb(128 128 128 / 16%));
 }
 
 .vc-cip-chip-on,
 .vc-cip-chip-on:hover {
-    border-color: transparent;
     background: var(--background-mod-strong, rgb(128 128 128 / 24%));
     color: var(--text-strong, var(--header-primary));
 }
@@ -419,9 +417,8 @@
     align-items: center;
     min-width: 0;
     padding: 8px 10px;
-    border: 1px solid rgb(128 128 128 / 18%);
     border-radius: 8px;
-    background: rgb(128 128 128 / 10%);
+    background: var(--background-mod-subtle, rgb(128 128 128 / 10%));
     color: var(--text-default, var(--text-normal));
     font-family: var(--font-primary);
     text-align: start;
@@ -430,12 +427,11 @@
 }
 
 .vc-cip-choice:hover {
-    background: rgb(128 128 128 / 20%);
+    background: var(--background-mod-normal, rgb(128 128 128 / 16%));
 }
 
 .vc-cip-choice-on,
 .vc-cip-choice-on:hover {
-    border-color: transparent;
     background: var(--background-mod-strong, rgb(128 128 128 / 24%));
     color: var(--text-strong, var(--header-primary));
 }

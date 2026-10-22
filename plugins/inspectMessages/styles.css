@@ -101,10 +101,9 @@
 
 .vc-cim-chip {
     padding: 5px 10px;
-    border: 1px solid rgb(128 128 128 / 18%);
     border-radius: 6px;
-    background: rgb(128 128 128 / 12%);
-    color: var(--text-normal);
+    background: var(--background-mod-subtle, rgb(128 128 128 / 10%));
+    color: var(--text-default);
     font-size: 12px;
     font-weight: 500;
     font-family: var(--font-primary);
@@ -115,11 +114,11 @@
 }
 
 .vc-cim-chip:hover {
-    background: rgb(128 128 128 / 24%);
+    background: var(--background-mod-normal, rgb(128 128 128 / 16%));
 }
 
 .vc-cim-chip:active {
-    background: rgb(128 128 128 / 32%);
+    background: var(--background-mod-strong, rgb(128 128 128 / 24%));
 }
 
 /* the switches read as one panel, set apart from the plain fields around them */
