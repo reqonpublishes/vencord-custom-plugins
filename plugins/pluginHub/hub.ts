@@ -54,9 +54,9 @@ export const ENTRIES: Entry[] = [
     { plugin: "FakeNotifications", label: "Fake Notifications", icon: BellIcon, section: "fake", about: "Set the numbers on your badges" },
     { plugin: "FakeMod", label: "Fake Mod", icon: ShieldIcon, section: "fake", about: "Menus that look like moderator tools" },
     { plugin: "Bookmarks", label: "Bookmarks", icon: BookmarkIcon, section: "tools", about: "Bookmark profiles and find them again from Friends" },
-    { plugin: "CloudSync", label: "Cloud Sync", icon: CloudIcon, section: "tools", about: "Sync all of this with your phone" },
     { plugin: "QuickRestart", label: "Quick Restart", icon: BoltIcon, section: "tools", about: "Ctrl+R restarts about five times faster" },
-    { plugin: "Performance", label: "Performance", icon: SpeedIcon, section: "tools", about: "Fixes the places Discord gets slow or stuck" }
+    { plugin: "Performance", label: "Performance", icon: SpeedIcon, section: "tools", about: "Fixes the places Discord gets slow or stuck" },
+    { plugin: "CloudSync", label: "Cloud Sync", icon: CloudIcon, section: "tools", about: "Sync all of this with your phone" }
 ];
 
 /** Whether a plugin changes what Discord shows, rather than being a tool */

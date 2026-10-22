@@ -84,6 +84,15 @@
     color: var(--icon-default, var(--text-default));
 }
 
+/* the arrow that opens a row's options turns over while they are open */
+.vc-hub-cog svg {
+    transition: transform .15s ease;
+}
+
+.vc-hub-cog-open svg {
+    transform: rotate(180deg);
+}
+
 
 /* ---------------------------------------------------------------- Screen Share Protection's choices */
 

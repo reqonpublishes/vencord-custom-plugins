@@ -15,7 +15,7 @@ import { Alerts, React, showToast } from "@webpack/common";
 import { settings } from ".";
 import { deleteAllData } from "./data";
 import { applying, Entry, flipAll, installed, isEnabled, isOn, isView, needsRestart, pluginOf, SECTIONS, setOn, summaryOf, usable } from "./hub";
-import { CloudDownIcon, CloudUpIcon, EyeIcon, EyeOffIcon, GearIcon, MenuIcon, RefreshIcon, ShieldIcon, SyncIcon, TrashIcon } from "./icons";
+import { ChevronDownIcon, CloudDownIcon, CloudUpIcon, EyeIcon, EyeOffIcon, GearIcon, MenuIcon, RefreshIcon, ShieldIcon, SyncIcon, TrashIcon } from "./icons";
 import { isProtecting, onProtectionChange, raisedForShare } from "./protect";
 import { cl, IconButton } from "./ui";
 
@@ -142,7 +142,7 @@ function MenuButtons() {
             <div className={cl("item-text")}>
                 <div className={cl("item-name")}>Right-click buttons</div>
                 <div className={cl("item-detail")}>
-                    When entries like Hide DM show in right-click menus. Holding Ctrl keeps menus looking like normal Discord.
+                    When Hide and Fake entries show in right-click menus.
                 </div>
             </div>
             <div className={cl("choice")} role="radiogroup" aria-label="Right-click buttons">
@@ -254,6 +254,9 @@ function ShareOptions() {
 
 function HubPage() {
     const [, redraw] = React.useState(0);
+    // Screen Share Protection's own choices, folded away until asked for: they are set once,
+    // and the page should open on what you came for
+    const [shareOpen, setShareOpen] = React.useState(false);
     const update = () => redraw(n => n + 1);
 
     const { shareProtection } = settings.use(["shareProtection"]);
@@ -314,20 +317,33 @@ function HubPage() {
 
                     <MenuButtons />
 
-                    <div className={cl("item", shareProtection !== false ? "item-open" : "")}>
+                    <div className={cl("item", shareProtection !== false && shareOpen ? "item-open" : "")}>
                         <div className={cl("tile")}><ShieldIcon height={20} width={20} /></div>
                         <div className={cl("item-text")}>
                             <div className={cl("item-name")}>Screen Share Protection</div>
                             <div className={cl("item-detail")}>
                                 {protecting
                                     ? "On now. Your screen is being shared."
-                                    : "Keeps everything hidden while you share your screen. Everything goes back when you stop."}
+                                    : "Keeps everything hidden while you share. It all comes back when you stop."}
                             </div>
                         </div>
+                        {shareProtection !== false && (
+                            <Button
+                                className={cl("cog", shareOpen ? "cog-open" : "")}
+                                size="iconOnly"
+                                variant="none"
+                                aria-expanded={shareOpen}
+                                aria-label={shareOpen ? "Hide the options" : "Show the options"}
+                                title={shareOpen ? "Hide the options" : "Show the options"}
+                                onClick={() => setShareOpen(open => !open)}
+                            >
+                                <ChevronDownIcon height={20} width={20} />
+                            </Button>
+                        )}
                         <Switch checked={shareProtection !== false} onChange={next => void (settings.store.shareProtection = next)} />
                     </div>
 
-                    {shareProtection !== false && <ShareOptions />}
+                    {shareProtection !== false && shareOpen && <ShareOptions />}
 
                     {waiting && (
                         <div className={cl("item")}>
