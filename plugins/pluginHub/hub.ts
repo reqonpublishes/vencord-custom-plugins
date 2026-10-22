@@ -28,6 +28,8 @@ export interface Entry {
     about: string;
     /** what you see instead while it is off */
     off: string;
+    /** whether it adds entries to right-click menus, which can be hidden from this page */
+    menus?: boolean;
 }
 
 export const SECTIONS: { id: Section; title: string; }[] = [
@@ -44,17 +46,17 @@ export const SECTIONS: { id: Section; title: string; }[] = [
  * everything it was holding, which is what makes it a switch rather than a reset.
  */
 export const ENTRIES: Entry[] = [
-    { plugin: "HideMessages", label: "Hide Messages", icon: EyeOffIcon, section: "hide", about: "Hide messages, ranges or whole conversations", off: "Off. Every message is showing" },
-    { plugin: "HideDMs", label: "Hide DMs", icon: ChatIcon, section: "hide", about: "Hide conversations from your DM list", off: "Off. Every DM is showing" },
-    { plugin: "HideFriends", label: "Hide Friends", icon: PersonOffIcon, section: "hide", about: "Hide friends, or fake a relationship", off: "Off. Your real friends list is showing" },
-    { plugin: "HideServers", label: "Hide Servers", icon: ServerIcon, section: "hide", about: "Hide servers from your server list", off: "Off. Every server is showing" },
-    { plugin: "FakeMessages", label: "Fake Messages", icon: ChatAddIcon, section: "fake", about: "Add messages nobody sent", off: "Off. Only real messages are showing" },
-    { plugin: "FakeCalls", label: "Fake Calls", icon: PhoneAddIcon, section: "fake", about: "Add calls that never happened", off: "Off. Only real calls are showing" },
+    { plugin: "HideMessages", menus: true, label: "Hide Messages", icon: EyeOffIcon, section: "hide", about: "Hide messages, ranges or whole conversations", off: "Off. Every message is showing" },
+    { plugin: "HideDMs", menus: true, label: "Hide DMs", icon: ChatIcon, section: "hide", about: "Hide conversations from your DM list", off: "Off. Every DM is showing" },
+    { plugin: "HideFriends", menus: true, label: "Hide Friends", icon: PersonOffIcon, section: "hide", about: "Hide friends, or fake a relationship", off: "Off. Your real friends list is showing" },
+    { plugin: "HideServers", menus: true, label: "Hide Servers", icon: ServerIcon, section: "hide", about: "Hide servers from your server list", off: "Off. Every server is showing" },
+    { plugin: "FakeMessages", menus: true, label: "Fake Messages", icon: ChatAddIcon, section: "fake", about: "Add messages nobody sent", off: "Off. Only real messages are showing" },
+    { plugin: "FakeCalls", menus: true, label: "Fake Calls", icon: PhoneAddIcon, section: "fake", about: "Add calls that never happened", off: "Off. Only real calls are showing" },
     { plugin: "FakeNotifications", label: "Fake Notifications", icon: BellIcon, section: "fake", about: "Set the numbers on your badges", off: "Off. Badges show the real numbers" },
     { plugin: "FakeMod", label: "Fake Mod", icon: ShieldIcon, section: "fake", about: "Menus that look like moderator tools", off: "Off. The moderation entries are gone" },
-    { plugin: "InspectMessages", label: "Inspect Messages", icon: InspectIcon, section: "fake", about: "Change what a message says and when it was sent", off: "Off. Messages read as they really are" },
-    { plugin: "InspectProfiles", label: "Inspect Profiles", icon: MasksIcon, section: "fake", about: "Change how any profile looks, and steal whole profiles", off: "Off. Profiles look as they really are" },
-    { plugin: "Bookmarks", label: "Bookmarks", icon: BookmarkIcon, section: "tools", about: "Keep people within reach after closing their DM", off: "Off. The Bookmarked tab is hidden" },
+    { plugin: "InspectMessages", menus: true, label: "Inspect Messages", icon: InspectIcon, section: "fake", about: "Change what a message says and when it was sent", off: "Off. Messages read as they really are" },
+    { plugin: "InspectProfiles", menus: true, label: "Inspect Profiles", icon: MasksIcon, section: "fake", about: "Change how any profile looks, and steal whole profiles", off: "Off. Profiles look as they really are" },
+    { plugin: "Bookmarks", menus: true, label: "Bookmarks", icon: BookmarkIcon, section: "tools", about: "Keep people within reach after closing their DM", off: "Off. The Bookmarked tab is hidden" },
     { plugin: "CloudSync", label: "Cloud Sync", icon: CloudIcon, section: "tools", about: "Sync all of this with your phone", off: "Off" },
     { plugin: "QuickRestart", label: "Quick Restart", icon: BoltIcon, section: "tools", about: "Ctrl+R restarts about five times faster", off: "Off. Ctrl+R is Discord's slow reload" },
     { plugin: "Smoother", label: "Smoother", icon: SpeedIcon, section: "tools", about: "Keeps chats loading when you scroll up", off: "Off. Discord behaves as it normally does" }

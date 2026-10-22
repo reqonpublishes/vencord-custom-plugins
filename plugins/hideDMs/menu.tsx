@@ -13,9 +13,12 @@ import { Menu, React } from "@webpack/common";
  * land wherever each happened to put them - one beside View Avatar, three at the bottom,
  * another in between. So they share a group, found by its key, and each entry carries a
  * number saying where in it it belongs. The same file is in every plugin, which is what lets
- * them agree without depending on each other.
+ * them agree without depending on each other - only OWNER differs.
  */
 const GROUP = "vc-local-plugins";
+
+/** The plugin this copy belongs to, so Additional Settings can hide just its entries */
+const OWNER = "HideDMs";
 
 /**
  * Whether the screen is being shown to somebody, as Plugin Hub's Screen Share Protection
@@ -23,6 +26,9 @@ const GROUP = "vc-local-plugins";
  * depending on Plugin Hub being there.
  */
 export const isShared = () => !!(window as any).vcScreenShared;
+
+/** Whether this plugin's entries are hidden on Additional Settings - left on the window, like the above */
+export const menusHidden = () => !!(window as any).vcHiddenMenus?.includes(OWNER);
 
 let shift = false;
 
@@ -45,6 +51,8 @@ export function place(children: any[], rank: number, ...items: any[]) {
     // doing as plainly as the lists would have. They are left out unless Shift is held,
     // which is a thing a viewer cannot see being done.
     if (isShared() && !shift) return;
+    // Hidden from Additional Settings: Shift shows them anyway, for the odd time you want one.
+    if (menusHidden() && !shift) return;
 
     let group = children.find(child => child?.key === GROUP);
 

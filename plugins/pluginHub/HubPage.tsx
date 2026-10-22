@@ -12,7 +12,7 @@ import { Switch } from "@components/Switch";
 import { Logger } from "@utils/Logger";
 import { React, showToast } from "@webpack/common";
 
-import { settings } from ".";
+import { publishHiddenMenus, settings } from ".";
 import { applying, Entry, flipAll, installed, isEnabled, isOn, isView, needsRestart, pluginOf, SECTIONS, setOn, summaryOf, usable } from "./hub";
 import { CloudDownIcon, CloudUpIcon, EyeIcon, EyeOffIcon, GearIcon, RefreshIcon } from "./icons";
 import { isProtecting, onProtectionChange, raisedForShare } from "./protect";
@@ -22,6 +22,31 @@ const logger = new Logger("PluginHub");
 
 /** Enabled in Vencord but waiting on a restart before it can do anything */
 const isWaiting = (plugin: string) => !isOn(plugin) && isEnabled(plugin) && needsRestart(plugin);
+
+/** Show or hide one plugin's right-click entries, and say which they are */
+function MenuToggle({ plugin, label }: { plugin: string; label: string; }) {
+    const { hiddenMenus } = settings.use(["hiddenMenus"]);
+    const hidden = (hiddenMenus ?? []).includes(plugin);
+    const tip = hidden ? `${label}'s right-click buttons are hidden. Click to show them` : `Hide ${label}'s right-click buttons`;
+
+    return (
+        <Button
+            className={cl("cog", hidden ? "cog-off" : "")}
+            size="iconOnly"
+            variant="none"
+            aria-label={tip}
+            aria-pressed={hidden}
+            title={tip}
+            onClick={() => {
+                const list: string[] = settings.store.hiddenMenus ?? [];
+                settings.store.hiddenMenus = hidden ? list.filter(name => name !== plugin) : [...list, plugin];
+                publishHiddenMenus();
+            }}
+        >
+            {hidden ? <EyeOffIcon height={20} width={20} /> : <EyeIcon height={20} width={20} />}
+        </Button>
+    );
+}
 
 function PluginRow({ entry, onChange }: { entry: Entry; onChange(): void; }) {
     const { plugin, label, icon: Icon } = entry;
@@ -42,6 +67,7 @@ function PluginRow({ entry, onChange }: { entry: Entry; onChange(): void; }) {
                         : waiting ? "Turns on when Discord restarts" : on ? summaryOf(entry) : entry.off}
                 </div>
             </div>
+            {entry.menus && enabled && <MenuToggle plugin={plugin} label={label} />}
             <Button
                 className={cl("cog")}
                 size="iconOnly"

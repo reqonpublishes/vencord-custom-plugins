@@ -76,6 +76,8 @@ function personOf(user?: User, channel?: Channel): any {
 const menu: NavContextMenuPatchCallback = (children, { user, channel }: { user?: User; channel?: Channel; }) => {
     // A shared screen should not show who is worth keeping within reach.
     if (shared()) return;
+    // Hidden from Additional Settings
+    if ((window as any).vcHiddenMenus?.includes("Bookmarks")) return;
 
     const person = personOf(user, channel);
     if (!person?.id || person.id === UserStore.getCurrentUser()?.id) return;

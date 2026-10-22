@@ -59,24 +59,66 @@ function customActivity(status: CustomStatus) {
  * Activities are read on every redraw of anything showing a person; a fresh array each time is
  * a new identity each time, and everything comparing old to new would redraw forever.
  */
-const lists = new Map<string, { from: any; version: number; list: any[]; }>();
+const lists = new Map<string, { from: any; version: number; until: number; list: any[]; }>();
+
+/**
+ * A copied song, still playing.
+ *
+ * An activity carries when it started and when it ends, so a song copied a few minutes ago
+ * sits at its last second, finished. Once its end has passed it starts again, as many times
+ * as it takes to be playing now - in step with where the original would be. Anything without
+ * an end, like the time spent in a game, is left to count up as it does.
+ */
+function replay(activity: any, now: number): { activity: any; until: number; } {
+    const start = Number(activity?.timestamps?.start);
+    const end = Number(activity?.timestamps?.end);
+    if (!start || !end || end <= start) return { activity, until: Infinity };
+    if (now < end) return { activity, until: end };
+
+    const length = end - start;
+    const from = now - ((now - start) % length);
+    return { activity: { ...activity, timestamps: { ...activity.timestamps, start: from, end: from + length } }, until: from + length };
+}
 
 function activitiesFor(id: string, actual: any[]): any[] {
     if (!running) return actual;
     const look = lookFor(id);
     if (!look || (look.customStatus === undefined && look.activities === undefined)) return actual;
 
+    const now = Date.now();
     const held = lists.get(id);
-    if (held && held.from === actual && held.version === changes()) return held.list;
+    if (held && held.from === actual && held.version === changes() && now < held.until) return held.list;
 
     const realCustom = (actual ?? []).filter(a => a?.type === 4);
     const realOther = (actual ?? []).filter(a => a?.type !== 4);
     const custom = look.customStatus === undefined ? realCustom
         : look.customStatus === NOTHING ? [] : [customActivity(look.customStatus)];
 
-    const list = [...custom, ...(look.activities ?? realOther)];
-    lists.set(id, { from: actual, version: changes(), list });
+    let until = Infinity;
+    const other = look.activities === undefined ? realOther : look.activities.map(a => {
+        const playing = replay(a, now);
+        until = Math.min(until, playing.until);
+        return playing.activity;
+    });
+
+    const list = [...custom, ...other];
+    lists.set(id, { from: actual, version: changes(), until, list });
     return list;
+}
+
+/**
+ * The Recent activity entry Discord shows beside a game being played - where "Trending" and
+ * streaks come from. Matched the way Discord matches it: the same game, by its app or its name.
+ */
+function matchingEntry(id: string, activity: any) {
+    if (activity?.type !== 0) return undefined;
+    const entries: any[] = outboxFor(id, real.getUserOutbox?.call(Outbox, id))?.entries ?? [];
+    return entries.find(entry => {
+        const extra = entry?.extra;
+        if (!extra) return false;
+        if (activity.application_id != null && activity.application_id === extra.application_id) return true;
+        return activity.name === (extra.game_name ?? extra.activity_name);
+    });
 }
 
 /** Recent activity, kept per person for the same reason as the activities */
@@ -190,6 +232,7 @@ export function startPresence() {
         getWidgets: Profiles?.getWidgets,
         getUserOutbox: Outbox?.getUserOutbox,
         isFetchingUserOutbox: Outbox?.isFetchingUserOutbox,
+        getMatchingOutboxEntry: Outbox?.getMatchingOutboxEntry,
     };
 
     if (Presence) {
@@ -202,7 +245,7 @@ export function startPresence() {
             Presence.getPrimaryActivity = function (id: string, ...rest: any[]) {
                 const look = lookFor(id);
                 if (!running || look?.activities === undefined) return real.getPrimaryActivity.call(this, id, ...rest);
-                return look.activities[0] ?? null;
+                return activitiesFor(id, real.getActivities.call(this, id)).find(a => a?.type !== 4) ?? null;
             };
         }
     }
@@ -216,6 +259,14 @@ export function startPresence() {
 
     if (Outbox && real.getUserOutbox) {
         Outbox.getUserOutbox = function (id: string, ...rest: any[]) { return outboxFor(id, real.getUserOutbox.call(this, id, ...rest)); };
+        if (real.getMatchingOutboxEntry) {
+            Outbox.getMatchingOutboxEntry = function (query: any, ...rest: any[]) {
+                const id = query?.userId;
+                return running && id && lookFor(id)?.recentActivity !== undefined
+                    ? matchingEntry(id, query.activity)
+                    : real.getMatchingOutboxEntry.call(this, query, ...rest);
+            };
+        }
         // a worn list is already here, so the tab never waits on a fetch to show it
         if (real.isFetchingUserOutbox) {
             Outbox.isFetchingUserOutbox = function (id: string, ...rest: any[]) {
@@ -235,7 +286,7 @@ export function stopPresence() {
 
     if (Presence) for (const key of ["getStatus", "getActivities", "getUnfilteredActivities", "getPrimaryActivity"]) if (real[key]) Presence[key] = real[key];
     if (Profiles && real.getWidgets) Profiles.getWidgets = real.getWidgets;
-    if (Outbox) for (const key of ["getUserOutbox", "isFetchingUserOutbox"]) if (real[key]) Outbox[key] = real[key];
+    if (Outbox) for (const key of ["getUserOutbox", "isFetchingUserOutbox", "getMatchingOutboxEntry"]) if (real[key]) Outbox[key] = real[key];
     unpatchSetting();
 
     lists.clear();

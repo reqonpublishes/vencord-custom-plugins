@@ -135,3 +135,9 @@
     font-weight: 500;
     line-height: 18px;
 }
+
+/* a plugin whose right-click buttons are hidden */
+.vc-hub-cog-off {
+    color: var(--text-muted);
+    opacity: .6;
+}

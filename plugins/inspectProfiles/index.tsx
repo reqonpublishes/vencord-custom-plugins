@@ -24,11 +24,19 @@ import { asRecord, editedIds, invalidate, load, lookFor, onChange, presetNames, 
 import { About, menuChips } from "./ui";
 
 const settings = definePluginSettings({
+    entries: {
+        type: OptionType.COMPONENT,
+        component: menuChips(() => settings, "Right-click entries", "Which of these appear when you right-click somebody. Everything is also in the Inspect window.",
+            [{ key: "inspectEntry", label: "Inspect Profile" }, { key: "stealEntry", label: "Steal Profile" }, { key: "resetEntry", label: "Reset Profile" }])
+    },
     menus: {
         type: OptionType.COMPONENT,
-        component: menuChips(() => settings, "Show in menus", "Where Inspect Profile and Steal Profile appear when you right-click.",
+        component: menuChips(() => settings, "Show in menus", "Where those entries appear.",
             [{ key: "userMenu", label: "People" }, { key: "profileMenu", label: "Profiles" }])
     },
+    inspectEntry: { type: OptionType.BOOLEAN, hidden: true, description: "", default: true },
+    stealEntry: { type: OptionType.BOOLEAN, hidden: true, description: "", default: false },
+    resetEntry: { type: OptionType.BOOLEAN, hidden: true, description: "", default: false },
     userMenu: { type: OptionType.BOOLEAN, hidden: true, description: "", default: true },
     profileMenu: { type: OptionType.BOOLEAN, hidden: true, description: "", default: true },
     // parts Steal leaves out - picked in the Presets tab
@@ -67,8 +75,10 @@ async function steal(user: User) {
 const userMenu = (enabled: () => boolean): NavContextMenuPatchCallback => (children, { user }: { user?: User; }) => {
     if (!enabled() || !user?.id) return;
 
+    const { inspectEntry, stealEntry, resetEntry } = settings.store;
+
     place(children, 16,
-        <Menu.MenuItem
+        inspectEntry !== false && <Menu.MenuItem
             id="vc-cip-inspect"
             key="vc-cip-inspect"
             label="Inspect Profile"
@@ -76,7 +86,7 @@ const userMenu = (enabled: () => boolean): NavContextMenuPatchCallback => (child
             leadingAccessory={{ type: "icon", icon: InspectIcon }}
             action={() => openInspect(user.id)}
         />,
-        <Menu.MenuItem
+        stealEntry && <Menu.MenuItem
             id="vc-cip-steal"
             key="vc-cip-steal"
             label="Steal Profile"
@@ -84,7 +94,7 @@ const userMenu = (enabled: () => boolean): NavContextMenuPatchCallback => (child
             leadingAccessory={{ type: "icon", icon: MasksIcon }}
             action={() => void steal(user)}
         />,
-        lookFor(user.id) ? (
+        resetEntry && lookFor(user.id) ? (
             <Menu.MenuItem
                 id="vc-cip-reset"
                 key="vc-cip-reset"
@@ -113,6 +123,9 @@ function loadMine() {
 }
 
 let unwatch: (() => void) | null = null;
+
+/** Running - the tab patch reads this, as it stays in Discord's code after a stop */
+let active = false;
 
 /** Every picture any changed profile or preset uses */
 function picturesInUse() {
@@ -178,6 +191,15 @@ export default definePlugin({
             ]
         },
         {
+            // The tabs of the full profile. Your own always has Board and Wishlist, to edit them;
+            // while you wear a look, it gets the tabs the look's owner has instead.
+            find: 'location:"UserProfileModalV2Tabs"',
+            replacement: {
+                match: /(\i)=(\i)\.id===(\i)\?\.id,(\i)=(\i)\(\2\.id\)/,
+                replace: "$1=$2.id===$3?.id&&!$self.wearing($2.id),$4=!$self.boardFromLook($2.id)&&$5($2.id)"
+            }
+        },
+        {
             // Member Since on a profile, which works the day out from the id rather than reading
             // it off the user - so the day chosen has to be answered here as well.
             find: /textClassName:\i,tooltipDelay:\i\}=\i/,
@@ -190,6 +212,16 @@ export default definePlugin({
 
     avatarFor,
     joinedAt,
+
+    /** Whether you are wearing a look - your profile then shows the tabs anyone else's would */
+    wearing(userId: string) {
+        return active && userId === UserStore.getCurrentUser()?.id && !!lookFor(userId);
+    },
+
+    /** Whether the look you wear decides the Board: shown only when it has something on it */
+    boardFromLook(userId: string) {
+        return active && userId === UserStore.getCurrentUser()?.id && lookFor(userId)?.widgets !== undefined;
+    },
     bannerFor,
 
     /** Whether the picture patches went in, which is only when Discord loaded with this on */
@@ -222,6 +254,7 @@ export default definePlugin({
     },
 
     async start() {
+        active = true;
         const mine = ++runs;
         await load();
         if (mine !== runs) return;
@@ -244,6 +277,7 @@ export default definePlugin({
     },
 
     stop() {
+        active = false;
         runs++;
         unwatch?.();
         unwatch = null;

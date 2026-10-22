@@ -79,8 +79,24 @@ export const settings = definePluginSettings({
         type: OptionType.CUSTOM,
         default: [] as string[],
         onChange: () => refresh()
+    },
+    // Plugins whose right-click entries are hidden. Switched on the Additional Settings page.
+    hiddenMenus: {
+        type: OptionType.CUSTOM,
+        default: [] as string[],
+        onChange: () => publishHiddenMenus()
     }
 });
+
+/**
+ * Tell the other plugins whose right-click entries to leave out.
+ *
+ * Left on the window, as the screen share is, so none of them depends on this one: with it
+ * gone, the list is gone and every entry is back.
+ */
+export function publishHiddenMenus(on = true) {
+    (window as any).vcHiddenMenus = on ? [...(settings.store.hiddenMenus ?? [])] : [];
+}
 
 /** Put this page in Discord's settings sidebar, or take it out */
 function listed(on: boolean) {
@@ -129,6 +145,7 @@ export default definePlugin({
 
     start() {
         listed(true);
+        publishHiddenMenus();
         unwatch = onProtectionChange(() => listed(!pageHidden()));
 
         // After this turn of the loop, by which time Vencord has started every plugin it is
@@ -148,6 +165,7 @@ export default definePlugin({
         pending = null;
 
         stopProtection();
+        publishHiddenMenus(false);
         unwatch?.();
         unwatch = null;
         listed(false);

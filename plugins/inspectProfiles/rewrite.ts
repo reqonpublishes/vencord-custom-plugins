@@ -32,6 +32,7 @@ const accountStore = () => (MultiAccountStore ??= findStore("MultiAccountStore")
 
 /** The store methods as Discord wrote them, so the real thing can always be read */
 let realGetUser: ((id: string) => any) | null = null;
+let realGetUsers: (() => Record<string, any>) | null = null;
 let realGetCurrentUser: (() => any) | null = null;
 let realGetProfile: ((id: string) => any) | null = null;
 let realGetAccounts: (() => any[]) | null = null;
@@ -203,6 +204,7 @@ export function startRewriting() {
     const profiles = profileStore();
     const accounts = accountStore();
     realGetUser = UserStore.getUser;
+    realGetUsers = (UserStore as any).getUsers ?? null;
     realGetCurrentUser = UserStore.getCurrentUser;
     realGetProfile = profiles?.getUserProfile ?? null;
     realGetAccounts = accounts?.getUsers ?? null;
@@ -215,6 +217,10 @@ export function startRewriting() {
     const getValidAccounts = realGetValidAccounts;
 
     (UserStore as any).getUser = function (id: string) { return userCopy(getUser.call(this, id)); };
+    if (realGetUsers) {
+        const getUsers = realGetUsers;
+        (UserStore as any).getUsers = function () { return everyoneCopy(getUsers.call(this)); };
+    }
     (UserStore as any).getCurrentUser = function () { return userCopy(getCurrentUser.call(this)); };
     if (profiles && getProfile) profiles.getUserProfile = function (id: string) { return profileCopy(getProfile.call(this, id)); };
     if (accounts && getAccounts) accounts.getUsers = function () { return accountsCopy("all", getAccounts.call(this)); };
@@ -229,6 +235,7 @@ export function stopRewriting() {
     running = false;
 
     if (realGetUser) (UserStore as any).getUser = realGetUser;
+    if (realGetUsers) (UserStore as any).getUsers = realGetUsers;
     if (realGetCurrentUser) (UserStore as any).getCurrentUser = realGetCurrentUser;
     if (realGetProfile && profileStore()) profileStore().getUserProfile = realGetProfile;
     if (realGetAccounts && accountStore()) accountStore().getUsers = realGetAccounts;
@@ -249,6 +256,35 @@ export function redraw() {
     } catch (e) {
         logger.error("Could not redraw", e);
     }
+}
+
+// ---------------------------------------------------------------- everyone at once
+
+/** One stand-in per real list, so the same list read twice is the same list */
+const everyoneCopies = new WeakMap<object, Record<string, any>>();
+
+/**
+ * Every user at once, as the @mention list and searches read them, with the changed ones as
+ * their copies.
+ *
+ * Without this the @mention list showed and matched your real name while you wore a look -
+ * it reads the whole list rather than asking for anyone. The list itself is Discord's, read
+ * through, so it is never out of date and nobody is copied but the people who were changed.
+ */
+function everyoneCopy(all: Record<string, any>) {
+    if (!running || !all || typeof all !== "object") return all;
+
+    let copy = everyoneCopies.get(all);
+    if (!copy) {
+        copy = new Proxy(all, {
+            get(target, key, receiver) {
+                const user = Reflect.get(target, key, receiver);
+                return typeof key === "string" && user && lookFor(key) ? userCopy(user) : user;
+            }
+        });
+        everyoneCopies.set(all, copy);
+    }
+    return copy;
 }
 
 // ---------------------------------------------------------------- Switch Accounts
