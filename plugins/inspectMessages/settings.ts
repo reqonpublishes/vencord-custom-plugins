@@ -9,25 +9,24 @@ import { OptionType } from "@utils/types";
 
 import { EditedPanel } from "./EditedPanel";
 import { forgetSaved } from "./edits";
+import { hoverChoice } from "./ui";
 
 export const settings = definePluginSettings({
+    // When the Inspect button shows above a message. Drawn by the choice below, and only used
+    // without Additional Settings, whose Hover buttons decides for every plugin.
     button: {
         type: OptionType.SELECT,
-        displayName: "Inspect button on hover",
-        description: "When the Inspect button shows in the bar above a message.",
+        description: "When the Inspect button shows above a message",
+        hidden: true,
         options: [
-            { label: "Same as right-click buttons", value: "menus", default: true },
             { label: "Always", value: "always" },
-            { label: "While holding Ctrl", value: "ctrl" },
+            { label: "Holding Ctrl", value: "ctrl", default: true },
             { label: "Never", value: "never" }
         ]
     },
-    /** Set once the old Ctrl default has been moved over to "Same as right-click buttons" */
-    buttonMoved: {
-        type: OptionType.BOOLEAN,
-        description: "Moved off the old Ctrl default",
-        hidden: true,
-        default: false
+    buttonChoice: {
+        type: OptionType.COMPONENT,
+        component: hoverChoice(() => settings, "When the Inspect button shows above a message.")
     },
     messageMenu: {
         type: OptionType.BOOLEAN,

@@ -89,13 +89,10 @@ function interceptor(action: any) {
 }
 
 /**
- * When the hover button shows: its own choice, or by default whatever Additional Settings says
- * for right-click buttons. Right-click entries themselves follow only that, through place().
+ * When the hover button shows: Hover buttons on Additional Settings, or this plugin's own
+ * choice without it. Right-click entries follow Menu buttons there, in place().
  */
-const hoverMode = (): string => {
-    const mode = settings.store.button as string;
-    return mode === "menus" ? (window as any).vcMenuMode ?? "always" : mode;
-};
+const hoverMode = (): string => (window as any).vcHoverMode ?? settings.store.button ?? "ctrl";
 
 // Whether these show at all - always, with Ctrl, never - is Additional Settings' choice, made in place().
 const messageCtx: NavContextMenuPatchCallback = (children, { message }: { message: Message; }) => {
@@ -185,11 +182,9 @@ export default definePlugin({
 
     async start() {
         // "shift" was the held key before Ctrl
-        if (!settings.store.buttonMoved) {
-            // Ctrl was only ever the default (Shift before it), never a choice anybody made
-            if (["ctrl", "shift"].includes(settings.store.button as string)) settings.store.button = "menus" as any;
-            settings.store.buttonMoved = true;
-        }
+        // Older choices that no longer exist: Shift became Ctrl, and "Same as right-click
+        // buttons" is simply what happens now with Additional Settings
+        if (["shift", "menus"].includes(settings.store.button as string)) settings.store.button = "ctrl";
         startCtrlTracking();
         startStyles();
 

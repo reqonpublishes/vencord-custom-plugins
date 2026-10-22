@@ -50,7 +50,7 @@ export function About({ icon: Icon, title, steps, menus, note = "Only you see th
     icon: IconComponent;
     title: string;
     steps: ReactNode[];
-    /** whether the steps mention right-click buttons, which may only show while Ctrl is held */
+    /** whether the steps mention menu buttons, which may only show while Ctrl is held */
     menus?: boolean;
     /** the reassurance under the steps, or false where there is nothing to reassure about */
     note?: string | false;
@@ -71,7 +71,7 @@ export function About({ icon: Icon, title, steps, menus, note = "Only you see th
             </ul>
             {ctrlOnly && (
                 <div className={cl("private")}>
-                    <span>Right-click buttons show while you hold <kbd>Ctrl</kbd>. Change this on Additional Settings.</span>
+                    <span>Menu buttons show while you hold <kbd>Ctrl</kbd>. Change this on Additional Settings.</span>
                 </div>
             )}
             {note && (
@@ -191,6 +191,45 @@ export function menuChips(store: () => any, title: string, detail: string, items
                             </button>
                         );
                     })}
+                </div>
+            </div>
+        );
+    };
+}
+
+const HOVER_CHOICES = [["always", "Always"], ["ctrl", "Holding Ctrl"], ["never", "Never"]] as const;
+
+/**
+ * When a plugin's hover button shows, as its own choice.
+ *
+ * Only drawn without Additional Settings: with it, Hover buttons there decides for every
+ * plugin at once, and a second answer here would only contradict it.
+ */
+export function hoverChoice(store: () => any, detail: string) {
+    return function HoverChoice() {
+        const settings = store();
+        const { button } = settings.use(["button"]);
+        if ((window as any).vcHoverMode !== undefined) return null;
+
+        const current = button ?? "ctrl";
+        return (
+            <div className={cl("menus")}>
+                <div className={cl("menus-title")}>Hover button</div>
+                <div className={cl("menus-detail")}>{detail}</div>
+                <div className={cl("menu-chips")} role="radiogroup" aria-label="Hover button">
+                    {HOVER_CHOICES.map(([value, label]) => (
+                        <button
+                            key={value}
+                            type="button"
+                            role="radio"
+                            aria-checked={current === value}
+                            className={cl("menu-chip", current === value ? "menu-chip-on" : "")}
+                            onClick={() => void (settings.store.button = value)}
+                        >
+                            {current === value && <Tick />}
+                            <span>{label}</span>
+                        </button>
+                    ))}
                 </div>
             </div>
         );

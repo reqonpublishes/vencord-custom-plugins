@@ -9,26 +9,24 @@ import { OptionType } from "@utils/types";
 
 import { HiddenPanel } from "./HiddenPanel";
 import { forgetSaved } from "./store";
-import { menuChips } from "./ui";
+import { hoverChoice, menuChips } from "./ui";
 
 export const settings = definePluginSettings({
+    // When the Hide button shows above a message. Drawn by the choice below, and only used
+    // without Additional Settings, whose Hover buttons decides for every plugin.
     button: {
         type: OptionType.SELECT,
-        displayName: "Hide button on hover",
-        description: "When the Hide button shows in the bar above a message.",
+        description: "When the Hide button shows above a message",
+        hidden: true,
         options: [
-            { label: "Same as right-click buttons", value: "menus", default: true },
             { label: "Always", value: "always" },
-            { label: "While holding Ctrl", value: "ctrl" },
+            { label: "Holding Ctrl", value: "ctrl", default: true },
             { label: "Never", value: "never" }
         ]
     },
-    /** Set once the old Ctrl default has been moved over to "Same as right-click buttons" */
-    buttonMoved: {
-        type: OptionType.BOOLEAN,
-        description: "Moved off the old Ctrl default",
-        hidden: true,
-        default: false
+    buttonChoice: {
+        type: OptionType.COMPONENT,
+        component: hoverChoice(() => settings, "When the Hide button shows above a message.")
     },
     menus: {
         type: OptionType.COMPONENT,

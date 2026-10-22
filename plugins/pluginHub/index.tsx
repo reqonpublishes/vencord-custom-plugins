@@ -87,8 +87,14 @@ export const settings = definePluginSettings({
         default: [] as string[],
         onChange: () => refresh()
     },
-    // When the plugins' right-click buttons show: "always", "ctrl" or "never". Chosen on the page.
+    // When the plugins' right-click entries show: "always", "ctrl" or "never". Chosen on the page.
     menuButtons: {
+        type: OptionType.CUSTOM,
+        default: "ctrl" as "always" | "ctrl" | "never",
+        onChange: () => publishMenuMode()
+    },
+    // When the buttons in the bar above a message show, the same three ways
+    hoverButtons: {
         type: OptionType.CUSTOM,
         default: "ctrl" as "always" | "ctrl" | "never",
         onChange: () => publishMenuMode()
@@ -96,13 +102,15 @@ export const settings = definePluginSettings({
 });
 
 /**
- * Tell the other plugins when to show their right-click buttons.
+ * Tell the other plugins when to show their buttons: in right-click menus, and in the bar above
+ * a message.
  *
  * Left on the window, as the screen share is, so none of them depends on this one: with it
- * gone, the choice is gone and every button shows.
+ * gone, the choice is gone and each plugin's own takes over.
  */
 export function publishMenuMode(on = true) {
     (window as any).vcMenuMode = on ? settings.store.menuButtons ?? "ctrl" : undefined;
+    (window as any).vcHoverMode = on ? settings.store.hoverButtons ?? "ctrl" : undefined;
 }
 
 /** Put this page in Discord's settings sidebar, or take it out */

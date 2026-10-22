@@ -15,7 +15,7 @@ import { Alerts, React, showToast } from "@webpack/common";
 import { settings } from ".";
 import { deleteAllData } from "./data";
 import { applying, Entry, flipAll, installed, isEnabled, isOn, isView, needsRestart, pluginOf, SECTIONS, setOn, summaryOf, usable } from "./hub";
-import { ChevronDownIcon, CloudDownIcon, CloudUpIcon, EyeIcon, EyeOffIcon, GearIcon, MenuIcon, RefreshIcon, ShieldIcon, SyncIcon, TrashIcon } from "./icons";
+import { ChevronDownIcon, CloudDownIcon, CloudUpIcon, CursorIcon, EyeIcon, EyeOffIcon, GearIcon, IconComponent, MenuIcon, RefreshIcon, ShieldIcon, SyncIcon, TrashIcon } from "./icons";
 import { isProtecting, onProtectionChange, raisedForShare } from "./protect";
 import { cl, IconButton } from "./ui";
 
@@ -125,35 +125,33 @@ function SyncRow() {
 }
 
 /** One switch of Screen Share Protection's, as a quieter row under it */
-/** When the plugins' buttons show in right-click menus - one choice for all of them */
-const MENU_CHOICES: { value: "always" | "ctrl" | "never"; label: string; }[] = [
+/** When the plugins' buttons show - one choice for all of them, for menus and for the hover bar */
+const BUTTON_CHOICES: { value: "always" | "ctrl" | "never"; label: string; }[] = [
     { value: "always", label: "Always" },
     { value: "ctrl", label: "Holding Ctrl" },
     { value: "never", label: "Never" },
 ];
 
-function MenuButtons() {
-    const { menuButtons } = settings.use(["menuButtons"]);
-    const current = menuButtons ?? "ctrl";
+function ButtonChoice({ setting, icon: Icon, name, detail }: { setting: "menuButtons" | "hoverButtons"; icon: IconComponent; name: string; detail: string; }) {
+    const values = settings.use([setting]);
+    const current = values[setting] ?? "ctrl";
 
     return (
         <div className={cl("item")}>
-            <div className={cl("tile")}><MenuIcon height={20} width={20} /></div>
+            <div className={cl("tile")}><Icon height={20} width={20} /></div>
             <div className={cl("item-text")}>
-                <div className={cl("item-name")}>Right-click buttons</div>
-                <div className={cl("item-detail")}>
-                    When Hide and Fake entries show in right-click menus.
-                </div>
+                <div className={cl("item-name")}>{name}</div>
+                <div className={cl("item-detail")}>{detail}</div>
             </div>
-            <div className={cl("choice")} role="radiogroup" aria-label="Right-click buttons">
-                {MENU_CHOICES.map(choice => (
+            <div className={cl("choice")} role="radiogroup" aria-label={name}>
+                {BUTTON_CHOICES.map(choice => (
                     <button
                         key={choice.value}
                         type="button"
                         role="radio"
                         aria-checked={current === choice.value}
                         className={cl("choice-option", current === choice.value ? "choice-on" : "")}
-                        onClick={() => void (settings.store.menuButtons = choice.value)}
+                        onClick={() => void (settings.store[setting] = choice.value)}
                     >
                         {choice.label}
                     </button>
@@ -315,7 +313,8 @@ function HubPage() {
                         </IconButton>
                     </div>
 
-                    <MenuButtons />
+                    <ButtonChoice setting="menuButtons" icon={MenuIcon} name="Menu buttons" detail="When Inspect, Hide and Fake show in right-click menus." />
+                    <ButtonChoice setting="hoverButtons" icon={CursorIcon} name="Hover buttons" detail="When Inspect and Hide show in the bar above a message." />
 
                     <div className={cl("item", shareProtection !== false && shareOpen ? "item-open" : "")}>
                         <div className={cl("tile")}><ShieldIcon height={20} width={20} /></div>
