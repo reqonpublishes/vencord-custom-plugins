@@ -14,6 +14,45 @@ const logger = new Logger("PluginHub");
 let stopped: string[] = [];
 let realBuildLayout: any = null;
 
+/** The class prefixes of the plugins kept on for a share, whose things stay on screen */
+const KEPT_PREFIXES = ["vc-chm", "vc-cim", "vc-cfm", "vc-chd", "vc-chf", "vc-chs", "vc-cfc", "vc-cfn", "vc-cip", "vc-cff", "vc-cfmod", "vc-hub"];
+
+/**
+ * What a turned-off plugin leaves behind on screen until Discord next draws that part.
+ *
+ * Turning a plugin off takes its buttons and icons out of Vencord's lists, but Discord only
+ * asks those lists again when it redraws - so the chat bar keeps Translate until you type, and
+ * the member list keeps its platform icons until it scrolls. Plugins that changed Discord's
+ * code as it loaded (member counts, say) keep drawing until a restart, and a restart would
+ * end the share. So what they draw is hidden for the share instead.
+ *
+ * Something a plugin draws itself leads with its `vc-` class; a plugin that only restyles one
+ * of Discord's own (Plain Folder Icon on your folders) adds its class after Discord's, and
+ * those are left alone - hiding them would hide the folder. Vencord's chat bar buttons carry
+ * Discord's classes first, so they are named, and the few drawn with nothing of Vencord's at
+ * all are named by what they say.
+ */
+const ours = KEPT_PREFIXES.map(prefix => `[class^="${prefix}-"], [class*=" ${prefix}-"]`).join(", ");
+const PLAIN_CSS = `
+:is([class^="vc-"], .vc-chatbar-button):not(${ours}):not(:is(${ours}) *),
+button[aria-label="Enable Game Activity"], button[aria-label="Disable Game Activity"] {
+    display: none !important;
+}`;
+
+let style: HTMLStyleElement | null = null;
+
+function hideLeftovers(on: boolean) {
+    if (on && !style) {
+        style = document.createElement("style");
+        style.id = "vc-hub-plain";
+        style.textContent = PLAIN_CSS;
+        document.head.append(style);
+    } else if (!on && style) {
+        style.remove();
+        style = null;
+    }
+}
+
 /** What the plugins kept on depend on, so it stays on too */
 function neededByKept(PM: any, kept: Set<string>) {
     const needed = new Set<string>();
@@ -42,8 +81,11 @@ export function lookPlain() {
         };
     }
 
+    hideLeftovers(true);
+
     const kept = new Set(ENTRIES.filter(isView).map(entry => entry.plugin));
-    kept.add("PluginHub");
+    // and ours that draw nothing: Ctrl+R stays quick, chats keep loading
+    kept.add("PluginHub").add("QuickRestart").add("Smoother");
     const needed = neededByKept(PM, kept);
 
     for (const [name, plugin] of Object.entries<any>(PM.plugins)) {
@@ -62,6 +104,7 @@ export function lookNormal() {
 
     if (realBuildLayout && PM?.plugins?.Settings) PM.plugins.Settings.buildLayout = realBuildLayout;
     realBuildLayout = null;
+    hideLeftovers(false);
 
     const names = stopped;
     stopped = [];
