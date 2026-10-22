@@ -51,7 +51,7 @@ export const ENTRIES: Entry[] = [
     { plugin: "FakeMessages", label: "Fake Messages", icon: ChatAddIcon, section: "fake", about: "Add messages nobody sent" },
     { plugin: "FakeFriends", label: "Fake Friends", icon: PersonAddIcon, section: "fake", about: "Add friends, requests and blocks that are not real" },
     { plugin: "FakeCalls", label: "Fake Calls", icon: PhoneAddIcon, section: "fake", about: "Add calls that never happened" },
-    { plugin: "FakeTime", label: "Fake Time", icon: ClockIcon, section: "fake", about: "Move a conversation to another time" },
+    { plugin: "FakeTime", label: "Fake Time", icon: ClockIcon, section: "fake", about: "Move a conversation, or part of one, to another time" },
     { plugin: "FakeNotifications", label: "Fake Notifications", icon: BellIcon, section: "fake", about: "Set the numbers on your request badges" },
     { plugin: "FakeMod", label: "Fake Mod", icon: ShieldIcon, section: "fake", about: "Add moderator tools that only look real" },
     { plugin: "Bookmarks", label: "Bookmarks", icon: BookmarkIcon, section: "tools", about: "Bookmark profiles and find them again from Friends" },

@@ -14,7 +14,13 @@ import { menuChips } from "./ui";
 export const settings = definePluginSettings({
     menus: {
         type: OptionType.COMPONENT,
-        component: menuChips(() => settings, "Show in menus", "Which menus show Fake Time.", [{ key: "channelMenu", label: "Conversations" }, { key: "userMenu", label: "People" }])
+        component: menuChips(() => settings, "Show in menus", "Which menus show Fake Time.", [{ key: "messageMenu", label: "Messages" }, { key: "channelMenu", label: "Conversations" }, { key: "userMenu", label: "People" }])
+    },
+    messageMenu: {
+        type: OptionType.BOOLEAN,
+        hidden: true,
+        description: "Fake Time From Here and Up To Here on messages",
+        default: true
     },
     channelMenu: {
         type: OptionType.BOOLEAN,
@@ -31,7 +37,7 @@ export const settings = definePluginSettings({
     persist: {
         type: OptionType.BOOLEAN,
         displayName: "Keep after restart",
-        description: "Moved conversations stay moved after a restart.",
+        description: "Moved conversations and parts stay moved after a restart.",
         default: true,
         // switching it off should not leave the old list sitting on disk
         onChange: (value: boolean) => void (value || forgetSaved())

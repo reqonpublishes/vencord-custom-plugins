@@ -10,7 +10,7 @@ import { ChannelStore, Modal, openModal, useState } from "@webpack/common";
 import { DateField } from "./DateField";
 import { LockIcon } from "./icons";
 import { placeOf } from "./places";
-import { describe, latestReal, resetShift, setShift, shiftOf } from "./store";
+import { describe, latestReal, messagesIn, Move, movesOf, msFor, outOfOrder, realTimeOf, setMove, setMoves } from "./store";
 import { cl } from "./ui";
 import { remember } from "./undo";
 
@@ -28,6 +28,8 @@ const OFFSETS = [
     { label: "+1d", ms: DAY }
 ];
 
+export type Part = Pick<Move, "from" | "to">;
+
 function Chip({ onClick, children, wide }: { onClick(): void; children: string; wide?: boolean; }) {
     return (
         <button className={cl("chip", wide ? "chip-wide" : "")} onClick={onClick}>
@@ -36,32 +38,55 @@ function Chip({ onClick, children, wide }: { onClick(): void; children: string; 
     );
 }
 
+/** A message in a few words, for saying which part is which */
+export function snippet(message: any): string {
+    const text = String(message?.content ?? "").replace(/\s+/g, " ").trim();
+    if (text) return text.length > 32 ? text.slice(0, 31) + "…" : text;
+    if (message?.call) return "a call";
+    if (message?.attachments?.length) return "an attachment";
+    return "a message";
+}
+
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
 /**
- * Move a conversation in time.
+ * Move a conversation, or part of one, in time.
  *
- * Asked as "when was the latest message" rather than "how far": that is the one moment you
- * can picture, and every other message moves with it, the gaps between them kept.
+ * Asked as "when was it sent" rather than "how far": that is the one moment you can picture -
+ * the latest message for a whole conversation, the first one for a part - and every other
+ * message moves with it, the gaps between them kept.
  */
-function TimeModal({ rootProps, channelId }: { rootProps: RenderModalProps; channelId: string; }) {
+function TimeModal({ rootProps, channelId, part }: { rootProps: RenderModalProps; channelId: string; part: Part; }) {
     const channel: any = ChannelStore.getChannel(channelId);
-    const real = latestReal(channelId, channel?.lastMessageId);
-    const [shift, setDraft] = useState(() => shiftOf(channelId));
+    const whole = !part.from && !part.to;
+    const own = movesOf(channelId).find(move => (move.from ?? "") === (part.from ?? "") && (move.to ?? "") === (part.to ?? ""));
+
+    const inside = whole ? [] : messagesIn(channelId, part);
+    const anchorId = whole ? undefined : (part.from ?? inside[0]?.id);
+    const real = whole ? latestReal(channelId, channel?.lastMessageId) : realTimeOf(channelId, anchorId!);
+    // where it reads now: its own move, or the one it is under - a part of a moved chat starts there
+    const [shift, setDraft] = useState(() => own?.ms ?? (whole ? 0 : msFor(channelId, anchorId)));
     const place = placeOf(channelId);
+    const clash = whole ? null : outOfOrder(channelId, part, shift);
+
+    const change = (label: string, run: () => void) => {
+        const before = movesOf(channelId);
+        run();
+        remember(label, () => setMoves(channelId, before));
+        rootProps.onClose();
+    };
 
     const apply = () => {
-        const before = shiftOf(channelId);
-        setShift(channelId, shift);
-        remember("Fake Time", () => setShift(channelId, before));
-        rootProps.onClose();
+        if (!own && shift === (whole ? 0 : msFor(channelId, anchorId))) return rootProps.onClose();
+        const first = inside[0], last = inside[inside.length - 1];
+        change("Fake Time", () => setMove(channelId, whole ? {} : { ...part, first: snippet(first), last: snippet(last) }, shift));
     };
 
     const actions: ModalAction[] = [
         { text: "Apply", variant: "primary", onClick: apply },
         { text: "Cancel", variant: "secondary", onClick: rootProps.onClose }
     ];
-    if (shiftOf(channelId)) {
-        actions.push({ text: "Reset", variant: "critical-primary", onClick: () => { const before = shiftOf(channelId); resetShift(channelId); remember("Reset Fake Time", () => setShift(channelId, before)); rootProps.onClose(); } });
-    }
+    if (own) actions.push({ text: "Reset", variant: "critical-primary", onClick: () => change("Reset Fake Time", () => setMove(channelId, part, 0)) });
 
     return (
         <Modal {...rootProps} size="md" title="Fake Time" actions={actions}>
@@ -76,8 +101,22 @@ function TimeModal({ rootProps, channelId }: { rootProps: RenderModalProps; chan
                 </div>
             </section>
 
+            {!whole && (
+                <section className={cl("section")}>
+                    <h3 className={cl("label")}>Messages</h3>
+                    <div className={cl("part")}>
+                        <span className={cl("part-count")}>{plural(inside.length, "message")}</span>
+                        <span className={cl("part-text")}>
+                            {inside.length > 1
+                                ? <>From “{snippet(inside[0])}” to “{snippet(inside[inside.length - 1])}”</>
+                                : <>“{snippet(inside[0])}”</>}
+                        </span>
+                    </div>
+                </section>
+            )}
+
             <section className={cl("section", "section-last")}>
-                <h3 className={cl("label")}>Latest message</h3>
+                <h3 className={cl("label")}>{whole ? "Latest message" : "First message"}</h3>
                 <DateField value={real + shift} withTime maxToday={false} onChange={next => setDraft(next - real)} />
                 <div className={cl("shifts")}>
                     {OFFSETS.map(({ label, ms }) => (
@@ -85,8 +124,14 @@ function TimeModal({ rootProps, channelId }: { rootProps: RenderModalProps; chan
                     ))}
                     <Chip wide onClick={() => setDraft(0)}>Real</Chip>
                 </div>
-                <div className={cl("hint")}>
-                    {shift ? `Every message moves ${describe(shift).toLowerCase()}, the gaps between them kept.` : "Every message shows when it was really sent."}
+                <div className={cl("hint", clash ? "hint-warn" : "")}>
+                    {clash === "after"
+                        ? "Now later than the message after it, so the times read out of order."
+                        : clash === "before"
+                            ? "Now earlier than the message before it, so the times read out of order."
+                            : !shift
+                                ? (whole ? "Every message shows when it was really sent." : "These messages show when they were really sent.")
+                                : `${whole ? "Every message moves" : "These messages move"} ${describe(shift).toLowerCase()}, the gaps between them kept.`}
                 </div>
 
                 <div className={cl("footnote")}>
@@ -98,5 +143,5 @@ function TimeModal({ rootProps, channelId }: { rootProps: RenderModalProps; chan
     );
 }
 
-export const openFakeTime = (channelId: string) =>
-    openModal(rootProps => <TimeModal rootProps={rootProps} channelId={channelId} />);
+export const openFakeTime = (channelId: string, part: Part = {}) =>
+    openModal(rootProps => <TimeModal rootProps={rootProps} channelId={channelId} part={part} />);

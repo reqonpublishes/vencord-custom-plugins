@@ -30,3 +30,34 @@
     font-size: 12px;
     line-height: 16px;
 }
+
+/* ---------------------------------------------------------------- the part of it being moved */
+
+.vc-cft-part {
+    display: flex;
+    gap: 8px;
+    align-items: baseline;
+    padding: 8px 10px;
+    border-radius: var(--radius-sm, 8px);
+    background: var(--background-mod-subtle, rgb(128 128 128 / 8%));
+    font-size: 14px;
+    line-height: 18px;
+}
+
+.vc-cft-part-count {
+    flex: 0 0 auto;
+    color: var(--text-default, var(--text-normal));
+    font-weight: 500;
+}
+
+.vc-cft-part-text {
+    overflow: hidden;
+    color: var(--text-muted);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* the part would read out of order with the messages around it */
+.vc-cft-hint-warn {
+    color: var(--text-feedback-warning, var(--status-warning, #f0b232));
+}

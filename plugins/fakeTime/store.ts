@@ -5,13 +5,16 @@
  */
 
 /**
- * Conversations moved to another time.
+ * Conversations, and parts of them, moved to another time.
  *
- * Each is a shift: every message in the chat reads that much earlier or later, so the gaps
- * between them, the order and the day breaks all stay true to each other. Nothing is changed
- * where it is kept - the shift is laid on each message as Discord loads it, which is also what
- * makes it cover the messages Fake Messages and Fake Calls put there, and a chat opened for
- * the first time tomorrow.
+ * Each is a move: the messages it covers read that much earlier or later, so the gaps between
+ * them, their order and the day breaks all stay true to each other. A move covers a whole
+ * conversation, or the messages from one to another - by id, which is when a message was sent,
+ * so a fake message or call placed in between is covered too. A message takes the newest move
+ * that covers it, which lets a part be moved inside a conversation that is moved as a whole.
+ *
+ * Nothing is changed where it is kept - the move is laid on each message as Discord loads it,
+ * which is also what makes it cover a chat opened for the first time tomorrow.
  */
 
 import { del, get, set } from "@api/DataStore";
@@ -23,31 +26,81 @@ import { settings } from "./settings";
 
 const logger = new Logger("FakeTime");
 
-const KEY = "FakeTime_Shifts";
+const KEY = "FakeTime_Moves";
+/** where the moves were kept when a conversation could only move as a whole */
+const OLD_KEY = "FakeTime_Shifts";
 
-/** channelId -> how far its messages are moved, in milliseconds (negative is earlier) */
-let shifts = new Map<string, number>();
+export interface Move {
+    /** first message covered, by id; none means from the very start */
+    from?: string;
+    /** last message covered, by id; none means up to the newest */
+    to?: string;
+    /** how far, in milliseconds (negative is earlier) */
+    ms: number;
+    /** the first and last message as you picked them, so a list can say which part this is */
+    first?: string;
+    last?: string;
+}
+
+/** channelId -> its moves, oldest first */
+let moves = new Map<string, Move[]>();
 let running = false;
 
 const listeners = new Set<() => void>();
 export const onChange = (listener: () => void) => (listeners.add(listener), () => void listeners.delete(listener));
 
-export const shiftOf = (channelId?: string | null) => (channelId && shifts.get(channelId)) || 0;
-export const shifted = () => [...shifts.entries()];
+export const isWhole = (move: Move) => !move.from && !move.to;
+export const movesOf = (channelId?: string | null): Move[] => (channelId && moves.get(channelId)) || [];
+
+/** How far the whole conversation is moved */
+export const shiftOf = (channelId?: string | null) => movesOf(channelId).find(isWhole)?.ms ?? 0;
+
+/** Every move, the newest of each conversation last */
+export const allMoves = () => [...moves.entries()].flatMap(([channelId, list]) => list.map(move => ({ channelId, move })));
+export const movedChats = () => [...moves.keys()];
 
 function changed() {
     for (const listener of listeners) listener();
-    if (settings.store.persist) set(KEY, [...shifts]);
+    if (settings.store.persist) set(KEY, [...moves]);
 }
 
 export async function load() {
     if (!settings.store.persist) return;
-    const stored = await get<[string, number][]>(KEY);
-    if (Array.isArray(stored)) shifts = new Map(stored.filter(([, ms]) => typeof ms === "number" && ms));
+
+    const stored = await get<[string, Move[]][]>(KEY);
+    if (Array.isArray(stored)) {
+        moves = new Map(stored.filter(([, list]) => Array.isArray(list) && list.length));
+        return;
+    }
+
+    // from before parts could move: one whole-conversation shift per chat
+    const old = await get<[string, number][]>(OLD_KEY);
+    if (Array.isArray(old)) {
+        moves = new Map(old.filter(([, ms]) => typeof ms === "number" && ms).map(([channelId, ms]) => [channelId, [{ ms }]]));
+        set(KEY, [...moves]);
+        del(OLD_KEY);
+    }
 }
 
 export function forgetSaved() {
     del(KEY);
+}
+
+// ---------------------------------------------------------------- which move a message takes
+
+/** Ids are numbers too long for a plain number: shorter is older, then the digits decide */
+const older = (a: string, b: string) => a.length !== b.length ? a.length < b.length : a < b;
+export const covers = (move: Move, id: string) => (!move.from || !older(id, move.from)) && (!move.to || !older(move.to, id));
+
+/** How far one message is moved: by the newest move that covers it */
+export function msFor(channelId: string | undefined, messageId: string | undefined): number {
+    const list = movesOf(channelId);
+    if (!list.length || !messageId) return 0;
+
+    for (let i = list.length - 1; i >= 0; i--) {
+        if (covers(list[i], messageId)) return list[i].ms;
+    }
+    return 0;
 }
 
 // ---------------------------------------------------------------- moving messages as they load
@@ -68,21 +121,21 @@ function moved(raw: any, ms: number) {
 }
 
 const forChannel = (raw: any, channelId?: string) => {
-    const ms = shiftOf(channelId ?? raw?.channel_id);
+    const ms = msFor(channelId ?? raw?.channel_id, raw?.id);
     return ms ? moved(raw, ms) : raw;
 };
 
 /**
- * Lay the shifts on whatever Discord is about to store: a page of a chat, a new or edited
+ * Lay the moves on whatever Discord is about to store: a page of a chat, a new or edited
  * message, and search results. Answers false always: nothing is ever held back.
  */
 function interceptor(action: any): boolean {
-    if (!running || !shifts.size || !action) return false;
+    if (!running || !moves.size || !action) return false;
 
     try {
         switch (action.type) {
             case "LOAD_MESSAGES_SUCCESS":
-                if (shiftOf(action.channelId) && Array.isArray(action.messages)) {
+                if (movesOf(action.channelId).length && Array.isArray(action.messages)) {
                     action.messages = action.messages.map((raw: any) => forChannel(raw, action.channelId));
                 }
                 keepLast();
@@ -134,12 +187,12 @@ export function start() {
     // after every other plugin has started and added its own
     setTimeout(keepLast, 0);
 
-    for (const channelId of shifts.keys()) reloadIfOpen(channelId);
+    for (const channelId of moves.keys()) reloadIfOpen(channelId);
 }
 
 export function stop() {
     running = false;
-    for (const channelId of shifts.keys()) reloadIfOpen(channelId);
+    for (const channelId of moves.keys()) reloadIfOpen(channelId);
 }
 
 /** A chat that is loaded is loaded again, so what is on screen takes the change */
@@ -149,45 +202,99 @@ function reloadIfOpen(channelId: string) {
 
 // ---------------------------------------------------------------- changing them
 
-export function setShift(channelId: string, ms: number) {
-    const rounded = Math.round(ms / 1000) * 1000;
-    if ((shifts.get(channelId) ?? 0) === rounded) return;
+const same = (a: Move, b: Pick<Move, "from" | "to">) => (a.from ?? "") === (b.from ?? "") && (a.to ?? "") === (b.to ?? "");
 
-    if (rounded) shifts.set(channelId, rounded);
-    else shifts.delete(channelId);
+/** A conversation's moves, all at once - for undo, which puts back exactly what was there */
+export function setMoves(channelId: string, list: Move[]) {
+    if (list.length) moves.set(channelId, list.map(move => ({ ...move })));
+    else moves.delete(channelId);
 
     changed();
     if (running) reloadIfOpen(channelId);
 }
 
-export const resetShift = (channelId: string) => setShift(channelId, 0);
+/** Move the messages from one to another (or the whole conversation, with neither); 0 takes it off */
+export function setMove(channelId: string, part: Omit<Move, "ms">, ms: number) {
+    const rounded = Math.round(ms / 1000) * 1000;
+    const rest = movesOf(channelId).filter(move => !same(move, part));
+    // a changed part becomes the newest, so it wins over whatever it overlaps
+    setMoves(channelId, rounded ? [...rest, { ...part, ms: rounded }] : rest);
+}
+
+export const setShift = (channelId: string, ms: number) => setMove(channelId, {}, ms);
+export const removeMove = (channelId: string, move: Move) => setMove(channelId, move, 0);
 
 export function resetAll() {
-    const ids = [...shifts.keys()];
-    shifts.clear();
+    const ids = [...moves.keys()];
+    moves.clear();
     changed();
     if (running) ids.forEach(reloadIfOpen);
+}
+
+// ---------------------------------------------------------------- reading real times
+
+const fromId = (id: string) => Number(BigInt(id) >> 22n) + 1420070400000;
+const loaded = (channelId: string): any[] => (MessageStore.getMessages(channelId) as any)?._array ?? [];
+
+/** When one message was really sent: what is shown, less the move on it - or its id's own time */
+export function realTimeOf(channelId: string, messageId: string): number {
+    const shown = loaded(channelId).find(message => message.id === messageId);
+    if (shown?.timestamp) return new Date(shown.timestamp).getTime() - msFor(channelId, messageId);
+
+    try {
+        return fromId(messageId);
+    } catch {
+        return Date.now();
+    }
 }
 
 /**
  * When the newest message in a chat was really sent, for the window to start from.
  *
- * Read off what is loaded, less any shift already on it - or, for a chat not loaded yet, off
- * the id Discord keeps of its last message, which carries its own time.
+ * Read off what is loaded - or, for a chat not loaded yet, off the id Discord keeps of its last
+ * message, which carries its own time.
  */
 export function latestReal(channelId: string, lastMessageId?: string | null): number {
-    const loaded: any[] = (MessageStore.getMessages(channelId) as any)?._array ?? [];
-    const newest = loaded[loaded.length - 1];
-    if (newest?.timestamp) return new Date(newest.timestamp).getTime() - shiftOf(channelId);
+    const newest = loaded(channelId).at(-1);
+    if (newest?.id) return realTimeOf(channelId, newest.id);
 
     try {
-        if (lastMessageId) return Number(BigInt(lastMessageId) >> 22n) + 1420070400000;
+        if (lastMessageId) return fromId(lastMessageId);
     } catch { /* fall through */ }
 
     return Date.now();
 }
 
-/** A shift said in words: "2 hours 5 minutes earlier" */
+/** The loaded messages a part covers, oldest first */
+export const messagesIn = (channelId: string, part: Pick<Move, "from" | "to">) =>
+    loaded(channelId).filter(message => covers({ ...part, ms: 0 }, message.id));
+
+/**
+ * Whether a part, moved this far, would read out of order with the messages around it - later
+ * than the one after it, or earlier than the one before. Discord keeps them in the order they
+ * were sent whatever their times say, so the times would contradict the order on screen.
+ */
+export function outOfOrder(channelId: string, part: Pick<Move, "from" | "to">, ms: number): "before" | "after" | null {
+    const list = loaded(channelId);
+    const inside = list.filter(message => covers({ ...part, ms: 0 }, message.id));
+    if (!inside.length) return null;
+
+    const first = list.indexOf(inside[0]);
+    const last = list.indexOf(inside[inside.length - 1]);
+    const timeOf = (message: any) => new Date(message.timestamp).getTime();
+    const ownMove = (message: any) => msFor(channelId, message.id);
+
+    const before = list[first - 1];
+    const after = list[last + 1];
+    const firstAt = timeOf(inside[0]) - ownMove(inside[0]) + ms;
+    const lastAt = timeOf(inside[inside.length - 1]) - ownMove(inside[inside.length - 1]) + ms;
+
+    if (before && firstAt < timeOf(before)) return "before";
+    if (after && lastAt > timeOf(after)) return "after";
+    return null;
+}
+
+/** A move said in words: "2 hours 5 minutes earlier" */
 export function describe(ms: number): string {
     if (!ms) return "As it really is";
 
