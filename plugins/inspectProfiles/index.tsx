@@ -10,8 +10,8 @@ import { NavContextMenuPatchCallback } from "@api/ContextMenu";
 import { definePluginSettings, Settings } from "@api/Settings";
 import definePlugin, { OptionType } from "@utils/types";
 import { User } from "@vencord/discord-types";
-import { findByPropsLazy } from "@webpack";
-import { FluxDispatcher, Menu, SelectedChannelStore, showToast, UserStore } from "@webpack/common";
+import { findByPropsLazy, findStoreLazy } from "@webpack";
+import { FluxDispatcher, Menu, showToast, UserStore } from "@webpack/common";
 
 import { InspectIcon, MasksIcon, UndoIcon } from "./icons";
 import { forgetUnused, preload, whenReady } from "./images";
@@ -27,9 +27,11 @@ import { About, menuChips } from "./ui";
 /** Discord's own voice actions; disconnect is what the hang-up button runs */
 const VoiceActions = findByPropsLazy("selectVoiceChannel", "disconnect");
 
-/** A real account switch drops your call and anything you share in it, so a preset switch does too */
+const ApplicationStreamingStore: any = findStoreLazy("ApplicationStreamingStore");
+
+/** Switching while you share your screen leaves the call, as a real account switch would */
 function hangUp() {
-    if (SelectedChannelStore.getVoiceChannelId()) VoiceActions.disconnect();
+    if (ApplicationStreamingStore.getCurrentUserActiveStream?.()) VoiceActions.disconnect();
 }
 
 const settings = definePluginSettings({
