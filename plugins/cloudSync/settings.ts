@@ -33,10 +33,10 @@ export const PARTS: { key: string; plugin: string; label: string; }[] = [
     { key: "hideDMs", plugin: "HideDMs", label: "Hide DMs" },
     { key: "hideFriends", plugin: "HideFriends", label: "Hide Friends" },
     { key: "hideServers", plugin: "HideServers", label: "Hide Servers" },
+    { key: "inspectMessages", plugin: "InspectMessages", label: "Inspect Messages" },
     { key: "fakeMessages", plugin: "FakeMessages", label: "Fake Messages" },
     { key: "fakeCalls", plugin: "FakeCalls", label: "Fake Calls" },
     { key: "fakeNotifications", plugin: "FakeNotifications", label: "Fake Notifications" },
-    { key: "inspectMessages", plugin: "InspectMessages", label: "Inspect Messages" },
 ];
 
 export interface Last {
@@ -49,11 +49,12 @@ export const settings = definePluginSettings({
         type: OptionType.COMPONENT,
         component: SyncPanel
     },
-    // Edited from the panel above rather than as a row of its own, so the link sits beside
-    // the buttons that use it.
+    // The sync code. Still called link because that is what older versions saved it as.
+    // Edited from the panel above rather than as a row of its own, so it sits beside the
+    // buttons that use it.
     link: {
         type: OptionType.STRING,
-        description: "Your sync link",
+        description: "Your sync code",
         default: "",
         hidden: true
     },

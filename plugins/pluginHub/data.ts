@@ -9,14 +9,14 @@ import { Settings } from "@api/Settings";
 
 import { ENTRIES } from "./hub";
 
-/** Cloud Sync's link is the way back to your phone's copy, so it is the one thing kept */
+/** Cloud Sync's code is the way back to your phone's copy, so it is the one thing kept */
 const KEEP_SETTINGS = new Set(["CloudSync"]);
 
 /**
  * Everything these plugins have saved on this computer, gone: hidden lists, fakes, edits,
  * looks and their pictures, bookmarks, and every setting back to how it comes.
  *
- * Whether each plugin is enabled in Vencord is left alone, and so is Cloud Sync's link - the
+ * Whether each plugin is enabled in Vencord is left alone, and so is Cloud Sync's code - the
  * copy in the cloud is not touched, and nothing is sent anywhere. Discord reloads after, so
  * nothing still held in memory is saved back.
  */

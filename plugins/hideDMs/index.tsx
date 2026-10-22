@@ -160,6 +160,7 @@ export default definePlugin({
     description: "Hide conversations from your DM list. Nothing is closed, the other person is not told, and every message is still there when you unhide it.",
     tags: ["Chat", "Appearance", "Privacy"],
     authors: [{ name: "reqon", id: 497562304498368513n }],
+    enabledByDefault: true,
 
     settings,
 

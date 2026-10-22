@@ -96,6 +96,7 @@ export default definePlugin({
     description: "Hide servers from your server list. You stay in every one of them and nobody is told.",
     tags: ["Servers", "Appearance", "Privacy"],
     authors: [{ name: "reqon", id: 497562304498368513n }],
+    enabledByDefault: true,
 
     settings,
 

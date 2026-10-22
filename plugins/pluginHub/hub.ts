@@ -15,7 +15,7 @@ PhoneAddIcon, ServerIcon, ShieldIcon, SpeedIcon
 
 const logger = new Logger("PluginHub");
 
-export type Section = "hide" | "fake" | "tools";
+export type Section = "hide" | "inspect" | "fake" | "tools";
 
 export interface Entry {
     /** the plugin's name, as Vencord knows it */
@@ -30,6 +30,7 @@ export interface Entry {
 
 export const SECTIONS: { id: Section; title: string; }[] = [
     { id: "hide", title: "Hide" },
+    { id: "inspect", title: "Inspect" },
     { id: "fake", title: "Fake" },
     { id: "tools", title: "Tools" }
 ];
@@ -46,12 +47,12 @@ export const ENTRIES: Entry[] = [
     { plugin: "HideDMs", label: "Hide DMs", icon: ChatIcon, section: "hide", about: "Hide conversations from your DM list" },
     { plugin: "HideFriends", label: "Hide Friends", icon: PersonOffIcon, section: "hide", about: "Hide friends, or fake a relationship" },
     { plugin: "HideServers", label: "Hide Servers", icon: ServerIcon, section: "hide", about: "Hide servers from your server list" },
+    { plugin: "InspectMessages", label: "Inspect Messages", icon: InspectIcon, section: "inspect", about: "Change what a message says and when it was sent" },
+    { plugin: "InspectProfiles", label: "Inspect Profiles", icon: MasksIcon, section: "inspect", about: "Change how any profile looks, and steal whole profiles" },
     { plugin: "FakeMessages", label: "Fake Messages", icon: ChatAddIcon, section: "fake", about: "Add messages nobody sent" },
     { plugin: "FakeCalls", label: "Fake Calls", icon: PhoneAddIcon, section: "fake", about: "Add calls that never happened" },
     { plugin: "FakeNotifications", label: "Fake Notifications", icon: BellIcon, section: "fake", about: "Set the numbers on your badges" },
     { plugin: "FakeMod", label: "Fake Mod", icon: ShieldIcon, section: "fake", about: "Menus that look like moderator tools" },
-    { plugin: "InspectMessages", label: "Inspect Messages", icon: InspectIcon, section: "fake", about: "Change what a message says and when it was sent" },
-    { plugin: "InspectProfiles", label: "Inspect Profiles", icon: MasksIcon, section: "fake", about: "Change how any profile looks, and steal whole profiles" },
     { plugin: "Bookmarks", label: "Bookmarks", icon: BookmarkIcon, section: "tools", about: "Keep people within reach after closing their DM" },
     { plugin: "CloudSync", label: "Cloud Sync", icon: CloudIcon, section: "tools", about: "Sync all of this with your phone" },
     { plugin: "QuickRestart", label: "Quick Restart", icon: BoltIcon, section: "tools", about: "Ctrl+R restarts about five times faster" },

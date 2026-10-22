@@ -6,7 +6,7 @@
 
 import ErrorBoundary from "@components/ErrorBoundary";
 import { openUserProfile } from "@utils/discord";
-import { React, Tooltip, useEffect, useState } from "@webpack/common";
+import { Avatar, PresenceStore, React, Tooltip, useEffect, useState, useStateFromStores } from "@webpack/common";
 
 import { BookmarkIcon, ChatIcon, CloseIcon, PersonIcon } from "./icons";
 import { all, describe, onChange, openDM, remove } from "./store";
@@ -31,6 +31,18 @@ function RowButton({ label, onClick, danger, children }: { label: string; onClic
             )}
         </Tooltip>
     );
+}
+
+/** Their picture with the same status dot as the Friends tab beside this one, kept live */
+function Face({ id, image, name }: { id: string; image: string; name: string; }) {
+    const [status, mobile] = useStateFromStores([PresenceStore], () => [
+        PresenceStore.getStatus(id) ?? "offline",
+        !!(PresenceStore as any).isMobileOnline?.(id)
+    ]);
+
+    if (!image) return <div className={cl("face", "face-blank")}>{name.slice(0, 1).toUpperCase()}</div>;
+
+    return <Avatar className={cl("face")} src={image} size="SIZE_32" status={status} isMobile={mobile} />;
 }
 
 /**
@@ -85,9 +97,7 @@ function BookmarksPage() {
                             if (event.key === "Enter") openDM(bookmark.id);
                         }}
                     >
-                        {image
-                            ? <img className={cl("face")} src={image} alt="" />
-                            : <div className={cl("face", "face-blank")}>{name.slice(0, 1).toUpperCase()}</div>}
+                        <Face id={bookmark.id} image={image} name={name} />
                         <div className={cl("who")}>
                             <div className={cl("name")}>{name}</div>
                             <div className={cl("username")}>{username}</div>

@@ -111,7 +111,7 @@ function SyncRow() {
                 <div className={cl("item-detail")}>
                     {link
                         ? "To Cloud uploads what this computer has. From Cloud replaces it."
-                        : "Make a sync link in Cloud Sync's settings first"}
+                        : "Make a sync code in Cloud Sync's settings first"}
                 </div>
             </div>
             <div className={cl("actions")}>
@@ -171,7 +171,7 @@ function DeleteData() {
             <div className={cl("item-text")}>
                 <div className={cl("item-name")}>Delete all data</div>
                 <div className={cl("item-detail")}>
-                    Everything these plugins saved on this computer, and their settings. Cloud Sync's link is kept.
+                    Everything these plugins saved on this computer, and their settings. Cloud Sync's code is kept.
                 </div>
             </div>
             <IconButton

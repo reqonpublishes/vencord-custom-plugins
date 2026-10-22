@@ -10,18 +10,19 @@ Sync what you have hidden, changed and faked between your phone and this compute
 
 **1.** Open **Settings → Vencord → Plugins → CloudSync**.
 
-**2.** Click **Make a Link**. You get an address nobody else will guess.
+**2.** Click **Make a Code**. You get a long code nobody else will guess. You can also type
+your own, as long as it is at least 16 letters and numbers.
 
-**3.** Put that same link on your phone, in **Settings → Veil → Sync**.
+**3.** Put that same code on your phone, in **Settings → Veil → Sync**.
 
-That is the whole setup. The link is what joins the two - there is no account and no
-password, so treat the link like one.
+That is the whole setup. The code is what joins the two - there is no account and no
+password, so treat the code like one.
 
 ## Using it
 
-**Sync to Cloud** — takes what this computer has and puts it on the link.
+**Sync to Cloud** — takes what this computer has and puts it in the cloud under your code.
 
-**Sync from Cloud** — takes what is on the link and makes this computer match it.
+**Sync from Cloud** — takes what is under your code and makes this computer match it.
 
 > [!TIP]
 > Hide something on your phone, press Sync to Cloud there, then Sync from Cloud here. The plugins
@@ -50,9 +51,12 @@ never costs you something the phone was keeping.
 
 It is as client-side as the rest of these plugins. Nothing is sent to Discord, no Discord
 API is called, and nothing here is visible to anyone else on Discord. The only thing that
-leaves your computer is the data you asked to share, to the link you chose.
+leaves your computer is the data you asked to share, stored under your code.
 
 > [!IMPORTANT]
-> Anyone holding your link can read and write what is on it. It is generated rather than
-> chosen for exactly that reason. If you ever paste it somewhere public, press
-> **New Link** and put the new one on both devices.
+> Anyone holding your code can read and write what is under it, so a made one is safer than
+> one you type - nobody can guess it. If you ever paste it somewhere public, press
+> **New Code** and put the new one on both devices.
+>
+> An older link (`https://.../sync/...`) still works: paste it in and only the code at its
+> end is kept.

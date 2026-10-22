@@ -12,6 +12,7 @@ import definePlugin from "@utils/types";
 
 import { CloudIcon } from "./icons";
 import { settings } from "./settings";
+import { codeOf } from "./shelf";
 import { bringDown, sendUp } from "./sync";
 import { About } from "./ui";
 
@@ -19,7 +20,7 @@ migratePluginSettings("CloudSync", "CustomPluginSync");
 
 export default definePlugin({
     name: "CloudSync",
-    description: "Sync these plugins between this computer and your phone through one private link. Nothing syncs until you press a button.",
+    description: "Sync these plugins between this computer and your phone with one private code. Nothing syncs until you press a button.",
     tags: ["Utility"],
     authors: [{ name: "reqon", id: 497562304498368513n }],
 
@@ -29,9 +30,9 @@ export default definePlugin({
         <About
             icon={CloudIcon}
             title="Sync between your phone and this computer"
-            note="Your data only goes to your own sync link. Nothing is sent to Discord."
+            note="Your data only goes to the shelf your code opens. Nothing is sent to Discord."
             steps={[
-                <>Make a link here, then paste the same link into <strong>Sync</strong> on your phone (or the other way round).</>,
+                <>Make a code here, or type your own, then put the same code into <strong>Sync</strong> on your phone (or the other way round).</>,
                 <><strong>Sync to Cloud</strong> uploads what this computer has. <strong>Sync from Cloud</strong> replaces it with what is in the cloud.</>,
                 <>Nothing syncs by itself. It only happens when you press a button.</>
             ]}
@@ -41,5 +42,11 @@ export default definePlugin({
     // The two things the buttons do, by name - so a keybind, a script or another plugin can
     // send or fetch without the settings page being open.
     sendUp,
-    bringDown
+    bringDown,
+
+    start() {
+        // Older versions saved the whole link; only the code at its end is kept now.
+        const held = settings.store.link ?? "";
+        if (held && codeOf(held) !== held) settings.store.link = codeOf(held);
+    }
 });

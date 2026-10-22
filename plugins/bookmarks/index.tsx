@@ -7,7 +7,7 @@
 import "./shared.css";
 import "./styles.css";
 
-import { NavContextMenuPatchCallback } from "@api/ContextMenu";
+import { findGroupChildrenByChildId, NavContextMenuPatchCallback } from "@api/ContextMenu";
 import { definePluginSettings, Settings } from "@api/Settings";
 import definePlugin, { OptionType } from "@utils/types";
 import { Channel, User } from "@vencord/discord-types";
@@ -92,23 +92,50 @@ const menu: NavContextMenuPatchCallback = (children, { user, channel }: { user?:
     const saved = isBookmarked(person.id);
     const Icon = saved ? BookmarkIcon : BookmarkAddIcon;
 
-    children.push(
-        <Menu.MenuGroup key="vc-bm-group">
-            <Menu.MenuItem
-                id="vc-bm-toggle"
-                label={saved ? "Remove Bookmark" : "Bookmark"}
-                icon={Icon}
-                leadingAccessory={{ type: "icon", icon: Icon }}
-                action={() => {
-                    if (saved) remove(person.id);
-                    else add(person);
+    const item = (
+        <Menu.MenuItem
+            id="vc-bm-toggle"
+            label={saved ? "Remove Bookmark" : "Bookmark"}
+            icon={Icon}
+            leadingAccessory={{ type: "icon", icon: Icon }}
+            action={() => {
+                if (saved) remove(person.id);
+                else add(person);
 
-                    showToast({ text: saved ? "Bookmark removed" : "Bookmarked. Find them under Friends, in Bookmarked", variant: "success" });
-                }}
-            />
-        </Menu.MenuGroup>
+                showToast({ text: saved ? "Bookmark removed" : "Bookmarked. Find them under Friends, in Bookmarked", variant: "success" });
+            }}
+        />
     );
+
+    // Beside Discord's own ways of keeping somebody close: under Add to Favorites on a DM,
+    // under Message on a person. Only where neither is there does it get a group of its own.
+    for (const id of NEIGHBOURS) {
+        const group = findGroupChildrenByChildId(id, children);
+        const at = group?.findIndex(child => child?.props?.id === id) ?? -1;
+        if (group && at !== -1) return void group.splice(at + 1, 0, item);
+    }
+
+    // Still above the other plugins' groups and Discord's closing one (Copy ID, View Avatar)
+    const group = <Menu.MenuGroup key="vc-bm-group">{item}</Menu.MenuGroup>;
+    const at = children.findIndex(child => /^vc-(local-plugins|cfmod)/.test(String(child?.key ?? "")) || holds(child, isTail));
+    if (at === -1) children.push(group);
+    else children.splice(at, 0, group);
 };
+
+/** The entries Bookmark goes straight under, the first one found */
+const NEIGHBOURS = ["favorite-channel", "message-user"];
+
+const TAIL = ["view-avatar", "vc-copy-user-url"];
+const isTail = (id: string) => id.startsWith("devmode-copy-id") || TAIL.includes(id);
+
+function holds(node: any, test: (id: string) => boolean): boolean {
+    if (!node) return false;
+    if (Array.isArray(node)) return node.some(kid => holds(kid, test));
+    if (typeof node.props?.id === "string" && test(node.props.id)) return true;
+
+    const kids = node.props?.children;
+    return typeof kids === "object" && holds(kids, test);
+}
 
 export default definePlugin({
     name: "Bookmarks",

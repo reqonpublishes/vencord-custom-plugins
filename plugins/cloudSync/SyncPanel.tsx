@@ -10,7 +10,7 @@ import { React, showToast } from "@webpack/common";
 
 import { CheckIcon, CloudDownIcon, CloudUpIcon, CopyIcon, EyeIcon, EyeOffIcon, IconComponent, LinkIcon, RefreshIcon } from "./icons";
 import { Last, PARTS, settings } from "./settings";
-import { looksLikeLink, makeLink } from "./shelf";
+import { codeOf, isCode, makeCode } from "./shelf";
 import { bringDown, sendUp } from "./sync";
 import { cl, IconButton, Panel } from "./ui";
 
@@ -57,7 +57,7 @@ function Way({ icon: Icon, name, detail, disabled, onClick }: {
 }
 
 /**
- * The link, the two directions, and the one line that says what happened.
+ * The code, the two directions, and the one line that says what happened.
  *
  * Syncing to the cloud and syncing from it are deliberately separate, and neither happens
  * on its own. Syncing in the background means the moment you hide something on one device
@@ -70,8 +70,8 @@ export function SyncPanel() {
     const [busy, setBusy] = React.useState<"" | "up" | "down">("");
     const [said, setSaid] = React.useState<{ text: string; kind: "good" | "bad"; } | null>(null);
 
-    const held = String(link ?? "").trim();
-    const ready = !!held && looksLikeLink(held);
+    const held = codeOf(link ?? "");
+    const ready = isCode(held);
     const bad = !!held && !ready;
 
     const run = async (which: "up" | "down") => {
@@ -90,7 +90,7 @@ export function SyncPanel() {
                 const { applied, skipped } = await bringDown();
                 settings.store.lastDown = { at: Date.now(), what: applied };
 
-                const text = (applied.length ? "Synced from cloud: " + applied.join(", ") + "." : "The cloud has nothing on this link yet.") + skippedLine(skipped);
+                const text = (applied.length ? "Synced from cloud: " + applied.join(", ") + "." : "The cloud has nothing on this code yet.") + skippedLine(skipped);
                 setSaid({ text, kind: "good" });
                 showToast({ text: "Synced from cloud", variant: "success" });
             }
@@ -104,7 +104,7 @@ export function SyncPanel() {
         }
     };
 
-    // The link works like a password, so it is dots until asked for - and stays dots while the
+    // The code works like a password, so it is dots until asked for - and stays dots while the
     // screen is shared, whatever was asked.
     const [shown, setShown] = React.useState(false);
     const shared = !!(window as any).vcScreenShared;
@@ -113,9 +113,9 @@ export function SyncPanel() {
     const copy = async () => {
         try {
             await navigator.clipboard.writeText(held);
-            showToast({ text: "Link copied", variant: "success" });
+            showToast({ text: "Code copied", variant: "success" });
         } catch {
-            showToast({ text: "Could not copy. Select the link and copy it yourself.", variant: "critical" });
+            showToast({ text: "Could not copy. Select the code and copy it yourself.", variant: "critical" });
         }
     };
 
@@ -127,14 +127,14 @@ export function SyncPanel() {
                         <LinkIcon height={20} width={20} />
                     </div>
                     <div className={cl("row-text")}>
-                        <div className={cl("row-name")}>Sync link</div>
+                        <div className={cl("row-name")}>Sync code</div>
                         <div className={cl("row-detail")}>
-                            The same link on your phone and here is what joins them. Treat it like a password.
+                            The same code on your phone and here is what joins them. Make one, or type your own of at least 16 letters and numbers. Treat it like a password.
                         </div>
                     </div>
                     <div className={cl("state", ready ? "state-on" : "")}>
                         {ready && <CheckIcon height={12} width={12} />}
-                        {ready ? "Linked" : bad ? "Not a sync link" : "No link"}
+                        {ready ? "Linked" : bad ? (held.length < 16 ? "Too short" : "Not a valid code") : "No code"}
                     </div>
                 </div>
 
@@ -142,12 +142,13 @@ export function SyncPanel() {
                     <input
                         type={visible || !held ? "text" : "password"}
                         spellCheck={false}
-                        aria-label="Sync link"
+                        aria-label="Sync code"
                         className={cl("input", bad ? "input-bad" : "")}
-                        value={link ?? ""}
-                        placeholder="Paste the link from your phone, or make a new one"
+                        value={held}
+                        placeholder="Paste the code from your phone, or make a new one"
                         onChange={e => {
-                            settings.store.link = e.currentTarget.value.trim();
+                            // a whole link pasted from an older version becomes its code
+                            settings.store.link = codeOf(e.currentTarget.value);
                             setSaid(null);
                         }}
                     />
@@ -164,11 +165,11 @@ export function SyncPanel() {
                         variant="secondary"
                         disabled={!!busy}
                         onClick={() => {
-                            settings.store.link = makeLink();
-                            setSaid({ text: "New link made. Paste the same link into Sync on your phone.", kind: "good" });
+                            settings.store.link = makeCode();
+                            setSaid({ text: "New code made. Put the same code into Sync on your phone.", kind: "good" });
                         }}
                     >
-                        {held ? "New Link" : "Make a Link"}
+                        {held ? "New Code" : "Make a Code"}
                     </IconButton>
                 </div>
             </div>
@@ -177,14 +178,14 @@ export function SyncPanel() {
                 <Way
                     icon={CloudUpIcon}
                     name={busy === "up" ? "Syncing..." : "Sync to Cloud"}
-                    detail={ready ? lastLine(lastUp, "Upload from here") : "Needs a link first"}
+                    detail={ready ? lastLine(lastUp, "Upload from here") : "Needs a code first"}
                     disabled={!ready || !!busy}
                     onClick={() => run("up")}
                 />
                 <Way
                     icon={CloudDownIcon}
                     name={busy === "down" ? "Syncing..." : "Sync from Cloud"}
-                    detail={ready ? lastLine(lastDown, "Replace what is here") : "Needs a link first"}
+                    detail={ready ? lastLine(lastDown, "Replace what is here") : "Needs a code first"}
                     disabled={!ready || !!busy}
                     onClick={() => run("down")}
                 />

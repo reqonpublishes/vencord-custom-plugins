@@ -165,6 +165,7 @@ export default definePlugin({
     description: "Hide a message, a range of them, or a whole conversation's history. Hold Shift to reveal the buttons. Nothing is deleted and nobody else is affected.",
     tags: ["Chat", "Appearance", "Privacy"],
     authors: [{ name: "reqon", id: 497562304498368513n }],
+    enabledByDefault: true,
 
     settings,
 

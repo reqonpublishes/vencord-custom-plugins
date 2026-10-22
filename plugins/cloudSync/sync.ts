@@ -8,7 +8,7 @@ import { Logger } from "@utils/Logger";
 
 import { Adapter, ADAPTERS, overlay } from "./adapters";
 import { isKept, isPluginEnabled, settings } from "./settings";
-import { fetchShelf, looksLikeLink, sendShelf, Shelf } from "./shelf";
+import { codeOf, fetchShelf, isCode, sendShelf, Shelf } from "./shelf";
 
 const logger = new Logger("CloudSync");
 
@@ -35,10 +35,10 @@ const chosen = () => picked().filter(adapter => isKept(adapter.plugin));
 /** Picked, but left out because "Keep after restart" is off for them */
 const notKept = () => picked().filter(adapter => !isKept(adapter.plugin)).map(adapter => adapter.label);
 
-function link(): string {
-    const held = String(settings.store.link ?? "").trim();
-    if (!held) throw new Error("No link yet - make one first");
-    if (!looksLikeLink(held)) throw new Error("That does not look like a sync link");
+function code(): string {
+    const held = codeOf(settings.store.link ?? "");
+    if (!held) throw new Error("No sync code yet - make one first");
+    if (!isCode(held)) throw new Error("A sync code is 16 to 80 letters or numbers");
 
     return held;
 }
@@ -51,7 +51,7 @@ function link(): string {
  * own is left exactly as the phone wrote it.
  */
 export async function sendUp(): Promise<{ at: string | null; sent: string[]; skipped: string[]; }> {
-    const where = link();
+    const where = code();
     const { shelf } = await fetchShelf(where);
 
     const next: Shelf = { version: 1, from: "desktop", plugins: { ...shelf.plugins } };
@@ -78,7 +78,7 @@ export async function sendUp(): Promise<{ at: string | null; sent: string[]; ski
  * data sits on disk while the old data is still on screen.
  */
 export async function bringDown(): Promise<{ at: string | null; applied: string[]; skipped: string[]; }> {
-    const where = link();
+    const where = code();
     const { at, shelf } = await fetchShelf(where);
 
     const applied: string[] = [];

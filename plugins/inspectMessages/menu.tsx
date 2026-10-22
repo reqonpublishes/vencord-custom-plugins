@@ -7,21 +7,27 @@
 import { Menu, React } from "@webpack/common";
 
 /**
- * The one group all of these plugins put their menu entries in.
+ * The groups all of these plugins put their menu entries in.
  *
  * Each plugin adds its own entries without knowing about the others, and left to that they
- * land wherever each happened to put them - one beside View Avatar, three at the bottom,
- * another in between. So they share a group, found by its key, and each entry carries a
- * number saying where in it it belongs. The same file is in every plugin, which is what lets
- * them agree without depending on each other.
+ * land wherever each happened to put them. So they share groups, found by their keys, and
+ * each entry carries a number saying where it belongs. The same file is in every plugin,
+ * which is what lets them agree without depending on each other.
+ *
+ * There is one group for each kind - hiding, inspecting, faking - so a line divides them, and
+ * all of them sit above Discord's last group (Copy ID, View Avatar) instead of under it.
  */
 const GROUP = "vc-local-plugins";
 
-/**
- * Whether the screen is being shown to somebody, as Plugin Hub's Screen Share Protection
- * sees it. Read off the window because that is the one place every plugin can look without
- * depending on Plugin Hub being there.
- */
+/** The kinds, in the order they show, and the place numbers each one takes */
+const KINDS = [
+    { kind: "hide", below: 32 },
+    { kind: "inspect", below: 35 },
+    { kind: "fake", below: Infinity }
+];
+
+const kindOf = (rank: number) => KINDS.findIndex(({ below }) => rank < below);
+
 export const isShared = () => !!(window as any).vcScreenShared;
 
 /**
@@ -41,11 +47,29 @@ window.addEventListener("mousedown", noteShift, true);
 
 const rankOf = (item: any) => parseInt(String(item?.key ?? "").split(":")[0], 10) || 0;
 
+/** Whether a menu entry, or any group or list around it, holds an entry with one of these ids */
+function holds(node: any, test: (id: string) => boolean): boolean {
+    if (!node) return false;
+    if (Array.isArray(node)) return node.some(kid => holds(kid, test));
+
+    const id = node.props?.id;
+    if (typeof id === "string" && test(id)) return true;
+
+    const kids = node.props?.children;
+    return typeof kids === "object" && holds(kids, test);
+}
+
+/** Discord's closing group - Copy ID, View Avatar, View Icon, Copy Server Info - which ours sit above */
+const TAIL = ["view-avatar", "vc-copy-user-url", "view-icon", "view-banner", "copy-server-info"];
+const isTail = (node: any) => holds(node, id => id.startsWith("devmode-copy-id") || TAIL.includes(id));
+
+const ours = (node: any) => typeof node?.key === "string" && node.key.startsWith(GROUP + "-") ? Number(node.key.slice(GROUP.length + 1)) : -1;
+
 /**
- * Put entries into the shared group, in order.
+ * Put entries into the shared groups, in order.
  *
- * Lower numbers sit higher. Hiding comes first, then faking, and taking something back sits
- * straight under the thing that added it.
+ * Lower numbers sit higher. Hiding comes first, then inspecting, then faking, and taking
+ * something back sits straight under the thing that added it.
  */
 export function place(children: any[], rank: number, ...items: any[]) {
     // On a shared screen a menu full of Hide and Fake entries says what this client is
@@ -55,12 +79,17 @@ export function place(children: any[], rank: number, ...items: any[]) {
     const mode = menuMode();
     if (mode === "never" || (mode === "shift" && !shift)) return;
 
-    let group = children.find(child => child?.key === GROUP);
+    const kind = kindOf(rank);
+    let group = children.find(child => ours(child) === kind);
 
     if (!group) {
         const list: any[] = [];
-        group = <Menu.MenuGroup key={GROUP}>{list}</Menu.MenuGroup>;
-        children.push(group);
+        group = <Menu.MenuGroup key={`${GROUP}-${kind}`}>{list}</Menu.MenuGroup>;
+
+        // above a later kind of ours, or else above Discord's closing group, or else last
+        const at = children.findIndex(child => ours(child) > kind || isTail(child));
+        if (at === -1) children.push(group);
+        else children.splice(at, 0, group);
     }
 
     const list: any[] = group.props.children;

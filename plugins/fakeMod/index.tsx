@@ -169,23 +169,33 @@ const group = (target: Target, name: string) => {
 };
 
 /**
- * Put a group straight after one of Discord's own entries, or at the end if it is not there.
+ * Put a group straight after one of Discord's own entries.
  *
  * On a person that is Ignore / Block / Report, which is where something like this would sit.
+ * Where none of those are there, it goes above the other plugins' groups and Discord's
+ * closing one (Copy ID, View Avatar), rather than under everything.
  */
 function place(children: any[], entries: any, after: string[]) {
     if (!entries) return;
 
-    const has = (node: any): boolean => {
+    const has = (node: any, test: (id: string) => boolean): boolean => {
+        if (Array.isArray(node)) return node.some(kid => has(kid, test));
+        if (typeof node?.props?.id === "string" && test(node.props.id)) return true;
         const kids = node?.props?.children;
-        const list = Array.isArray(kids) ? kids : kids ? [kids] : [];
-        return list.some((kid: any) => after.includes(kid?.props?.id) || has(kid));
+        return typeof kids === "object" && has(kids, test);
     };
 
-    const at = children.findIndex(has);
-    if (at === -1) children.push(entries);
-    else children.splice(at + 1, 0, entries);
+    const at = children.findIndex(child => has(child, id => after.includes(id)));
+    if (at !== -1) return void children.splice(at + 1, 0, entries);
+
+    const before = children.findIndex(child =>
+        String(child?.key ?? "").startsWith("vc-local-plugins") || has(child, id => id.startsWith("devmode-copy-id") || TAIL.includes(id)));
+    if (before === -1) children.push(entries);
+    else children.splice(before, 0, entries);
 }
+
+/** Discord's closing group, which nothing should sit under */
+const TAIL = ["view-avatar", "vc-copy-user-url", "view-icon", "view-banner", "copy-server-info"];
 
 const nameOf = (user: User) => (user as any).globalName ?? user.username;
 

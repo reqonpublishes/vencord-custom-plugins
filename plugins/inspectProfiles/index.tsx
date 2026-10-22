@@ -77,7 +77,7 @@ const userMenu = (enabled: () => boolean): NavContextMenuPatchCallback => (child
 
     const { inspectEntry, stealEntry, resetEntry } = settings.store;
 
-    place(children, 16,
+    place(children, 33,
         inspectEntry !== false && <Menu.MenuItem
             id="vc-cip-inspect"
             key="vc-cip-inspect"
@@ -146,6 +146,7 @@ export default definePlugin({
     description: "Change how anybody's profile looks to you: names, bio, badges, pictures, colours, connections and the day they joined. Steal a whole profile as a preset and wear it. Nothing is sent to Discord.",
     tags: ["Appearance", "Fun", "Friends"],
     authors: [{ name: "reqon", id: 497562304498368513n }],
+    enabledByDefault: true,
     dependencies: ["UserSettingsAPI"],
 
     settings,

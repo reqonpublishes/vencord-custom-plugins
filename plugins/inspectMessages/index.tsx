@@ -109,7 +109,7 @@ const messageCtx: NavContextMenuPatchCallback = (children, { message }: { messag
         />
     );
 
-    place(children, 15, item);
+    place(children, 32, item);
 };
 
 migratePluginSettings("InspectMessages", "CustomPluginInspectMessages", "CustomPluginQuickInspect", "CustomQuickInspect", "QuickInspect");
@@ -121,6 +121,7 @@ export default definePlugin({
     description: "Change what any message says, when it was sent and whether it shows as edited. Hold Shift to reveal the buttons. Nothing is sent to Discord and nobody else sees it.",
     tags: ["Chat", "Utility"],
     authors: [{ name: "reqon", id: 497562304498368513n }],
+    enabledByDefault: true,
     dependencies: ["MessageUpdaterAPI"],
 
     settings,

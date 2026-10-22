@@ -315,6 +315,7 @@ export default definePlugin({
     description: "Hide friends from your friends list, one at a time or all at once. Can also fake a block, a friend request or a friendship. The real friendship is never touched and nobody is told.",
     tags: ["Friends", "Appearance", "Privacy"],
     authors: [{ name: "reqon", id: 497562304498368513n }],
+    enabledByDefault: true,
 
     settings,
 
