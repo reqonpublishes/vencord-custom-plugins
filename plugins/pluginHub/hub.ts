@@ -43,21 +43,21 @@ export const SECTIONS: { id: Section; title: string; }[] = [
  */
 export const ENTRIES: Entry[] = [
     { plugin: "InspectMessages", label: "Inspect Messages", icon: InspectIcon, section: "inspect", about: "Change what a message says and when it was sent" },
-    { plugin: "InspectProfiles", label: "Inspect Profiles", icon: MasksIcon, section: "inspect", about: "Change how any profile looks, and steal whole profiles" },
-    { plugin: "HideMessages", label: "Hide Messages", icon: ChatOffIcon, section: "hide", about: "Hide messages, ranges or whole conversations" },
+    { plugin: "InspectProfiles", label: "Inspect Profiles", icon: MasksIcon, section: "inspect", about: "Change how any profile looks, or steal one and wear it" },
+    { plugin: "HideMessages", label: "Hide Messages", icon: ChatOffIcon, section: "hide", about: "Hide messages, a stretch of them, or a whole chat" },
     { plugin: "HideDMs", label: "Hide DMs", icon: MailOffIcon, section: "hide", about: "Hide conversations from your DM list" },
     { plugin: "HideFriends", label: "Hide Friends", icon: PersonOffIcon, section: "hide", about: "Hide friends and friend requests" },
-    { plugin: "HideServers", label: "Hide Servers", icon: ServerIcon, section: "hide", about: "Hide servers from your server list" },
+    { plugin: "HideServers", label: "Hide Servers", icon: ServerIcon, section: "hide", about: "Hide servers and channels from your lists" },
     { plugin: "FakeMessages", label: "Fake Messages", icon: ChatAddIcon, section: "fake", about: "Add messages nobody sent" },
-    { plugin: "FakeFriends", label: "Fake Friends", icon: PersonAddIcon, section: "fake", about: "Fake friends, friend requests and blocks" },
+    { plugin: "FakeFriends", label: "Fake Friends", icon: PersonAddIcon, section: "fake", about: "Add friends, requests and blocks that are not real" },
     { plugin: "FakeCalls", label: "Fake Calls", icon: PhoneAddIcon, section: "fake", about: "Add calls that never happened" },
     { plugin: "FakeTime", label: "Fake Time", icon: ClockIcon, section: "fake", about: "Move a conversation to another time" },
-    { plugin: "FakeNotifications", label: "Fake Notifications", icon: BellIcon, section: "fake", about: "Set the numbers on your badges" },
-    { plugin: "FakeMod", label: "Fake Mod", icon: ShieldIcon, section: "fake", about: "Menus that look like moderator tools" },
+    { plugin: "FakeNotifications", label: "Fake Notifications", icon: BellIcon, section: "fake", about: "Set the numbers on your request badges" },
+    { plugin: "FakeMod", label: "Fake Mod", icon: ShieldIcon, section: "fake", about: "Add moderator tools that only look real" },
     { plugin: "Bookmarks", label: "Bookmarks", icon: BookmarkIcon, section: "tools", about: "Bookmark profiles and find them again from Friends" },
-    { plugin: "QuickRestart", label: "Quick Restart", icon: BoltIcon, section: "tools", about: "Ctrl+R restarts about five times faster" },
+    { plugin: "QuickRestart", label: "Quick Restart", icon: BoltIcon, section: "tools", about: "Ctrl+R restarts Discord about five times faster" },
     { plugin: "Performance", label: "Performance", icon: SpeedIcon, section: "tools", about: "Fixes the places Discord gets slow or stuck" },
-    { plugin: "CloudSync", label: "Cloud Sync", icon: CloudIcon, section: "tools", about: "Sync all of this with your phone" }
+    { plugin: "CloudSync", label: "Cloud Sync", icon: CloudIcon, section: "tools", about: "Sync these plugins with your phone using one private code" }
 ];
 
 /** Whether a plugin changes what Discord shows, rather than being a tool */

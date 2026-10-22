@@ -115,7 +115,7 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 export default definePlugin({
     name: "FakeFriends",
-    description: "Fake friends, friend requests and blocks.",
+    description: "Add friends, requests and blocks that are not real.",
     authors: [{ name: "reqon", id: 497562304498368513n }],
 
     settings,

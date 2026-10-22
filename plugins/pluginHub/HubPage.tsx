@@ -40,7 +40,7 @@ function PluginRow({ entry, onChange }: { entry: Entry; onChange(): void; }) {
             <div className={cl("item-text")}>
                 <div className={cl("item-name")}>{label}</div>
                 <div className={cl("item-detail")}>
-                    {waiting ? "Turns on when Discord restarts." : pluginOf(plugin)?.description ?? entry.about}
+                    {waiting ? "Turns on after a reload." : pluginOf(plugin)?.description ?? entry.about}
                 </div>
             </div>
             {tag && <span className={cl("tag")}>{tag}</span>}
@@ -60,7 +60,7 @@ function PluginRow({ entry, onChange }: { entry: Entry; onChange(): void; }) {
                     const result = setOn(plugin, next);
 
                     if (result === "failed") say(`Could not turn ${label} ${next ? "on" : "off"}`, "critical");
-                    if (result === "restart") say(`${label} turns on when Discord restarts`, "default");
+                    if (result === "restart") say(`${label} turns on after a reload`, "default");
 
                     onChange();
                 }}
@@ -280,15 +280,15 @@ function HubPage() {
                         <div className={cl("item-text")}>
                             <div className={cl("item-name")}>
                                 {!views.length
-                                    ? "None of these plugins are enabled"
-                                    : live ? `${live} of ${views.length} plugins on` : "You are seeing the real Discord"}
+                                    ? "No plugins on"
+                                    : live ? `${live} of ${views.length} plugins on` : "All plugins off"}
                             </div>
                             <div className={cl("item-detail")}>
                                 {!views.length
-                                    ? "Switch them on below."
+                                    ? "Switch one on below."
                                     : live
-                                        ? "Turn Off shows the real Discord."
-                                        : "Nothing you hid or faked is lost."}
+                                        ? "Showing your changes."
+                                        : "Showing the real Discord. Nothing is lost."}
                             </div>
                         </div>
                         <IconButton
@@ -306,8 +306,8 @@ function HubPage() {
                                 update();
 
                                 say(result.on
-                                        ? `${result.changed} switched on${result.restart ? ", the rest after a restart" : ""}`
-                                        : `${result.changed} switched off`, "success");
+                                        ? `Plugins on${result.restart ? ", some after a reload" : ""}`
+                                        : "Plugins off", "success");
                             }}
                         >
                             {live ? "Turn Off" : "Turn On"}
@@ -318,8 +318,8 @@ function HubPage() {
                         <div className={cl("item")}>
                             <div className={cl("tile")}><RefreshIcon height={20} width={20} /></div>
                             <div className={cl("item-text")}>
-                                <div className={cl("item-name")}>A restart is needed</div>
-                                <div className={cl("item-detail")}>A plugin you switched on needs a reload.</div>
+                                <div className={cl("item-name")}>Reload needed</div>
+                                <div className={cl("item-detail")}>A plugin you switched on starts after a reload.</div>
                             </div>
                             <IconButton icon={RefreshIcon} variant="secondary" onClick={() => location.reload()}>Reload Now</IconButton>
                         </div>
