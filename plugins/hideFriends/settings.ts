@@ -10,6 +10,7 @@ import { OptionType } from "@utils/types";
 import { forgetSaved } from "./friends";
 import { HiddenList } from "./HiddenList";
 import { startImplicit, stopImplicit } from "./implicit";
+import { menuChips } from "./ui";
 
 /** Whether the plugin is running, so a setting changed while it is off waits for it to be on */
 let running = false;
@@ -26,10 +27,20 @@ function setImplicit(on: boolean) {
 }
 
 export const settings = definePluginSettings({
+    menus: {
+        type: OptionType.COMPONENT,
+        component: menuChips(() => settings, "Show in menus", "Which menus show Hide Friend.", [{ key: "userMenu", label: "People" }, { key: "profileMenu", label: "Profiles" }])
+    },
     userMenu: {
         type: OptionType.BOOLEAN,
-        displayName: "Show in the people menu",
-        description: "Hide Friend shows when you right-click someone.",
+        hidden: true,
+        description: "Show when you right-click someone",
+        default: true
+    },
+    profileMenu: {
+        type: OptionType.BOOLEAN,
+        hidden: true,
+        description: "Show in the ... menu on a profile",
         default: true
     },
     hideNew: {

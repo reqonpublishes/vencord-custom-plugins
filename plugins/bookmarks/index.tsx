@@ -143,8 +143,7 @@ function holds(node: any, test: (id: string) => boolean): boolean {
 
 export default definePlugin({
     name: "Bookmarks",
-    description: "Bookmark people's profiles so you can always find them again, even after closing their DM. Adds a Bookmarked tab to the Friends page.",
-    tags: ["Friends", "Organisation", "Utility"],
+    description: "Bookmark profiles and find them again from Friends.",
     authors: [{ name: "reqon", id: 497562304498368513n }],
 
     settings,

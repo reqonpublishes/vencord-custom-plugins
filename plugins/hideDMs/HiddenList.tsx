@@ -10,7 +10,7 @@ import { SelectedChannelStore } from "@webpack/common";
 
 import { EyeIcon, EyeOffIcon, GroupIcon } from "./icons";
 import { count, hideAll, hideChat, infoOf, names, showAll, showChat } from "./store";
-import { cl, Empty, IconButton, Panel, Row } from "./ui";
+import { Empty, IconButton, Panel, Row, Rows } from "./ui";
 import { done } from "./undo";
 
 /**
@@ -65,7 +65,7 @@ export function HiddenList() {
             )}
 
             {!!held.length && (
-                <div className={cl("rows")}>
+                <Rows>
                     {held.map(([channelId]) => {
                         const info = infoOf(channelId);
 
@@ -90,7 +90,7 @@ export function HiddenList() {
                             </Row>
                         );
                     })}
-                </div>
+                </Rows>
             )}
         </Panel>
     );

@@ -20,7 +20,7 @@ export const settings = definePluginSettings({
         type: OptionType.BOOLEAN,
         hidden: true,
         displayName: "Show on messages",
-        description: "Show \"Add Fake Message Here\" when you right-click a message",
+        description: "Show \"Add Fake Message\" when you right-click a message",
         default: true
     },
     channelMenu: {

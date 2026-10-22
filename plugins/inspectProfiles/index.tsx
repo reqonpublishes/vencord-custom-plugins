@@ -146,8 +146,7 @@ let guardingMoves = false;
 
 export default definePlugin({
     name: "InspectProfiles",
-    description: "Change how anybody's profile looks to you: names, bio, badges, pictures, colours, connections and the day they joined. Steal a whole profile as a preset and wear it. Nothing is sent to Discord.",
-    tags: ["Appearance", "Fun", "Friends"],
+    description: "Change how any profile looks, or steal one and wear it.",
     authors: [{ name: "reqon", id: 497562304498368513n }],
     enabledByDefault: true,
     dependencies: ["UserSettingsAPI"],

@@ -74,7 +74,7 @@ const messageCtx: NavContextMenuPatchCallback = (children, { message }: { messag
         <Menu.MenuItem
             id="vc-cfc-add"
             key="vc-cfc-add"
-            label="Add Fake Call Here"
+            label="Add Fake Call"
             icon={PhoneAddIcon}
             leadingAccessory={{ type: "icon", icon: PhoneAddIcon }}
             action={() => openAddCall({
@@ -140,8 +140,7 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 export default definePlugin({
     name: "FakeCalls",
-    description: "Add a call to any DM: who started it, when, how long it lasted, and whether you picked up. Nothing is sent to Discord and nobody is rung.",
-    tags: ["Chat", "Utility"],
+    description: "Add calls that never happened.",
     authors: [{ name: "reqon", id: 497562304498368513n }],
 
     settings,
@@ -158,7 +157,7 @@ export default definePlugin({
             icon={PhoneAddIcon}
             title="Add calls that never happened"
             steps={[
-                <>Right-click a message in a DM and choose <strong>Add Fake Call Here</strong>, or right-click a DM or a person and choose <strong>Add Fake Call</strong>.</>,
+                <>Right-click a message in a DM and choose <strong>Add Fake Call</strong>, or right-click a DM or a person and choose <strong>Add Fake Call</strong>.</>,
                 <>Turn on <strong>Still going</strong> for a live timer. Its Join button does nothing.</>,
                 <>Right-click a fake call and choose <strong>Remove Fake Call</strong> to take it back.</>
             ]}

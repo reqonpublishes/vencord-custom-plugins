@@ -8,7 +8,7 @@ Put a message in a conversation that nobody sent.
 
 ## Using it
 
-**In a chat** — right-click any message → **Add Fake Message Here**. The box opens already
+**In a chat** — right-click any message → **Add Fake Message**. The box opens already
 filled in with that person, a minute after what they said, because a message you invent is
 usually an answer to something.
 
@@ -37,7 +37,7 @@ conversation, right-click it in the sidebar → **Remove ... Fake Messages**.
 
 | Setting | What it does |
 | --- | --- |
-| **Show on messages** | **Add Fake Message Here** when you right-click a message |
+| **Show on messages** | **Add Fake Message** when you right-click a message |
 | **Show on conversations** | **Add Fake Message** when you right-click a DM or channel |
 | **Keep after restart** | Off means they last until you close Discord |
 | **Your fake messages** | How many there are, and **Remove All** |

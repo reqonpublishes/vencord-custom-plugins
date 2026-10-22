@@ -129,7 +129,7 @@ export function SyncPanel() {
                     <div className={cl("row-text")}>
                         <div className={cl("row-name")}>Sync code</div>
                         <div className={cl("row-detail")}>
-                            The same code on your phone and here is what joins them. Make one, or type your own of at least 16 letters and numbers. Treat it like a password.
+                            Use the same code on your phone.
                         </div>
                     </div>
                     <div className={cl("state", ready ? "state-on" : "")}>

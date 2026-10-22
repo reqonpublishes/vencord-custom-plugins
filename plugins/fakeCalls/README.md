@@ -8,7 +8,7 @@ Add a call to any DM: who rang, when, how long it lasted, and whether you picked
 
 ## Using it
 
-**In a DM** — right-click any message → **Add Fake Call Here**, or right-click the conversation
+**In a DM** — right-click any message → **Add Fake Call**, or right-click the conversation
 or the person → **Add Fake Call**.
 
 Then choose:
@@ -33,7 +33,7 @@ conversation, right-click it → **Remove ... Fake Calls**.
 
 | Setting | What it does |
 | --- | --- |
-| **Show on messages** | **Add Fake Call Here** when you right-click a message in a DM |
+| **Show on messages** | **Add Fake Call** when you right-click a message in a DM |
 | **Show on conversations** | **Add Fake Call** when you right-click a DM or a person |
 | **Keep after restart** | Off means they last until you close Discord |
 | **Your fake calls** | How many there are, and **Remove All** |

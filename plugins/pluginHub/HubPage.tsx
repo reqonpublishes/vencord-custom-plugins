@@ -109,8 +109,8 @@ function SyncRow() {
                 <div className={cl("item-name")}>Sync now</div>
                 <div className={cl("item-detail")}>
                     {link
-                        ? "Upload this computer's copy, or replace it with the cloud's"
-                        : "Make a sync code in Cloud Sync's settings first"}
+                        ? "Send or fetch without opening Cloud Sync"
+                        : "Make a sync code in Cloud Sync first"}
                 </div>
             </div>
             <div className={cl("actions")}>
@@ -178,7 +178,7 @@ function DeleteData() {
                 variant="dangerSecondary"
                 onClick={() => Alerts.show({
                     title: "Delete all data?",
-                    body: "Everything hidden, faked, edited and bookmarked is gone for good, and every setting goes back to how it came. Discord reloads after.",
+                    body: "Everything these plugins saved is erased for good, and Discord reloads.",
                     confirmText: "Delete Everything",
                     cancelText: "Cancel",
                     onConfirm: () => void deleteAllData()
@@ -219,7 +219,7 @@ function ShareOptions() {
             <div className={cl("sub-row", "sub-row-stack")}>
                 <div className={cl("item-text")}>
                     <div className={cl("sub-name")}>Turn on while sharing</div>
-                    <div className={cl("item-detail")}>Turned on for the share, even if you have them off.</div>
+                    <div className={cl("item-detail")}>Switched on while you share, even if they are off.</div>
                 </div>
                 <div className={cl("menu-chips")} role="group" aria-label="Turn on while sharing">
                     {views.map(({ plugin, label, icon: Icon }) => {
@@ -241,12 +241,12 @@ function ShareOptions() {
                 </div>
             </div>
 
-            <ShareSwitch name="streamerMode" label="Also when Streamer Mode is on" detail="Discord can turn Streamer Mode on by itself when it sees OBS or another recorder." />
-            <ShareSwitch name="shareHideNew" label="Hide anything new" detail="New friends, DMs and servers stay hidden until the share ends." />
-            <ShareSwitch name="shareHideMenus" label="Hide right-click buttons" detail="No plugin buttons in menus, or the Bookmarked tab. Ctrl still shows them." />
-            <ShareSwitch name="shareHidePage" label="Hide this page" detail="Takes Additional Settings out of the sidebar." />
-            <ShareSwitch name="sharePlain" label="Look like plain Discord" detail="Hides Vencord and turns off your other plugins. The hide and fake plugins stay on." />
-            <ShareSwitch name="shareRestore" label="Turn plugins back off after" detail="Plugins turned on for the share go back off when it ends." />
+            <ShareSwitch name="streamerMode" label="Also when Streamer Mode is on" detail="Counts Streamer Mode as sharing." />
+            <ShareSwitch name="shareHideNew" label="Hide anything new" detail="Hides anything that arrives while you share." />
+            <ShareSwitch name="shareHideMenus" label="Hide plugin buttons" detail="Ctrl still shows them." />
+            <ShareSwitch name="shareHidePage" label="Hide this page" detail="Takes this page out of the sidebar." />
+            <ShareSwitch name="sharePlain" label="Look like plain Discord" detail="Hides Vencord and every other plugin." />
+            <ShareSwitch name="shareRestore" label="Switch back after" detail="Plugins switched on for the share go off again." />
         </div>
     );
 }
@@ -285,10 +285,10 @@ function HubPage() {
                             </div>
                             <div className={cl("item-detail")}>
                                 {!views.length
-                                    ? "Enable the ones you want in Vencord's Plugins page, then switch them here."
+                                    ? "Switch them on below."
                                     : live
-                                        ? "Show Real turns them all off. Nothing you hid or faked is lost."
-                                        : "Everything you hid or faked comes back when you turn them on."}
+                                        ? "Show Real switches them all off."
+                                        : "Nothing you hid or faked is lost."}
                             </div>
                         </div>
                         <IconButton
@@ -306,22 +306,22 @@ function HubPage() {
                                 update();
 
                                 say(result.on
-                                        ? `${result.changed} turned back on${result.restart ? ", the rest after a restart" : ""}`
-                                        : `${result.changed} turned off. You are seeing the real Discord`, "success");
+                                        ? `${result.changed} switched on${result.restart ? ", the rest after a restart" : ""}`
+                                        : `${result.changed} switched off`, "success");
                             }}
                         >
                             {live ? "Show Real" : "Turn Back On"}
                         </IconButton>
                     </div>
 
-                    <ButtonChoice setting="menuButtons" icon={MenuIcon} name="Menu buttons" detail="When Inspect, Hide and Fake show in right-click menus." />
-                    <ButtonChoice setting="hoverButtons" icon={CursorIcon} name="Hover buttons" detail="When Inspect and Hide show in the bar above a message." />
+                    <ButtonChoice setting="menuButtons" icon={MenuIcon} name="Menu buttons" detail="When plugin options show in right-click menus." />
+                    <ButtonChoice setting="hoverButtons" icon={CursorIcon} name="Hover buttons" detail="When plugin buttons show above messages." />
 
                     <div className={cl("item")}>
                         <div className={cl("tile")}><UndoIcon height={20} width={20} /></div>
                         <div className={cl("item-text")}>
                             <div className={cl("item-name")}>Ctrl+Z undo</div>
-                            <div className={cl("item-detail")}>Takes back the last thing you hid or faked.</div>
+                            <div className={cl("item-detail")}>Undoes your last change.</div>
                         </div>
                         <Switch checked={undo !== false} onChange={next => void (settings.store.undo = next)} />
                     </div>
@@ -332,8 +332,8 @@ function HubPage() {
                             <div className={cl("item-name")}>Screen Share Protection</div>
                             <div className={cl("item-detail")}>
                                 {protecting
-                                    ? "On now. Your screen is being shared."
-                                    : "Keeps everything hidden while you share. It all comes back when you stop."}
+                                    ? "On now, while you share."
+                                    : "Hides everything while you share."}
                             </div>
                         </div>
                         {shareProtection !== false && (

@@ -45,8 +45,7 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 export default definePlugin({
     name: "FakeTime",
-    description: "Move a conversation to another time. Every message moves together, fake messages and calls included, and the gaps between them stay the same.",
-    tags: ["Chat", "Fun"],
+    description: "Move a conversation to another time.",
     authors: [{ name: "reqon", id: 497562304498368513n }],
 
     settings,

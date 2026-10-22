@@ -9,7 +9,7 @@ import { useForceUpdater } from "@utils/react";
 
 import { clearAll, counts, dismissRequest, hideAllFriends, hideFriend, infoOf, listed, restoreRequest, showAllFriends, showFriend } from "./friends";
 import { EyeIcon, EyeOffIcon, PersonOffIcon } from "./icons";
-import { cl, Empty, IconButton, Panel, Row } from "./ui";
+import { cl,Empty, IconButton, Panel, Row, Rows } from "./ui";
 import { done } from "./undo";
 
 function Group({ title, rows, run, onChange }: {
@@ -23,7 +23,7 @@ function Group({ title, rows, run, onChange }: {
     return (
         <>
             <div className={cl("group-title")}>{title} &mdash; {rows.length}</div>
-            {rows.map(([id, stored]) => {
+            <Rows>{rows.map(([id, stored]) => {
                 const info = infoOf(id, stored);
 
                 return (
@@ -40,7 +40,7 @@ function Group({ title, rows, run, onChange }: {
                         </Button>
                     </Row>
                 );
-            })}
+            })}</Rows>
         </>
     );
 }

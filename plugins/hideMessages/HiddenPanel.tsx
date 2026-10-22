@@ -11,7 +11,7 @@ import { ChannelStore, NavigationRouter, React, UserStore } from "@webpack/commo
 import { ChatIcon, ChevronDownIcon, EyeIcon, EyeOffIcon } from "./icons";
 import { placeOf } from "./places";
 import { clearAll, detailsFor, perChat, previewOf, restoreChat, showChannel, showMessage, showRange, showWhole, snapshotChat } from "./store";
-import { cl, Empty, IconButton, Panel, RoundButton, Row } from "./ui";
+import { cl,Empty, IconButton, Panel, RoundButton, Row, Rows } from "./ui";
 import { remember } from "./undo";
 
 /** Change one chat's hides so that Ctrl+Z puts it back */
@@ -120,7 +120,7 @@ export function HiddenPanel() {
             {!places.length ? (
                 <Empty icon={EyeOffIcon} title="Nothing hidden" text="Right-click a message and choose Hide Message, or a conversation to hide all of it." />
             ) : (
-                <div className={cl("rows")}>
+                <Rows>
                     {places.map(({ channelId, messages, ranges, whole }) => {
                         const place = placeOf(channelId);
                         const what = [whole && "Everything before a date", messages && plural(messages, "message"), ranges && plural(ranges, "stretch")].filter(Boolean).join(", ");
@@ -144,7 +144,7 @@ export function HiddenPanel() {
                             </div>
                         );
                     })}
-                </div>
+                </Rows>
             )}
         </Panel>
     );

@@ -56,8 +56,8 @@ const item = (id: string, label: string, Icon: IconComponent, action: () => void
 );
 
 /** Each entry is offered only where it would do something */
-const userCtx: NavContextMenuPatchCallback = (children, { user }: { user?: User; }) => {
-    if (!user || !settings.store.userMenu) return;
+const userCtx = (shown: () => boolean): NavContextMenuPatchCallback => (children, { user }: { user?: User; }) => {
+    if (!user || !shown()) return;
 
     const { id } = user;
     if (id === UserStore.getCurrentUser()?.id) return;
@@ -145,8 +145,7 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 export default definePlugin({
     name: "HideFriends",
-    description: "Hide friends from your friends list, one at a time or all at once, and hide friend requests. The real friendship is never touched and nobody is told.",
-    tags: ["Friends", "Appearance", "Privacy"],
+    description: "Hide friends and friend requests.",
     authors: [{ name: "reqon", id: 497562304498368513n }],
     enabledByDefault: true,
 
@@ -177,10 +176,10 @@ export default definePlugin({
     ),
 
     contextMenus: {
-        "user-context": userCtx,
+        "user-context": userCtx(() => settings.store.userMenu !== false),
         // the ... menu on a profile, which hands over a person the same way
-        "user-profile-actions": userCtx,
-        "user-profile-overflow-menu": userCtx
+        "user-profile-actions": userCtx(() => settings.store.profileMenu !== false),
+        "user-profile-overflow-menu": userCtx(() => settings.store.profileMenu !== false)
     },
 
     /** Told by Cloud Sync that the saved copy was replaced, so the next start reads it again */

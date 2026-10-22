@@ -9,7 +9,7 @@ import { useForceUpdater } from "@utils/react";
 import { clearAllEdits, listEdits, resetEdit, restoreEdit, snapshotEdit } from "./edits";
 import { PencilIcon, UndoIcon } from "./icons";
 import { placeOf } from "./places";
-import { cl, Empty, IconButton, Panel } from "./ui";
+import { cl,Empty, IconButton, Panel, Rows } from "./ui";
 import { remember } from "./undo";
 
 /** Every changed message: what it says now, what it really says, and a way back for each */
@@ -28,7 +28,7 @@ export function EditedPanel() {
             {!list.length ? (
                 <Empty icon={PencilIcon} title="No changed messages" text="Right-click a message and choose Inspect Message to change it." />
             ) : (
-                <div className={cl("rows")}>
+                <Rows>
                     {list.map(edit => {
                         const place = placeOf(edit.channelId);
                         return (
@@ -42,7 +42,7 @@ export function EditedPanel() {
                             </div>
                         );
                     })}
-                </div>
+                </Rows>
             )}
         </Panel>
     );

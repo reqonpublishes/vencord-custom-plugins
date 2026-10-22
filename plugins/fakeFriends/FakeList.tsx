@@ -10,7 +10,7 @@ import { React, UserStore, UserUtils } from "@webpack/common";
 
 import { clearAll, counts, Fake, fakeAs, fakeOf, infoOf, listed, unfake } from "./friends";
 import { CheckIcon, PersonAddIcon, UndoIcon } from "./icons";
-import { cl, Empty, IconButton, Panel, Row } from "./ui";
+import { cl,Empty, IconButton, Panel, Row, Rows } from "./ui";
 import { remember } from "./undo";
 
 const CHOICES: { fake: Fake; label: string; done: string; }[] = [
@@ -106,7 +106,7 @@ function Group({ title, rows, onChange }: { title: string; rows: [string, string
     return (
         <>
             <div className={cl("group-title")}>{title} &mdash; {rows.length}</div>
-            {rows.map(([id, stored]) => {
+            <Rows>{rows.map(([id, stored]) => {
                 const info = infoOf(id, stored);
 
                 return (
@@ -125,7 +125,7 @@ function Group({ title, rows, onChange }: { title: string; rows: [string, string
                         </Button>
                     </Row>
                 );
-            })}
+            })}</Rows>
         </>
     );
 }

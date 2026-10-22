@@ -6,7 +6,7 @@
 
 import { classNameFactory } from "@api/Styles";
 import { Button, ButtonProps } from "@components/Button";
-import { Tooltip } from "@webpack/common";
+import { Tooltip, useState } from "@webpack/common";
 import type { ReactNode } from "react";
 
 import { IconComponent, LockIcon } from "./icons";
@@ -45,40 +45,67 @@ export function RoundButton({ icon: Icon, label, danger, onClick }: { icon: Icon
     );
 }
 
-/** The card at the top of a plugin's settings: what it does and how to reach it */
-export function About({ icon: Icon, title, steps, menus, note = "Only you see this. Nothing is sent to Discord and nobody is notified." }: {
+/**
+ * The card at the top of a plugin's settings: what it does, in one line.
+ *
+ * The steps are there for whoever wants them - one click opens them - and out of the way for
+ * everybody who already knows. The page leads with the settings, not a manual.
+ */
+export function About({ icon: Icon, title, steps, note = "Only you see this. Nothing is sent to Discord." }: {
     icon: IconComponent;
     title: string;
     steps: ReactNode[];
-    /** whether the steps mention menu buttons, which may only show while Ctrl is held */
+    /** kept for the plugins that still pass it; the menu choice lives on Additional Settings now */
     menus?: boolean;
-    /** the reassurance under the steps, or false where there is nothing to reassure about */
+    /** the line under the steps, or false where there is nothing to say */
     note?: string | false;
 }) {
-    // chosen on Additional Settings, and left on the window for every plugin to read
-    const ctrlOnly = menus && ["ctrl", "shift"].includes((window as any).vcMenuMode);
+    const [open, setOpen] = useState(false);
 
     return (
-        <div className={cl("about")}>
-            <div className={cl("about-head")}>
+        <div className={cl("about", open ? "about-open" : "")}>
+            <button type="button" className={cl("about-head")} aria-expanded={open} onClick={() => setOpen(o => !o)}>
                 <div className={cl("tile")}>
                     <Icon height={20} width={20} />
                 </div>
                 <div className={cl("about-title")}>{title}</div>
-            </div>
-            <ul className={cl("steps")}>
-                {steps.map((step, i) => <li key={i}>{step}</li>)}
-            </ul>
-            {ctrlOnly && (
-                <div className={cl("private")}>
-                    <span>Menu buttons show while you hold <kbd>Ctrl</kbd>. Change this on Additional Settings.</span>
+                <span className={cl("about-more")}>
+                    How it works
+                    <svg aria-hidden viewBox="0 0 24 24" height={16} width={16} className={cl("about-chevron")}>
+                        <path fill="currentColor" d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z" />
+                    </svg>
+                </span>
+            </button>
+            {open && (
+                <div className={cl("about-body")}>
+                    <ol className={cl("steps")}>
+                        {steps.map((step, i) => <li key={i}>{step}</li>)}
+                    </ol>
+                    {note && (
+                        <div className={cl("private")}>
+                            <LockIcon height={14} width={14} />
+                            <span>{note}</span>
+                        </div>
+                    )}
                 </div>
             )}
-            {note && (
-                <div className={cl("private")}>
-                    <LockIcon height={14} width={14} />
-                    <span>{note}</span>
-                </div>
+        </div>
+    );
+}
+
+/** A list that shows its first few and a way to the rest, so a page never grows without end */
+export function Rows({ children, first = 6 }: { children: ReactNode[]; first?: number; }) {
+    const [all, setAll] = useState(false);
+    const list = children.filter(Boolean);
+    const extra = list.length - first;
+
+    return (
+        <div className={cl("rows")}>
+            {all || extra <= 1 ? list : list.slice(0, first)}
+            {extra > 1 && (
+                <button type="button" className={cl("show-all")} onClick={() => setAll(a => !a)}>
+                    {all ? "Show less" : `Show all ${list.length}`}
+                </button>
             )}
         </div>
     );

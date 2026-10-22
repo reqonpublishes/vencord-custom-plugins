@@ -78,8 +78,8 @@ function offered(fake: Fake, id: string): boolean {
  * Somebody faked shows the one way back. Anybody else shows what can be faked about them.
  * A person is only ever one fake at a time, so picking another replaces the first.
  */
-const userCtx: NavContextMenuPatchCallback = (children, { user }: { user?: User; }) => {
-    if (!user || !settings.store.userMenu) return;
+const userCtx = (shown: () => boolean): NavContextMenuPatchCallback => (children, { user }: { user?: User; }) => {
+    if (!user || !shown()) return;
 
     const { id } = user;
     if (id === UserStore.getCurrentUser()?.id) return;
@@ -115,8 +115,7 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 export default definePlugin({
     name: "FakeFriends",
-    description: "Fake a friend, a friend request either way, or a block, on your own Discord only. Accept, Decline and Unblock on anything fake never reach Discord.",
-    tags: ["Friends", "Fun"],
+    description: "Fake friends, friend requests and blocks.",
     authors: [{ name: "reqon", id: 497562304498368513n }],
 
     settings,
@@ -145,10 +144,10 @@ export default definePlugin({
     ),
 
     contextMenus: {
-        "user-context": userCtx,
+        "user-context": userCtx(() => settings.store.userMenu !== false),
         // the ... menu on a profile, which hands over a person the same way
-        "user-profile-actions": userCtx,
-        "user-profile-overflow-menu": userCtx
+        "user-profile-actions": userCtx(() => settings.store.profileMenu !== false),
+        "user-profile-overflow-menu": userCtx(() => settings.store.profileMenu !== false)
     },
 
     /** Told by Cloud Sync that the saved copy was replaced, so the next start reads it again */

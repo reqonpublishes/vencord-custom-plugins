@@ -118,8 +118,7 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 export default definePlugin({
     name: "InspectMessages",
-    description: "Change what any message says, when it was sent and whether it shows as edited. Nothing is sent to Discord and nobody else sees it.",
-    tags: ["Chat", "Utility"],
+    description: "Change what a message says and when it was sent.",
     authors: [{ name: "reqon", id: 497562304498368513n }],
     enabledByDefault: true,
     dependencies: ["MessageUpdaterAPI"],

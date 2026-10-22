@@ -9,12 +9,23 @@ import { OptionType } from "@utils/types";
 
 import { FakeList } from "./FakeList";
 import { forgetSaved } from "./friends";
+import { menuChips } from "./ui";
 
 export const settings = definePluginSettings({
+    menus: {
+        type: OptionType.COMPONENT,
+        component: menuChips(() => settings, "Show in menus", "Which menus show the Fake entries.", [{ key: "userMenu", label: "People" }, { key: "profileMenu", label: "Profiles" }])
+    },
     userMenu: {
         type: OptionType.BOOLEAN,
-        displayName: "Show in the people menu",
-        description: "Fake Friend, Fake Request and Fake Block show when you right-click someone.",
+        hidden: true,
+        description: "Show when you right-click someone",
+        default: true
+    },
+    profileMenu: {
+        type: OptionType.BOOLEAN,
+        hidden: true,
+        description: "Show in the ... menu on a profile",
         default: true
     },
     persist: {

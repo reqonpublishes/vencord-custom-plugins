@@ -9,9 +9,13 @@ import { OptionType } from "@utils/types";
 
 import { EditedPanel } from "./EditedPanel";
 import { forgetSaved } from "./edits";
-import { hoverChoice } from "./ui";
+import { hoverChoice, menuChips } from "./ui";
 
 export const settings = definePluginSettings({
+    menus: {
+        type: OptionType.COMPONENT,
+        component: menuChips(() => settings, "Show in menus", "Which menus show Inspect Message.", [{ key: "messageMenu", label: "Messages" }])
+    },
     // When the Inspect button shows above a message. Drawn by the choice below, and only used
     // without Additional Settings, whose Hover buttons decides for every plugin.
     button: {
@@ -30,7 +34,7 @@ export const settings = definePluginSettings({
     },
     messageMenu: {
         type: OptionType.BOOLEAN,
-        displayName: "Show in the message menu",
+        hidden: true,
         description: "Inspect Message shows when you right-click a message.",
         default: true
     },

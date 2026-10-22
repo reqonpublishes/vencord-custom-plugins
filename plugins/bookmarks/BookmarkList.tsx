@@ -9,7 +9,7 @@ import { useEffect, useState } from "@webpack/common";
 
 import { BookmarkIcon, ChatIcon, CloseIcon } from "./icons";
 import { all, count, describe, load, onChange, openDM, remove } from "./store";
-import { cl, Empty, Panel, RoundButton, Row } from "./ui";
+import { cl,Empty, Panel, RoundButton, Row, Rows } from "./ui";
 
 /** From this many on, the list gets a search box */
 const SEARCH_FROM = 8;
@@ -62,7 +62,7 @@ export function BookmarkList() {
             {!!count() && !people.length && <div className={cl("none-found")}>Nobody matches “{query.trim()}”</div>}
 
             {!!people.length && (
-                <div className={cl("rows")}>
+                <Rows>
                     {people.map(({ bookmark, name, username, image }) => (
                         <Row
                             key={bookmark.id}
@@ -76,7 +76,7 @@ export function BookmarkList() {
                             <RoundButton icon={CloseIcon} label="Remove Bookmark" danger onClick={() => remove(bookmark.id)} />
                         </Row>
                     ))}
-                </div>
+                </Rows>
             )}
         </Panel>
     );

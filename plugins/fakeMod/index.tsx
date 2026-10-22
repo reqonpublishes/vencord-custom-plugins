@@ -20,7 +20,7 @@ const settings = definePluginSettings({
     rank: {
         type: OptionType.SELECT,
         displayName: "Your rank",
-        description: "Which moderator you appear as. Lower ranks have fewer actions.",
+        description: "Which moderator you appear as.",
         options: [
             { label: "Trial Moderator", value: "trial", default: true },
             { label: "Moderator", value: "moderator" },
@@ -216,8 +216,7 @@ const messageCtx: NavContextMenuPatchCallback = (children, { message }: { messag
 
 export default definePlugin({
     name: "FakeMod",
-    description: "Adds moderator-style entries to people, servers and messages. Your rank decides which ones work. None of them do anything.",
-    tags: ["Fun", "Appearance"],
+    description: "Adds moderator tools to menus that do nothing.",
     authors: [{ name: "reqon", id: 497562304498368513n }],
 
     settings,

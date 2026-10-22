@@ -324,8 +324,7 @@ migratePluginSettings("QuickRestart", "CustomPluginQuickRestart", "CustomQuickRe
 
 export default definePlugin({
     name: "QuickRestart",
-    description: "Ctrl+R restarts Discord about five times faster: Discord's own Ctrl+R downloads the whole app again, this keeps what it already has. Pressing it again while it loads does nothing.",
-    tags: ["Utility"],
+    description: "Ctrl+R restarts Discord about five times faster.",
     authors: [{ name: "reqon", id: 497562304498368513n }],
 
     settings,

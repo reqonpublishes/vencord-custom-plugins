@@ -19,7 +19,7 @@ const settings = definePluginSettings({
     hiddenHistory: {
         type: OptionType.BOOLEAN,
         displayName: "Scroll past blocked messages",
-        description: "Keeps loading through blocked and ignored messages when you scroll up, so a chat never sits on its placeholder.",
+        description: "Keeps chats loading past blocked messages.",
         default: true
     }
 });
@@ -74,8 +74,7 @@ migratePluginSettings("Performance", "Smoother");
 
 export default definePlugin({
     name: "Performance",
-    description: "Fixes the places Discord gets slow or stuck. Scrolling up through blocked or ignored messages keeps loading instead of sitting on the loading placeholder.",
-    tags: ["Utility"],
+    description: "Fixes the places Discord gets slow or stuck.",
     authors: [{ name: "reqon", id: 497562304498368513n }],
     // a fix for Discord, not something to opt into
     enabledByDefault: true,

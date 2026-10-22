@@ -162,8 +162,7 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 export default definePlugin({
     name: "HideDMs",
-    description: "Hide conversations from your DM list. Nothing is closed, the other person is not told, and every message is still there when you unhide it.",
-    tags: ["Chat", "Appearance", "Privacy"],
+    description: "Hide conversations from your DM list.",
     authors: [{ name: "reqon", id: 497562304498368513n }],
     enabledByDefault: true,
 

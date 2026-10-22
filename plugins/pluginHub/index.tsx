@@ -10,17 +10,28 @@ import "./styles.css";
 import { definePluginSettings } from "@api/Settings";
 import SettingsPlugin from "@plugins/_core/settings";
 import { removeFromArray } from "@utils/misc";
+import { closeAllModals } from "@utils/modal";
 import definePlugin, { OptionType } from "@utils/types";
+import { SettingsRouter } from "@webpack/common";
 
 import { applyOffList } from "./hub";
 import HubPage from "./HubPage";
 import { TuneIcon } from "./icons";
 import { onProtectionChange, pageHidden, refresh, startProtection, stopProtection } from "./protect";
-import { About } from "./ui";
+import { About, IconButton } from "./ui";
 
 const KEY = "vencord_additional_settings";
 
 export const settings = definePluginSettings({
+    // Everything below is set on Additional Settings itself; this page only leads there
+    open: {
+        type: OptionType.COMPONENT,
+        component: () => (
+            <IconButton icon={TuneIcon} variant="primary" onClick={() => { closeAllModals(); SettingsRouter.openUserSettings("vencord_additional_settings_panel"); }}>
+                Open Additional Settings
+            </IconButton>
+        )
+    },
     // Which plugins were on when Show Real was pressed, so Turn Back On brings back those
     // and not every plugin there is.
     paused: {
@@ -35,13 +46,15 @@ export const settings = definePluginSettings({
     },
     shareProtection: {
         type: OptionType.BOOLEAN,
+        hidden: true,
         displayName: "Screen Share Protection",
-        description: "Keeps everything hidden while you share your screen. Everything goes back when you stop.",
+        description: "Hides everything while you share.",
         default: true,
         onChange: () => refresh()
     },
     streamerMode: {
         type: OptionType.BOOLEAN,
+        hidden: true,
         displayName: "Also when Streamer Mode is on",
         description: "Discord turns it on by itself when it sees OBS or another recorder.",
         default: true,
@@ -49,6 +62,7 @@ export const settings = definePluginSettings({
     },
     shareHideNew: {
         type: OptionType.BOOLEAN,
+        hidden: true,
         displayName: "Hide anything new",
         description: "New friends, DMs and servers stay hidden until the share ends.",
         default: true,
@@ -56,13 +70,15 @@ export const settings = definePluginSettings({
     },
     shareHideMenus: {
         type: OptionType.BOOLEAN,
+        hidden: true,
         displayName: "Hide right-click buttons",
-        description: "No plugin buttons in menus, or the Bookmarked tab, while you share. Ctrl still shows them.",
+        description: "Hides plugin buttons while you share.",
         default: true,
         onChange: () => refresh()
     },
     shareHidePage: {
         type: OptionType.BOOLEAN,
+        hidden: true,
         displayName: "Hide this page",
         description: "Takes Additional Settings out of the sidebar while you share.",
         default: false,
@@ -70,13 +86,15 @@ export const settings = definePluginSettings({
     },
     sharePlain: {
         type: OptionType.BOOLEAN,
+        hidden: true,
         displayName: "Look like plain Discord",
-        description: "Hides Vencord and turns off your other plugins while you share. The hide and fake plugins stay on.",
+        description: "Hides Vencord and every other plugin while you share.",
         default: false,
         onChange: () => refresh()
     },
     shareRestore: {
         type: OptionType.BOOLEAN,
+        hidden: true,
         displayName: "Turn plugins back off after",
         description: "Plugins turned on for the share go back off when it ends.",
         default: true
@@ -147,8 +165,7 @@ let pending: ReturnType<typeof setTimeout> | null = null;
 
 export default definePlugin({
     name: "PluginHub",
-    description: "Additional Settings under Vencord: every one of these plugins in one place, with Screen Share Protection.",
-    tags: ["Utility"],
+    description: "Every one of these plugins in one place, under Vencord.",
     authors: [{ name: "reqon", id: 497562304498368513n }],
 
     settings,

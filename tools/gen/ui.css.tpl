@@ -10,19 +10,67 @@
     margin-right: 6px;
 }
 
+/* this plugin's own page: no Authors section above the card - other plugins' pages keep theirs */
+.vc-settings-modal-content:has(.__PREFIX__-about) > section:first-child {
+    display: none;
+}
+
+.vc-settings-modal-content:has(.__PREFIX__-about) > section:first-child + div {
+    margin-top: 8px;
+}
+
 .__PREFIX__-about {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    padding: 14px 16px;
-    border: 1px solid var(--border-subtle, rgb(128 128 128 / 20%));
     border-radius: var(--radius-md, 12px);
+    background: var(--background-mod-subtle, rgb(128 128 128 / 8%));
 }
 
 .__PREFIX__-about-head {
     display: flex;
-    gap: 10px;
+    gap: 12px;
     align-items: center;
+    width: 100%;
+    padding: 10px 14px 10px 10px;
+    border-radius: var(--radius-md, 12px);
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.__PREFIX__-about-more {
+    display: inline-flex;
+    flex: 0 0 auto;
+    gap: 4px;
+    align-items: center;
+    margin-left: auto;
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 500;
+    transition: color .12s ease;
+}
+
+.__PREFIX__-about-open .__PREFIX__-about-more {
+    color: var(--text-default, var(--text-normal));
+}
+
+.__PREFIX__-about-head:hover .__PREFIX__-about-more {
+    color: var(--text-default, var(--text-normal));
+}
+
+.__PREFIX__-about-chevron {
+    transition: transform .15s ease;
+}
+
+.__PREFIX__-about-open .__PREFIX__-about-chevron {
+    transform: rotate(180deg);
+}
+
+.__PREFIX__-about-body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 2px 16px 14px 62px;
 }
 
 .__PREFIX__-tile {
@@ -47,13 +95,13 @@
 .__PREFIX__-steps {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 6px;
     margin: 0;
-    padding: 0 0 0 18px;
+    padding: 0 0 0 16px;
     color: var(--text-default, var(--text-normal));
     font-size: 14px;
     line-height: 20px;
-    list-style: disc;
+    list-style: decimal;
 }
 
 .__PREFIX__-steps strong {
@@ -328,4 +376,22 @@
 
 .__PREFIX__-menu-chip-on:hover {
     background: var(--background-mod-strong, rgb(128 128 128 / 24%));
+}
+
+/* the way to the rest of a long list */
+.__PREFIX__-show-all {
+    align-self: center;
+    margin-top: 4px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: var(--background-mod-subtle, rgb(128 128 128 / 10%));
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.__PREFIX__-show-all:hover {
+    background: var(--background-mod-normal, rgb(128 128 128 / 16%));
+    color: var(--text-default, var(--text-normal));
 }

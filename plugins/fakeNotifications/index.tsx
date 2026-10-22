@@ -67,8 +67,7 @@ migratePluginSettings("FakeNotifications", "CustomPluginFakeNotifications");
 
 export default definePlugin({
     name: "FakeNotifications",
-    description: "Set the numbers on your friend request and message request badges. Nothing is read, answered or sent, and the real requests are all still there.",
-    tags: ["Notifications", "Appearance"],
+    description: "Set the numbers on your request badges.",
     authors: [{ name: "reqon", id: 497562304498368513n }],
 
     settings,

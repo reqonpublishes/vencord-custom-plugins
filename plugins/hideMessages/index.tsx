@@ -186,8 +186,7 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 export default definePlugin({
     name: "HideMessages",
-    description: "Hide a message, a range of them, or a whole conversation's history. Nothing is deleted and nobody else is affected.",
-    tags: ["Chat", "Appearance", "Privacy"],
+    description: "Hide messages, a stretch of them, or a whole chat.",
     authors: [{ name: "reqon", id: 497562304498368513n }],
     enabledByDefault: true,
 

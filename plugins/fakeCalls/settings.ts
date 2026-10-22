@@ -20,7 +20,7 @@ export const settings = definePluginSettings({
         type: OptionType.BOOLEAN,
         hidden: true,
         displayName: "Show on messages",
-        description: "Show \"Add Fake Call Here\" when you right-click a message in a DM",
+        description: "Show \"Add Fake Call\" when you right-click a message in a DM",
         default: true
     },
     channelMenu: {

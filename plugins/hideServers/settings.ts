@@ -10,17 +10,22 @@ import { OptionType } from "@utils/types";
 import { forgetSavedChannels } from "./channels";
 import { HiddenList } from "./HiddenList";
 import { forgetSaved } from "./store";
+import { menuChips } from "./ui";
 
 export const settings = definePluginSettings({
+    menus: {
+        type: OptionType.COMPONENT,
+        component: menuChips(() => settings, "Show in menus", "Which menus show Hide Server and Hide Channel.", [{ key: "guildMenu", label: "Servers" }, { key: "channelMenu", label: "Channels" }])
+    },
     guildMenu: {
         type: OptionType.BOOLEAN,
-        displayName: "Show in the server menu",
+        hidden: true,
         description: "Hide Server shows when you right-click a server.",
         default: true
     },
     channelMenu: {
         type: OptionType.BOOLEAN,
-        displayName: "Show in the channel menu",
+        hidden: true,
         description: "Hide Channel shows when you right-click a channel in a server.",
         default: true
     },

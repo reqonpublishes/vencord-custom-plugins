@@ -11,7 +11,7 @@ import { ChatIcon, ClockIcon, UndoIcon } from "./icons";
 import { placeOf } from "./places";
 import { describe, onChange, resetAll, resetShift, setShift, shifted } from "./store";
 import { openFakeTime } from "./TimeModal";
-import { cl, Empty, IconButton, Panel, RoundButton, Row } from "./ui";
+import { Empty, IconButton, Panel, RoundButton, Row, Rows } from "./ui";
 import { remember } from "./undo";
 
 function openChat(channelId: string) {
@@ -38,7 +38,7 @@ export function ShiftedList() {
             {!list.length ? (
                 <Empty icon={ClockIcon} title="Nothing moved yet" text="Right-click a conversation, open Fake Options and choose Fake Time." />
             ) : (
-                <div className={cl("rows")}>
+                <Rows>
                     {list.map(([channelId, ms]) => {
                         const place = placeOf(channelId);
                         return (
@@ -56,7 +56,7 @@ export function ShiftedList() {
                             </Row>
                         );
                     })}
-                </div>
+                </Rows>
             )}
         </Panel>
     );

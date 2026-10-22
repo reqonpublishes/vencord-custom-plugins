@@ -20,8 +20,7 @@ migratePluginSettings("CloudSync", "CustomPluginSync");
 
 export default definePlugin({
     name: "CloudSync",
-    description: "Sync these plugins between this computer and your phone with one private code. Nothing syncs until you press a button.",
-    tags: ["Utility"],
+    description: "Sync these plugins with your phone using one private code.",
     authors: [{ name: "reqon", id: 497562304498368513n }],
 
     settings,

@@ -118,8 +118,7 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 export default definePlugin({
     name: "HideServers",
-    description: "Hide servers from your server list, and channels from a server's channel list. You stay in all of them and nobody is told.",
-    tags: ["Servers", "Appearance", "Privacy"],
+    description: "Hide servers and channels from your lists.",
     authors: [{ name: "reqon", id: 497562304498368513n }],
     enabledByDefault: true,
 

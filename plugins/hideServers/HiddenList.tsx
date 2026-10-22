@@ -10,7 +10,7 @@ import { SelectedGuildStore } from "@webpack/common";
 import { channelCount, channelInfo, hiddenChannels, hideChannel, showAllChannels, showChannel } from "./channels";
 import { EyeIcon, EyeOffIcon, HashIcon } from "./icons";
 import { count, hideAll, hideServer, infoOf, names, showAll, showServer } from "./store";
-import { cl, Empty, IconButton, Panel, RoundButton, Row } from "./ui";
+import { cl,Empty, IconButton, Panel, RoundButton, Row, Rows } from "./ui";
 import { done } from "./undo";
 
 /**
@@ -67,7 +67,7 @@ export function HiddenList() {
             {!!(held.length || channels.length) && (
                 <div className={cl("rows")}>
                     {!!held.length && <div className={cl("group-title")}>Servers &mdash; {held.length}</div>}
-                    {held.map(([guildId]) => {
+                    <Rows>{held.map(([guildId]) => {
                         const info = infoOf(guildId);
 
                         return (
@@ -75,9 +75,9 @@ export function HiddenList() {
                                 <RoundButton icon={EyeIcon} label="Unhide" onClick={() => { done("Unhide Server", () => showServer(guildId), () => hideServer(guildId)); update(); }} />
                             </Row>
                         );
-                    })}
+                    })}</Rows>
                     {!!channels.length && <div className={cl("group-title")}>Channels &mdash; {channels.length}</div>}
-                    {channels.map(([channelId]) => {
+                    <Rows>{channels.map(([channelId]) => {
                         const info = channelInfo(channelId);
 
                         return (
@@ -85,7 +85,7 @@ export function HiddenList() {
                                 <RoundButton icon={EyeIcon} label="Unhide" onClick={() => { done("Unhide Channel", () => showChannel(channelId), () => hideChannel(channelId)); update(); }} />
                             </Row>
                         );
-                    })}
+                    })}</Rows>
                 </div>
             )}
         </Panel>

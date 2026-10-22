@@ -9,7 +9,7 @@ import { useForceUpdater } from "@utils/react";
 import { PhoneIcon, TrashIcon } from "./icons";
 import { placeOf } from "./places";
 import { clearAll, clearChannel, perChat, total } from "./store";
-import { cl, Empty, IconButton, Panel, Row } from "./ui";
+import { Empty, IconButton, Panel, Row, Rows } from "./ui";
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
@@ -28,9 +28,9 @@ export function AddedPanel() {
             ) : undefined}
         >
             {!n ? (
-                <Empty icon={PhoneIcon} title="No fake calls" text="Right-click a message in a DM and choose Add Fake Call Here." />
+                <Empty icon={PhoneIcon} title="No fake calls" text="Right-click a message in a DM and choose Add Fake Call." />
             ) : (
-                <div className={cl("rows")}>
+                <Rows>
                     {places.map(([channelId, count]) => {
                         const place = placeOf(channelId);
                         return (
@@ -39,7 +39,7 @@ export function AddedPanel() {
                             </Row>
                         );
                     })}
-                </div>
+                </Rows>
             )}
         </Panel>
     );

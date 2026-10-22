@@ -105,7 +105,7 @@ const messageCtx: NavContextMenuPatchCallback = (children, { message }: { messag
         <Menu.MenuItem
             id="vc-cfm-add"
             key="vc-cfm-add"
-            label="Add Fake Message Here"
+            label="Add Fake Message"
             icon={ChatAddIcon}
             leadingAccessory={{ type: "icon", icon: ChatAddIcon }}
             // Seeded from the message underneath: the same person, a moment later. Most
@@ -163,8 +163,7 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 export default definePlugin({
     name: "FakeMessages",
-    description: "Add a message to any conversation that nobody sent. Choose who it is from, what it says and when. Nothing is sent to Discord and nobody else sees it.",
-    tags: ["Chat", "Utility"],
+    description: "Add messages nobody sent.",
     authors: [{ name: "reqon", id: 497562304498368513n }],
 
     settings,
@@ -181,7 +180,7 @@ export default definePlugin({
             icon={ChatAddIcon}
             title="Add messages nobody sent"
             steps={[
-                <>Right-click a message and choose <strong>Add Fake Message Here</strong>, or right-click a DM or channel and choose <strong>Add Fake Message</strong>.</>,
+                <>Right-click a message and choose <strong>Add Fake Message</strong>, or right-click a DM or channel and choose <strong>Add Fake Message</strong>.</>,
                 <>Right-click a fake message for <strong>Edit Fake Message</strong>, <strong>Forward</strong> and <strong>Remove Fake Message</strong>. Editing needs Inspect Messages on.</>,
                 <>Discord's own Edit and Delete work on it too. A reply to it is sent as a normal message.</>
             ]}
