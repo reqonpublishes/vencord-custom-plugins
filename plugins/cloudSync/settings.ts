@@ -29,11 +29,11 @@ const off = (name: string) => () => !isPluginEnabled(name) || !isKept(name);
 /** When a sync last went each way, and what it carried */
 /** What can be synced, in the order the panel shows them */
 export const PARTS: { key: string; plugin: string; label: string; }[] = [
+    { key: "inspectMessages", plugin: "InspectMessages", label: "Inspect Messages" },
     { key: "hideMessages", plugin: "HideMessages", label: "Hide Messages" },
     { key: "hideDMs", plugin: "HideDMs", label: "Hide DMs" },
     { key: "hideFriends", plugin: "HideFriends", label: "Hide Friends" },
     { key: "hideServers", plugin: "HideServers", label: "Hide Servers" },
-    { key: "inspectMessages", plugin: "InspectMessages", label: "Inspect Messages" },
     { key: "fakeMessages", plugin: "FakeMessages", label: "Fake Messages" },
     { key: "fakeFriends", plugin: "FakeFriends", label: "Fake Friends" },
     { key: "fakeCalls", plugin: "FakeCalls", label: "Fake Calls" },

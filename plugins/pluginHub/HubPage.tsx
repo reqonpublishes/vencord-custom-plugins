@@ -32,16 +32,14 @@ function PluginRow({ entry, onChange }: { entry: Entry; onChange(): void; }) {
     const tag = on ? summaryOf(entry) : "";
 
     return (
-        <div className={cl("item", on ? "" : "item-off", enabled ? "" : "item-disabled")}>
+        <div className={cl("item", on ? "" : "item-off")}>
             <div className={cl("tile")}>
                 <Icon height={20} width={20} />
             </div>
             <div className={cl("item-text")}>
                 <div className={cl("item-name")}>{label}</div>
                 <div className={cl("item-detail")}>
-                    {!enabled
-                        ? "Enable it in Vencord's Plugins page to use it here"
-                        : waiting ? "Turns on when Discord restarts" : entry.about}
+                    {waiting ? "Turns on when Discord restarts" : entry.about}
                 </div>
             </div>
             {tag && <span className={cl("tag")}>{tag}</span>}
@@ -57,7 +55,6 @@ function PluginRow({ entry, onChange }: { entry: Entry; onChange(): void; }) {
             </Button>
             <Switch
                 checked={on || waiting}
-                disabled={!enabled}
                 onChange={next => {
                     const result = setOn(plugin, next);
 

@@ -29,8 +29,8 @@ export interface Entry {
 }
 
 export const SECTIONS: { id: Section; title: string; }[] = [
-    { id: "hide", title: "Hide" },
     { id: "inspect", title: "Inspect" },
+    { id: "hide", title: "Hide" },
     { id: "fake", title: "Fake" },
     { id: "tools", title: "Tools" }
 ];
@@ -38,17 +38,17 @@ export const SECTIONS: { id: Section; title: string; }[] = [
 /**
  * Every plugin this page looks after, in the order the right-click menus use.
  *
- * Hide and Fake are the ones that change what Discord shows you - and so the ones the
+ * Inspect, Hide and Fake are the ones that change what Discord shows you - and so the ones the
  * switch at the top is about. Turning one off puts the real thing back on screen and keeps
  * everything it was holding, which is what makes it a switch rather than a reset.
  */
 export const ENTRIES: Entry[] = [
+    { plugin: "InspectMessages", label: "Inspect Messages", icon: InspectIcon, section: "inspect", about: "Change what a message says and when it was sent" },
+    { plugin: "InspectProfiles", label: "Inspect Profiles", icon: MasksIcon, section: "inspect", about: "Change how any profile looks, and steal whole profiles" },
     { plugin: "HideMessages", label: "Hide Messages", icon: EyeOffIcon, section: "hide", about: "Hide messages, ranges or whole conversations" },
     { plugin: "HideDMs", label: "Hide DMs", icon: ChatIcon, section: "hide", about: "Hide conversations from your DM list" },
     { plugin: "HideFriends", label: "Hide Friends", icon: PersonOffIcon, section: "hide", about: "Hide friends and friend requests" },
     { plugin: "HideServers", label: "Hide Servers", icon: ServerIcon, section: "hide", about: "Hide servers from your server list" },
-    { plugin: "InspectMessages", label: "Inspect Messages", icon: InspectIcon, section: "inspect", about: "Change what a message says and when it was sent" },
-    { plugin: "InspectProfiles", label: "Inspect Profiles", icon: MasksIcon, section: "inspect", about: "Change how any profile looks, and steal whole profiles" },
     { plugin: "FakeMessages", label: "Fake Messages", icon: ChatAddIcon, section: "fake", about: "Add messages nobody sent" },
     { plugin: "FakeFriends", label: "Fake Friends", icon: PersonAddIcon, section: "fake", about: "Fake friends, friend requests and blocks" },
     { plugin: "FakeCalls", label: "Fake Calls", icon: PhoneAddIcon, section: "fake", about: "Add calls that never happened" },
@@ -148,9 +148,16 @@ function remember(name: string, off: boolean) {
 export function setOn(name: string, on: boolean): "done" | "restart" | "failed" {
     const manager = PM();
     const plugin = pluginOf(name);
-    if (!manager || !plugin || !isEnabled(name)) return "failed";
+    if (!manager || !plugin) return "failed";
 
     try {
+        // Off in Vencord: switching it on here switches it on there too, so the Plugins page
+        // is never a detour. Off is already off.
+        if (!isEnabled(name)) {
+            if (!on) return "done";
+            Settings.plugins[name].enabled = true;
+        }
+
         if (!on) {
             if (plugin.started && !manager.stopPlugin(plugin)) return "failed";
 

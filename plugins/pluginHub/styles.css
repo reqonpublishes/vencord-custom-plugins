@@ -73,12 +73,6 @@
     color: var(--text-muted);
 }
 
-/* disabled in Vencord itself: there to be seen, not to be used */
-.vc-hub-item-disabled .vc-hub-tile,
-.vc-hub-item-disabled .vc-hub-item-text {
-    opacity: .45;
-}
-
 .vc-hub-cog {
     flex: 0 0 auto;
     width: 32px;
