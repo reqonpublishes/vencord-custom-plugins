@@ -9,8 +9,7 @@ import { Logger } from "@utils/Logger";
 import { Flux } from "@webpack/common";
 
 import {
-    BellIcon, BoltIcon, BookmarkIcon, ChatAddIcon, ChatIcon, CloudIcon, EyeOffIcon, IconComponent, InspectIcon, MasksIcon, PersonAddIcon, PersonOffIcon,
-PhoneAddIcon, ServerIcon, ShieldIcon, SpeedIcon
+    BellIcon, BoltIcon, BookmarkIcon, ChatAddIcon, ChatOffIcon, CloudIcon, IconComponent, InspectIcon, MailOffIcon, MasksIcon, PersonAddIcon, PersonOffIcon, PhoneAddIcon, ServerIcon, ShieldIcon, SpeedIcon
 } from "./icons";
 
 const logger = new Logger("PluginHub");
@@ -45,8 +44,8 @@ export const SECTIONS: { id: Section; title: string; }[] = [
 export const ENTRIES: Entry[] = [
     { plugin: "InspectMessages", label: "Inspect Messages", icon: InspectIcon, section: "inspect", about: "Change what a message says and when it was sent" },
     { plugin: "InspectProfiles", label: "Inspect Profiles", icon: MasksIcon, section: "inspect", about: "Change how any profile looks, and steal whole profiles" },
-    { plugin: "HideMessages", label: "Hide Messages", icon: EyeOffIcon, section: "hide", about: "Hide messages, ranges or whole conversations" },
-    { plugin: "HideDMs", label: "Hide DMs", icon: ChatIcon, section: "hide", about: "Hide conversations from your DM list" },
+    { plugin: "HideMessages", label: "Hide Messages", icon: ChatOffIcon, section: "hide", about: "Hide messages, ranges or whole conversations" },
+    { plugin: "HideDMs", label: "Hide DMs", icon: MailOffIcon, section: "hide", about: "Hide conversations from your DM list" },
     { plugin: "HideFriends", label: "Hide Friends", icon: PersonOffIcon, section: "hide", about: "Hide friends and friend requests" },
     { plugin: "HideServers", label: "Hide Servers", icon: ServerIcon, section: "hide", about: "Hide servers from your server list" },
     { plugin: "FakeMessages", label: "Fake Messages", icon: ChatAddIcon, section: "fake", about: "Add messages nobody sent" },

@@ -550,3 +550,31 @@
 .vc-cfmod-footnote svg {
     flex: 0 0 auto;
 }
+
+/* ---------------------------------------------------------------- time buttons under a date */
+
+/* the nudges share the width evenly, edge to edge with the date above; Now and Original keep their size */
+.vc-cfmod-shifts {
+    display: flex;
+    gap: 4px;
+    margin-top: 8px;
+}
+
+.vc-cfmod-shifts > .vc-cfmod-chip {
+    flex: 1 1 0;
+    justify-content: center;
+    height: 28px;
+    padding: 0 8px;
+}
+
+.vc-cfmod-shifts > .vc-cfmod-chip-wide {
+    flex: 0 0 auto;
+}
+
+.vc-cfmod-shifts-end {
+    justify-content: flex-end;
+}
+
+.vc-cfmod-shifts-end > .vc-cfmod-chip {
+    flex: 0 0 auto;
+}

@@ -11,7 +11,7 @@ import { UserStore } from "@webpack/common";
 import { badgesFor, realKeys } from "./badges";
 import { isStored, urlOf } from "./images";
 import { realActivities, realOutbox, realStatus, realWidgets } from "./presence";
-import { changes, Look, lookFor, NOTHING } from "./store";
+import { changes, Look, lookFor, NOTHING, presetCalled, switcherNames } from "./store";
 
 const logger = new Logger("InspectProfiles");
 
@@ -173,7 +173,11 @@ function profileCopy(profile: any) {
 /** The chosen picture for somebody, when it is an address. Called from Discord's own code */
 export function avatarFor(user: any): string | undefined {
     if (!running) return;
-    const chosen = lookFor(user?.id ?? user?.userId)?.avatar;
+    const id = user?.id ?? user?.userId;
+    const preset = presetForAccount(id);
+    if (preset) return pictureUrl(presetCalled(preset)?.avatar);
+
+    const chosen = lookFor(id)?.avatar;
     return pictureUrl(chosen);
 }
 
@@ -299,7 +303,10 @@ const accountLists = new Map<string, { from: any[]; version: number; list: any[]
  * never from what this answers, so the real accounts are untouched.
  */
 function accountsCopy(key: string, list: any[]) {
-    if (!running || !Array.isArray(list) || !list.some(account => lookFor(account?.id))) return list;
+    if (!running || !Array.isArray(list)) return list;
+
+    const presets = switcherNames();
+    if (!presets.length && !list.some(account => lookFor(account?.id))) return list;
 
     const held = accountLists.get(key);
     if (held && held.from === list && held.version === changes()) return held.list;
@@ -313,9 +320,47 @@ function accountsCopy(key: string, list: any[]) {
         if (look.avatar) shown.avatar = look.avatar === NOTHING ? null : (isAddress(look.avatar) ? MARK : look.avatar);
         return shown;
     });
+
+    // The presets you put in Switch Accounts, after the real accounts, each as a row of its
+    // own. Choosing one wears it - see switchTo in index.tsx - so nothing ever logs in.
+    for (const name of presets) {
+        const look = presetCalled(name)!;
+        copy.push({
+            id: presetAccountId(name),
+            username: look.username ?? look.globalName ?? name,
+            globalName: look.globalName ?? null,
+            avatar: look.avatar && look.avatar !== NOTHING ? MARK : null,
+            discriminator: "0",
+            tokenStatus: 2,
+            pushSyncToken: null
+        });
+    }
+
     accountLists.set(key, { from: list, version: changes(), list: copy });
     return copy;
 }
+
+/**
+ * The id a preset's row in Switch Accounts goes by.
+ *
+ * Digits like a real one, so anything Discord works out from an id still works - the default
+ * picture, sorting - and starting with a 9, which no account will have for a few hundred
+ * years. The same name always gives the same id, so the row keeps its place.
+ */
+export function presetAccountId(name: string): string {
+    let hash = 0n;
+    for (const char of name) hash = (hash * 131n + BigInt(char.codePointAt(0)!)) % 10n ** 17n;
+    return "9" + String(hash).padStart(17, "0") + "7";
+}
+
+/** Which preset a Switch Accounts row stands for, if it stands for one */
+export function presetForAccount(id?: string | null): string | undefined {
+    if (!id || !id.startsWith("9")) return;
+    return switcherNames().find(name => presetAccountId(name) === id);
+}
+
+/** How many of the rows are real accounts, so a drag among the made-up rows can be told apart */
+export const realAccountCount = () => realGetAccounts?.call(accountStore())?.length ?? 0;
 
 // ---------------------------------------------------------------- stealing
 

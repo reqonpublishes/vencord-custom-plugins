@@ -540,6 +540,13 @@
     color: var(--interactive-hover, var(--text-default));
 }
 
+/* a switch drawn as an icon: lit while it is on */
+.vc-cip-icon-on,
+.vc-cip-icon-on:hover {
+    background: var(--background-mod-strong, rgb(128 128 128 / 24%));
+    color: var(--interactive-active, var(--text-strong, var(--text-default)));
+}
+
 /* taking something away reads as red before you reach it, as Discord's own delete buttons do */
 .vc-cip-icon-danger {
     color: var(--text-feedback-critical, var(--status-danger));
@@ -1023,4 +1030,23 @@
     color: var(--text-muted);
     font-size: 12px;
     text-align: center;
+}
+
+/* the animation over a decoration's still, shown while the tile is under the pointer */
+.vc-cip-shop-moving {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.vc-cip-shop-moving:not([src]) {
+    display: none;
+}
+
+.vc-cip-shop-tile:hover .vc-cip-shop-moving {
+    opacity: 1;
 }

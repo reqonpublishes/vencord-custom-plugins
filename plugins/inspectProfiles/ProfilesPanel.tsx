@@ -7,7 +7,7 @@
 import { React, UserStore, UserUtils } from "@webpack/common";
 
 import { BookmarkIcon, PencilIcon, PersonIcon, TrashIcon, UndoIcon } from "./icons";
-import { openInspect } from "./InspectModal";
+import { openInspect, SwitcherToggle } from "./InspectModal";
 import { pictureUrl, realUser } from "./rewrite";
 import { deletePreset, editedIds, load, lookFor, onChange, presetCalled, presetNames, revert, revertAll, summary } from "./store";
 import { Empty, IconButton, Panel, Row } from "./ui";
@@ -69,6 +69,7 @@ export function ProfilesPanel() {
             <Panel title="Presets" count={presets.length}>
                 {presets.length ? presets.map(called => (
                     <Row key={called} image={pictureUrl(presetCalled(called)?.avatar)} icon={BookmarkIcon} name={called} detail={summary(presetCalled(called))}>
+                        <SwitcherToggle name={called} />
                         <button className="vc-cip-icon-button vc-cip-icon-danger" aria-label={`Delete ${called}`} title="Delete" onClick={() => deletePreset(called)}>
                             <TrashIcon height={16} width={16} />
                         </button>

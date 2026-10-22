@@ -10,7 +10,7 @@ import { NavContextMenuPatchCallback } from "@api/ContextMenu";
 import { definePluginSettings, Settings } from "@api/Settings";
 import definePlugin, { OptionType } from "@utils/types";
 import { User } from "@vencord/discord-types";
-import { Menu, showToast, UserStore } from "@webpack/common";
+import { FluxDispatcher, Menu, showToast, UserStore } from "@webpack/common";
 
 import { InspectIcon, MasksIcon, UndoIcon } from "./icons";
 import { forgetUnused, preload, whenReady } from "./images";
@@ -18,9 +18,9 @@ import { openInspect } from "./InspectModal";
 import { place } from "./menu";
 import { redrawPresence, startPresence, stopPresence } from "./presence";
 import { ProfilesPanel } from "./ProfilesPanel";
-import { avatarFor, bannerFor, joinedAt, profileLoaded, redraw, startRewriting, stopRewriting } from "./rewrite";
+import { avatarFor, bannerFor, joinedAt, presetForAccount, profileLoaded, realAccountCount, redraw, startRewriting, stopRewriting } from "./rewrite";
 import { loadWhole, stealLook } from "./steal";
-import { asRecord, editedIds, invalidate, load, lookFor, onChange, presetNames, revert, savePreset } from "./store";
+import { asRecord, editedIds, invalidate, load, lookFor, onChange, presetCalled, presetNames, revert, savePreset, setInSwitcher, setLook } from "./store";
 import { About, menuChips } from "./ui";
 
 const settings = definePluginSettings({
@@ -141,6 +141,9 @@ function tidyPictures() {
 }
 let runs = 0;
 
+/** Whether the Switch Accounts drag guard is on. Put on once: an interceptor cannot be taken off */
+let guardingMoves = false;
+
 export default definePlugin({
     name: "InspectProfiles",
     description: "Change how anybody's profile looks to you: names, bio, badges, pictures, colours, connections and the day they joined. Steal a whole profile as a preset and wear it. Nothing is sent to Discord.",
@@ -202,6 +205,22 @@ export default definePlugin({
             }
         },
         {
+            // Switch Accounts. A preset you put there is a row of its own; choosing it wears the
+            // preset rather than logging in, and its X takes it off the list rather than
+            // forgetting an account. Choosing yourself while wearing a look takes it off.
+            find: '"MultiAccountActionCreators"',
+            replacement: [
+                {
+                    match: /(function \i\((\i),\i,\i\)\{)(\i\.log\(`Switching account to )/,
+                    replace: "$1if($self.switchTo($2))return Promise.resolve();$3"
+                },
+                {
+                    match: /(function \i\((\i)\)\{)(\i\.\i\.dispatch\(\{type:"MULTI_ACCOUNT_REMOVE_ACCOUNT")/,
+                    replace: "$1if($self.removeFromSwitcher($2))return;$3"
+                }
+            ]
+        },
+        {
             // Member Since on a profile, which works the day out from the id rather than reading
             // it off the user - so the day chosen has to be answered here as well.
             find: /textClassName:\i,tooltipDelay:\i\}=\i/,
@@ -214,6 +233,40 @@ export default definePlugin({
 
     avatarFor,
     joinedAt,
+
+    /** A Switch Accounts row was chosen. True when it was ours to handle, so nothing logs in */
+    switchTo(accountId: string) {
+        if (!active) return false;
+        const me = UserStore.getCurrentUser()?.id;
+        if (!me) return false;
+
+        const name = presetForAccount(accountId);
+        if (name) {
+            const look = presetCalled(name);
+            if (!look) return false;
+
+            setLook(me, { ...look });
+            showToast({ text: `You now look like ${name}`, variant: "success" });
+            return true;
+        }
+
+        if (accountId === me && lookFor(me)) {
+            revert(me);
+            showToast({ text: "You look like yourself again", variant: "success" });
+            return true;
+        }
+
+        return false;
+    },
+
+    /** A preset row's X: off the list, the preset itself kept */
+    removeFromSwitcher(accountId: string) {
+        const name = active && presetForAccount(accountId);
+        if (!name) return false;
+
+        setInSwitcher(name, false);
+        return true;
+    },
 
     /** Whether you are wearing a look - your profile then shows the tabs anyone else's would */
     wearing(userId: string) {
@@ -258,6 +311,16 @@ export default definePlugin({
     async start() {
         active = true;
         const mine = ++runs;
+
+        // Dragging in Switch Accounts reorders the saved accounts by place in the list - and the
+        // presets are only in the list shown. A drag that touches one of them is let go of here,
+        // before it can shuffle the real accounts by places they do not have.
+        if (!guardingMoves) {
+            guardingMoves = true;
+            FluxDispatcher.addInterceptor((action: any) =>
+                action?.type === "MULTI_ACCOUNT_MOVE_ACCOUNT" && active
+                && (action.from >= realAccountCount() || action.to >= realAccountCount()));
+        }
         await load();
         if (mine !== runs) return;
 

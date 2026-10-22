@@ -79,11 +79,13 @@ interface State {
     profiles: Record<string, Look>;
     /** a name you gave a look -> the look */
     presets: Record<string, Look>;
+    /** the presets listed in Switch Accounts, in the order they were added */
+    switcher?: string[];
 }
 
 const KEY = "InspectProfiles_State";
 
-let state: State = { profiles: {}, presets: {} };
+let state: State = { profiles: {}, presets: {}, switcher: [] };
 
 let loading: Promise<void> | null = null;
 
@@ -91,7 +93,7 @@ let loading: Promise<void> | null = null;
 export function load() {
     loading ??= (async () => {
         const stored = await get<State>(KEY);
-        if (stored) state = { profiles: stored.profiles ?? {}, presets: stored.presets ?? {} };
+        if (stored) state = { profiles: stored.profiles ?? {}, presets: stored.presets ?? {}, switcher: stored.switcher ?? [] };
     })();
 
     return loading;
@@ -105,7 +107,7 @@ export function invalidate() {
 export const asRecord = () => state;
 
 export function replaceAll(next: Partial<State>) {
-    state = { profiles: next.profiles ?? {}, presets: next.presets ?? {} };
+    state = { profiles: next.profiles ?? {}, presets: next.presets ?? {}, switcher: next.switcher ?? state.switcher ?? [] };
     save();
 }
 
@@ -223,8 +225,23 @@ export function deletePreset(name: string): boolean {
 
     const { [name]: _gone, ...rest } = state.presets;
     state.presets = rest;
+    state.switcher = (state.switcher ?? []).filter(other => other !== name);
     save();
     return true;
+}
+
+// ---------------------------------------------------------------- presets in Switch Accounts
+
+/** The presets listed in Switch Accounts, the ones that still exist */
+export const switcherNames = () => (state.switcher ?? []).filter(name => !!state.presets[name]);
+export const inSwitcher = (name: string) => switcherNames().includes(name);
+
+export function setInSwitcher(name: string, on: boolean) {
+    if (!state.presets[name] || inSwitcher(name) === on) return;
+
+    const rest = (state.switcher ?? []).filter(other => other !== name);
+    state.switcher = on ? [...rest, name] : rest;
+    save();
 }
 
 /** What is in a look, so a row says what it would do before anybody presses it */

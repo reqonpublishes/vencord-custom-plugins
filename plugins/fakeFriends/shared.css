@@ -550,3 +550,31 @@
 .vc-cff-footnote svg {
     flex: 0 0 auto;
 }
+
+/* ---------------------------------------------------------------- time buttons under a date */
+
+/* the nudges share the width evenly, edge to edge with the date above; Now and Original keep their size */
+.vc-cff-shifts {
+    display: flex;
+    gap: 4px;
+    margin-top: 8px;
+}
+
+.vc-cff-shifts > .vc-cff-chip {
+    flex: 1 1 0;
+    justify-content: center;
+    height: 28px;
+    padding: 0 8px;
+}
+
+.vc-cff-shifts > .vc-cff-chip-wide {
+    flex: 0 0 auto;
+}
+
+.vc-cff-shifts-end {
+    justify-content: flex-end;
+}
+
+.vc-cff-shifts-end > .vc-cff-chip {
+    flex: 0 0 auto;
+}

@@ -27,9 +27,9 @@ function fromInputValue(value: string) {
 }
 
 
-function Chip({ onClick, children }: { onClick(): void; children: string; }) {
+function Chip({ onClick, children, wide }: { onClick(): void; children: string; wide?: boolean; }) {
     return (
-        <button className={cl("chip")} onClick={onClick}>
+        <button className={cl("chip", wide ? "chip-wide" : "")} onClick={onClick}>
             {children}
         </button>
     );
@@ -70,7 +70,8 @@ const OFFSETS = [
     { label: "-1h", ms: -HOUR },
     { label: "-5m", ms: -5 * MINUTE },
     { label: "+5m", ms: 5 * MINUTE },
-    { label: "+1h", ms: HOUR }
+    { label: "+1h", ms: HOUR },
+    { label: "+1d", ms: DAY }
 ];
 
 /** Past this many, a row of faces stops being a quick pick and becomes a wall */
@@ -196,27 +197,6 @@ function AddMessageModal({ rootProps, seed }: { rootProps: RenderModalProps; see
             </section>
 
             <section className={cl("section")}>
-                <h3 className={cl("label")}>Sent</h3>
-                <DateTimeField
-                    value={sentAt}
-                    onChange={next => {
-                        setSentAt(next);
-                        setError(null);
-                    }}
-                />
-                <div className={cl("line")}>
-                    <div className={cl("chips")}>
-                        {OFFSETS.map(({ label, ms }) => (
-                            <Chip key={label} onClick={() => nudge(ms)}>{label}</Chip>
-                        ))}
-                    </div>
-                    <div className={cl("chips")}>
-                        <Chip onClick={() => setSentAt(toInputValue(new Date()))}>Now</Chip>
-                    </div>
-                </div>
-            </section>
-
-            <section className={cl("section")}>
                 <h3 className={cl("label")}>Message</h3>
                 <TextArea
                     value={content}
@@ -233,13 +213,30 @@ function AddMessageModal({ rootProps, seed }: { rootProps: RenderModalProps; see
                 />
             </section>
 
+            <section className={cl("section")}>
+                <h3 className={cl("label")}>Sent</h3>
+                <DateTimeField
+                    value={sentAt}
+                    onChange={next => {
+                        setSentAt(next);
+                        setError(null);
+                    }}
+                />
+                <div className={cl("shifts")}>
+                    {OFFSETS.map(({ label, ms }) => (
+                        <Chip key={label} onClick={() => nudge(ms)}>{label}</Chip>
+                    ))}
+                    <Chip wide onClick={() => setSentAt(toInputValue(new Date()))}>Now</Chip>
+                </div>
+            </section>
+
             <section className={cl("section", "section-last")}>
                 <h3 className={cl("label")}>Appearance</h3>
                 <div className={cl("card")}>
                     <FormSwitch
                         className={cl("switch")}
                         title="Highlighted message"
-                        description="The message looks as if it had mentioned you"
+                        description="Looks as if it mentioned you"
                         value={highlight}
                         onChange={setHighlight}
                         hideBorder
@@ -250,7 +247,7 @@ function AddMessageModal({ rootProps, seed }: { rootProps: RenderModalProps; see
                     <FormSwitch
                         className={cl("switch")}
                         title={"Show \"(edited)\" tag"}
-                        description="Adds the edited marker to it"
+                        description="Adds the edited marker"
                         value={edited}
                         onChange={setEdited}
                         hideBorder
@@ -259,7 +256,7 @@ function AddMessageModal({ rootProps, seed }: { rootProps: RenderModalProps; see
 
                 <div className={cl("footnote")}>
                     <LockIcon height={14} width={14} />
-                    <span>Only you can see this message. Nothing is sent.</span>
+                    <span>Only you see this message. Nothing is sent to Discord.</span>
                 </div>
             </section>
         </Modal>

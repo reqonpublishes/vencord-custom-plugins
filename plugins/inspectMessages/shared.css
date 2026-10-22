@@ -329,3 +329,252 @@
 .vc-cim-menu-chip-on:hover {
     background: var(--background-mod-strong, rgb(128 128 128 / 24%));
 }
+
+/* ---------------------------------------------------------------- modal form */
+
+/*
+ * One rhythm for the whole form: every block is a section, every section is separated by
+ * the same gap, and nothing sets its own ad-hoc margins.
+ */
+.vc-cim-section {
+    margin-bottom: 20px;
+}
+
+.vc-cim-section-last {
+    margin-bottom: 0;
+}
+
+.vc-cim-label {
+    margin: 0 0 8px;
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 700;
+    font-family: var(--font-display, var(--font-primary));
+    line-height: 16px;
+    letter-spacing: .02em;
+    text-transform: uppercase;
+}
+
+.vc-cim-field {
+    display: flex;
+    gap: 8px;
+}
+
+.vc-cim-input {
+    flex: 1 1 150px;
+    min-width: 0;
+    padding: 8px 8px 8px 11px;
+    border: 1px solid rgb(128 128 128 / 22%);
+    border-radius: 6px;
+    background: rgb(128 128 128 / 18%);
+    color: var(--text-default, var(--text-normal));
+    font-size: 14px;
+    font-family: var(--font-primary);
+    font-variant-numeric: tabular-nums;
+    color-scheme: dark;
+    cursor: text;
+    transition: background-color .15s ease, border-color .15s ease;
+}
+
+.vc-cim-input-time {
+    flex: 0 0 auto;
+    min-width: 158px;
+}
+
+.vc-cim-input:hover {
+    background: rgb(128 128 128 / 26%);
+}
+
+.vc-cim-input:focus {
+    border-color: var(--border-strong, rgb(128 128 128 / 45%));
+    outline: none;
+}
+
+/* ships as a black glyph, so it is inverted to a mid grey that shows on any field */
+.vc-cim-input::-webkit-calendar-picker-indicator {
+    margin-left: 4px;
+    padding: 0;
+    opacity: 1;
+    cursor: pointer;
+    filter: invert(55%);
+}
+
+.vc-cim-line {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 8px;
+}
+
+.vc-cim-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.vc-cim-chip {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    padding: 5px 10px;
+    border-radius: 6px;
+    background: var(--background-mod-subtle, rgb(128 128 128 / 10%));
+    color: var(--text-default, var(--text-normal));
+    font-size: 12px;
+    font-weight: 500;
+    font-family: var(--font-primary);
+    font-variant-numeric: tabular-nums;
+    line-height: 16px;
+    cursor: pointer;
+    transition: background-color .15s ease, border-color .15s ease;
+}
+
+.vc-cim-chip:hover {
+    background: var(--background-mod-normal, rgb(128 128 128 / 16%));
+}
+
+.vc-cim-chip-on,
+.vc-cim-chip-on:hover {
+    background: var(--background-mod-strong, rgb(128 128 128 / 24%));
+    color: var(--text-strong, var(--header-primary));
+}
+
+/* a choice between people or options: bigger than a chip, one of them always picked */
+.vc-cim-choices {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.vc-cim-choice {
+    display: flex;
+    flex: 1 1 140px;
+    gap: 10px;
+    align-items: center;
+    min-width: 0;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: var(--background-mod-subtle, rgb(128 128 128 / 10%));
+    color: var(--text-default, var(--text-normal));
+    font-family: var(--font-primary);
+    text-align: start;
+    cursor: pointer;
+    transition: background-color .15s ease, border-color .15s ease;
+}
+
+.vc-cim-choice:hover {
+    background: var(--background-mod-normal, rgb(128 128 128 / 16%));
+}
+
+.vc-cim-choice-on,
+.vc-cim-choice-on:hover {
+    background: var(--background-mod-strong, rgb(128 128 128 / 24%));
+    color: var(--text-strong, var(--header-primary));
+}
+
+.vc-cim-choice img,
+.vc-cim-choice-blank {
+    flex: 0 0 auto;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+}
+
+.vc-cim-choice-blank {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgb(128 128 128 / 26%);
+    color: var(--text-muted);
+}
+
+.vc-cim-choice-text {
+    min-width: 0;
+}
+
+.vc-cim-choice-name,
+.vc-cim-choice-detail {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vc-cim-choice-name {
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 18px;
+}
+
+.vc-cim-choice-detail {
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 16px;
+}
+
+/* the switches read as one panel, set apart from the plain fields around them */
+.vc-cim-card {
+    padding: 2px 12px;
+    border: 1px solid rgb(128 128 128 / 14%);
+    border-radius: 8px;
+    background: rgb(128 128 128 / 7%);
+}
+
+.vc-cim-switch {
+    margin: 10px 0;
+}
+
+.vc-cim-divider {
+    height: 1px;
+    background: rgb(128 128 128 / 14%);
+}
+
+.vc-cim-hint {
+    margin-top: 6px;
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 16px;
+}
+
+.vc-cim-footnote {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin-top: 14px;
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 16px;
+}
+
+.vc-cim-footnote svg {
+    flex: 0 0 auto;
+}
+
+/* ---------------------------------------------------------------- time buttons under a date */
+
+/* the nudges share the width evenly, edge to edge with the date above; Now and Original keep their size */
+.vc-cim-shifts {
+    display: flex;
+    gap: 4px;
+    margin-top: 8px;
+}
+
+.vc-cim-shifts > .vc-cim-chip {
+    flex: 1 1 0;
+    justify-content: center;
+    height: 28px;
+    padding: 0 8px;
+}
+
+.vc-cim-shifts > .vc-cim-chip-wide {
+    flex: 0 0 auto;
+}
+
+.vc-cim-shifts-end {
+    justify-content: flex-end;
+}
+
+.vc-cim-shifts-end > .vc-cim-chip {
+    flex: 0 0 auto;
+}

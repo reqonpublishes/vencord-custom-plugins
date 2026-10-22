@@ -95,6 +95,30 @@ function LazyPicture({ src }: { src: string; }) {
     return <img ref={ref} src={shown} alt="" />;
 }
 
+/**
+ * A decoration's animation, played while the pointer is over its tile.
+ *
+ * The still frames of two variants can be the same picture - Jack Skellington's Base and Bones
+ * differ only once they move - so a still on its own makes them look like one item twice.
+ * Asked for on the first hover only, so a shop of hundreds does not download hundreds of
+ * animations.
+ */
+function Moving({ asset, skuId }: { asset: string; skuId: string; }) {
+    const [wanted, setWanted] = useState(false);
+    const ref = useRef<HTMLImageElement>(null);
+
+    useEffect(() => {
+        const tile = ref.current?.closest("button");
+        if (!tile || wanted) return;
+
+        const want = () => setWanted(true);
+        tile.addEventListener("pointerenter", want, { once: true });
+        return () => tile.removeEventListener("pointerenter", want);
+    }, [wanted]);
+
+    return <img ref={ref} className={cl("shop-moving")} src={wanted ? decorationPicture(asset, skuId, true) : undefined} alt="" />;
+}
+
 /** Marks the one worn */
 const Tick = () => <span className={cl("shop-tick")}><CheckIcon height={12} width={12} /></span>;
 
@@ -290,6 +314,7 @@ export function CollectiblesTab({ look, set }: { look: Look; set(change: Partial
                                 >
                                     <div className={cl("shop-pic", `shop-pic-${kind}`)}>
                                         {e.picture && <LazyPicture key={e.picture} src={e.picture} />}
+                                        {kind === "decoration" && e.item?.asset?.startsWith("a_") && <Moving asset={e.item.asset} skuId={e.skuId} />}
                                         {starred.has(e.skuId) && <span className={cl("shop-star")}><StarIcon height={12} width={12} /></span>}
                                         {isWorn[kind](look, e) && <Tick />}
                                     </div>

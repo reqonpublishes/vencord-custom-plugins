@@ -13,7 +13,7 @@ import { Channel, Guild } from "@vencord/discord-types";
 import { FluxDispatcher, Menu } from "@webpack/common";
 
 import { canHide, channelCount, hideChannel, invalidateChannels, isChannelHidden, loadChannels, showChannel, startChannels, stopChannels } from "./channels";
-import { EyeIcon, EyeOffIcon, HashIcon, ServerIcon } from "./icons";
+import { EyeIcon, HashIcon, ServerIcon } from "./icons";
 import { knownList } from "./known";
 import { place } from "./menu";
 import { unwatchMutuals, watchMutuals } from "./mutuals";
@@ -129,7 +129,7 @@ export default definePlugin({
     settingsAboutComponent: () => (
         <About
             menus
-            icon={EyeOffIcon}
+            icon={ServerIcon}
             title="Hide servers and channels"
             steps={[
                 <>Right-click a server and choose <strong>Hide Server</strong>, or a channel and choose <strong>Hide Channel</strong>.</>,

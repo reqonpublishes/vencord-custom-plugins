@@ -184,7 +184,7 @@ export default definePlugin({
     settingsAboutComponent: () => (
         <About
             menus
-            icon={EyeOffIcon}
+            icon={ChatOffIcon}
             title="Hide messages from your own view"
             steps={[
                 <>Hold <kbd>Ctrl</kbd> and hover a message, or right-click it, and choose <strong>Hide Message</strong>.</>,

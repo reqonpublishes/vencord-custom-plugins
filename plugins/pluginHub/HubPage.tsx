@@ -15,7 +15,7 @@ import { Alerts, React, showToast } from "@webpack/common";
 import { settings } from ".";
 import { deleteAllData } from "./data";
 import { applying, Entry, flipAll, installed, isEnabled, isOn, isView, needsRestart, pluginOf, SECTIONS, setOn, summaryOf, usable } from "./hub";
-import { CloudDownIcon, CloudUpIcon, EyeIcon, EyeOffIcon, GearIcon, RefreshIcon, TrashIcon } from "./icons";
+import { CloudDownIcon, CloudUpIcon, EyeIcon, EyeOffIcon, GearIcon, MenuIcon, RefreshIcon, ShieldIcon, SyncIcon, TrashIcon } from "./icons";
 import { isProtecting, onProtectionChange, raisedForShare } from "./protect";
 import { cl, IconButton } from "./ui";
 
@@ -103,7 +103,8 @@ function SyncRow() {
 
     return (
         <div className={cl("item")}>
-            <div className={cl("item-text", "item-indent")}>
+            <div className={cl("tile")}><SyncIcon height={20} width={20} /></div>
+            <div className={cl("item-text")}>
                 <div className={cl("item-name")}>Sync now</div>
                 <div className={cl("item-detail")}>
                     {link
@@ -137,6 +138,7 @@ function MenuButtons() {
 
     return (
         <div className={cl("item")}>
+            <div className={cl("tile")}><MenuIcon height={20} width={20} /></div>
             <div className={cl("item-text")}>
                 <div className={cl("item-name")}>Right-click buttons</div>
                 <div className={cl("item-detail")}>
@@ -165,6 +167,7 @@ function MenuButtons() {
 function DeleteData() {
     return (
         <div className={cl("item")}>
+            <div className={cl("tile")}><TrashIcon height={20} width={20} /></div>
             <div className={cl("item-text")}>
                 <div className={cl("item-name")}>Delete all data</div>
                 <div className={cl("item-detail")}>
@@ -271,6 +274,7 @@ function HubPage() {
                     <h2 className={cl("heading")}>Overview</h2>
 
                     <div className={cl("item")}>
+                        <div className={cl("tile")}><EyeIcon height={20} width={20} /></div>
                         <div className={cl("item-text")}>
                             <div className={cl("item-name")}>
                                 {!views.length
@@ -311,6 +315,7 @@ function HubPage() {
                     <MenuButtons />
 
                     <div className={cl("item", shareProtection !== false ? "item-open" : "")}>
+                        <div className={cl("tile")}><ShieldIcon height={20} width={20} /></div>
                         <div className={cl("item-text")}>
                             <div className={cl("item-name")}>Screen Share Protection</div>
                             <div className={cl("item-detail")}>
@@ -326,6 +331,7 @@ function HubPage() {
 
                     {waiting && (
                         <div className={cl("item")}>
+                            <div className={cl("tile")}><RefreshIcon height={20} width={20} /></div>
                             <div className={cl("item-text")}>
                                 <div className={cl("item-name")}>A restart is needed</div>
                                 <div className={cl("item-detail")}>

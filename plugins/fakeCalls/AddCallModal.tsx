@@ -26,9 +26,9 @@ function fromInputValue(value: string) {
 }
 
 
-function Chip({ onClick, children, on }: { onClick(): void; children: string; on?: boolean; }) {
+function Chip({ onClick, children, on, wide }: { onClick(): void; children: string; on?: boolean; wide?: boolean; }) {
     return (
-        <button className={cl("chip", on ? "chip-on" : "")} onClick={onClick}>
+        <button className={cl("chip", on ? "chip-on" : "", wide ? "chip-wide" : "")} onClick={onClick}>
             {children}
         </button>
     );
@@ -55,6 +55,20 @@ function Side({ id, group, on, onPick }: { id?: string; group?: boolean; on: boo
         </button>
     );
 }
+
+const MINUTE = 60_000;
+const HOUR = 60 * MINUTE;
+const DAY = 24 * HOUR;
+
+/** The same nudges as every other date here */
+const OFFSETS = [
+    { label: "-1d", ms: -DAY },
+    { label: "-1h", ms: -HOUR },
+    { label: "-5m", ms: -5 * MINUTE },
+    { label: "+5m", ms: 5 * MINUTE },
+    { label: "+1h", ms: HOUR },
+    { label: "+1d", ms: DAY }
+];
 
 const LENGTHS = [
     { label: "1m", minutes: 1 },
@@ -141,17 +155,17 @@ function AddCallModal({ rootProps, seed }: { rootProps: RenderModalProps; seed: 
                     maxToday={false}
                     onChange={next => setStartedAt(toInputValue(new Date(next)))}
                 />
-                <div className={cl("line")}>
-                    <div />
-                    <div className={cl("chips")}>
-                        <Chip onClick={() => setStartedAt(toInputValue(new Date()))}>Now</Chip>
-                    </div>
+                <div className={cl("shifts")}>
+                    {OFFSETS.map(({ label, ms }) => (
+                        <Chip key={label} onClick={() => setStartedAt(toInputValue(new Date((new Date(startedAt).getTime() || Date.now()) + ms)))}>{label}</Chip>
+                    ))}
+                    <Chip wide onClick={() => setStartedAt(toInputValue(new Date()))}>Now</Chip>
                 </div>
             </section>
 
             {!ongoing && (
                 <section className={cl("section")}>
-                    <h3 className={cl("label")}>Lasted (minutes)</h3>
+                    <h3 className={cl("label")}>Length in minutes</h3>
                     <div className={cl("field")}>
                         <input
                             type="number"
@@ -164,9 +178,8 @@ function AddCallModal({ rootProps, seed }: { rootProps: RenderModalProps; seed: 
                             }}
                         />
                     </div>
-                    <div className={cl("line")}>
-                        <div className={cl("chips")}>
-                            {LENGTHS.map(one => (
+                    <div className={cl("shifts")}>
+                        {LENGTHS.map(one => (
                                 <Chip
                                     key={one.label}
                                     on={minutes === String(one.minutes)}
@@ -177,19 +190,18 @@ function AddCallModal({ rootProps, seed }: { rootProps: RenderModalProps; seed: 
                                 >
                                     {one.label}
                                 </Chip>
-                            ))}
-                        </div>
+                        ))}
                     </div>
                 </section>
             )}
 
             <section className={cl("section", "section-last")}>
-                <h3 className={cl("label")}>How it went</h3>
+                <h3 className={cl("label")}>Appearance</h3>
                 <div className={cl("card")}>
                     <FormSwitch
                         className={cl("switch")}
                         title="Missed call"
-                        description="You were not on it, so it reads as a call you missed"
+                        description="Reads as a call you missed"
                         value={missed}
                         onChange={setMissed}
                         hideBorder
@@ -200,7 +212,7 @@ function AddCallModal({ rootProps, seed }: { rootProps: RenderModalProps; seed: 
                     <FormSwitch
                         className={cl("switch")}
                         title="Still going"
-                        description="No end time, so the call looks live and its timer counts up"
+                        description="Looks live, with its timer counting up"
                         value={ongoing}
                         onChange={setOngoing}
                         hideBorder
@@ -209,7 +221,7 @@ function AddCallModal({ rootProps, seed }: { rootProps: RenderModalProps; seed: 
 
                 <div className={cl("footnote")}>
                     <LockIcon height={14} width={14} />
-                    <span>Only you can see this call. Nobody is rung.</span>
+                    <span>Only you see this call. Nobody is rung.</span>
                 </div>
             </section>
         </Modal>

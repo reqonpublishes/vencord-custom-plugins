@@ -35,7 +35,7 @@ import {
     restoreRequest,
     showFriend
 } from "./friends";
-import { EyeIcon, EyeOffIcon, IconComponent, PersonOffIcon } from "./icons";
+import { EyeIcon, IconComponent, PersonOffIcon, PersonRemoveIcon } from "./icons";
 import { knownList } from "./known";
 import { place } from "./menu";
 import { unwatchMutuals, watchMutuals } from "./mutuals";
@@ -64,10 +64,10 @@ const userCtx: NavContextMenuPatchCallback = (children, { user }: { user?: User;
     const type = realType(id);
 
     if (isHidden(id)) place(children, 30, item("show", "Unhide Friend", EyeIcon, () => showFriend(id)));
-    else if (type === FRIEND && !isFriended(id)) place(children, 30, item("hide", "Hide Friend", EyeOffIcon, () => hideFriend(id)));
+    else if (type === FRIEND && !isFriended(id)) place(children, 30, item("hide", "Hide Friend", PersonOffIcon, () => hideFriend(id)));
 
     if (isDismissed(id)) place(children, 31, item("restore", "Unhide Friend Request", EyeIcon, () => restoreRequest(id)));
-    else if (type === PENDING_INCOMING) place(children, 31, item("dismiss", "Hide Friend Request", EyeOffIcon, () => dismissRequest(id)));
+    else if (type === PENDING_INCOMING) place(children, 31, item("dismiss", "Hide Friend Request", PersonRemoveIcon, () => dismissRequest(id)));
 };
 
 /** Whether somebody the share hid, as `id:type`, is still hidden - see realList */

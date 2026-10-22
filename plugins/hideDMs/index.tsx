@@ -12,7 +12,7 @@ import definePlugin from "@utils/types";
 import { Channel, User } from "@vencord/discord-types";
 import { ChannelStore, FluxDispatcher, Menu } from "@webpack/common";
 
-import { EyeIcon, EyeOffIcon, MailOffIcon } from "./icons";
+import { EyeIcon, MailOffIcon } from "./icons";
 import { knownList } from "./known";
 import { place } from "./menu";
 import { settings } from "./settings";
@@ -175,7 +175,7 @@ export default definePlugin({
     settingsAboutComponent: () => (
         <About
             menus
-            icon={EyeOffIcon}
+            icon={MailOffIcon}
             title="Hide conversations from your DM list"
             steps={[
                 <>Right-click a DM or a person and choose <strong>Hide DM</strong>.</>,

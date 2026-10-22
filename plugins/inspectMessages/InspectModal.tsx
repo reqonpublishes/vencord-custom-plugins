@@ -7,10 +7,11 @@
 import { classNameFactory } from "@api/Styles";
 import { FormSwitch } from "@components/FormSwitch";
 import { Message, ModalAction, RenderModalProps } from "@vencord/discord-types";
-import { Modal, openModal, TextArea, useLayoutEffect, useRef, useState } from "@webpack/common";
+import { Modal, openModal, TextArea, useState } from "@webpack/common";
 
 import { DateField } from "./DateField";
 import { applyEdit, getHighlight, getOriginal, isEdited, looksLikePing, resetEdit, toDate } from "./edits";
+import { LockIcon } from "./icons";
 
 export const cl = classNameFactory("vc-cim-");
 
@@ -28,9 +29,9 @@ function fromInputValue(value: string) {
 }
 
 
-function Chip({ onClick, children, title }: { onClick(): void; children: string; title?: string; }) {
+function Chip({ onClick, children, title, wide }: { onClick(): void; children: string; title?: string; wide?: boolean; }) {
     return (
-        <button className={cl("chip")} onClick={onClick} title={title}>
+        <button className={cl("chip", wide ? "chip-wide" : "")} onClick={onClick} title={title}>
             {children}
         </button>
     );
@@ -71,98 +72,6 @@ const PrivateIcon = () => (
     </svg>
 );
 
-/**
- * The action bar, laid out the way this modal wants it.
- *
- * Discord gives the footer one row: this slot on the left, the buttons on the right, each
- * sized to its own label. That leaves the buttons huddled in the middle of a wide modal
- * with dead space either side, and puts a footnote where it reads as a fourth control.
- *
- * There is no prop for any of this, so it's done from here. The row is found by walking up
- * to the first ancestor that also holds the buttons - durable in a way that matching
- * Discord's generated class names is not - then the buttons are stretched to share the
- * full width and this note is dropped onto a line of its own beneath them.
- *
- * Only styles are set, never the tree, so React stays free to re-render around it; every
- * value is recorded first and put back on the way out. It runs after each render rather
- * than once, so anything React does overwrite is restored on the next pass - and because
- * layout effects all run before the browser paints, the restore and reapply are invisible.
- */
-function Footnote({ author }: { author: string; }) {
-    const ref = useRef<HTMLDivElement>(null);
-
-    useLayoutEffect(() => {
-        const note = ref.current;
-        if (!note) return;
-
-        let child: HTMLElement = note;
-        let parent = note.parentElement;
-        while (parent && !parent.querySelector("button")) {
-            child = parent;
-            parent = parent.parentElement;
-        }
-        if (!parent) return;
-
-        // Only touch it if it really is a horizontal row of items. If Discord ever moves
-        // the buttons out of this slot's ancestry we'd find something else entirely, and
-        // stretching a column to full width would wreck the modal; leaving the footer
-        // alone is a far better failure than that.
-        const layout = getComputedStyle(parent);
-        if (!layout.display.includes("flex") || !layout.flexDirection.startsWith("row")) return;
-
-        const bar = parent;
-        const item = child;
-
-        const undo: (() => void)[] = [];
-        const style = (el: HTMLElement, prop: string, value: string) => {
-            const previous = el.style.getPropertyValue(prop);
-            undo.push(() => el.style.setProperty(prop, previous));
-            el.style.setProperty(prop, value);
-        };
-
-        style(bar, "flex-wrap", "wrap");
-        // a full width item can't share a line, and ordering it last puts that line below
-        style(item, "flex", "1 0 100%");
-        style(item, "order", "99");
-
-        // every button in the bar is one of the actions; this note holds none of its own
-        const buttons = [...bar.querySelectorAll<HTMLElement>("button")];
-
-        for (const button of buttons) {
-            style(button, "flex", "1 1 0");
-            style(button, "width", "100%");
-            // Discord sizes these for a footer of small print. They're the whole point of
-            // this modal, so they get the height of a proper primary action instead.
-            style(button, "min-height", "44px");
-
-            /*
-             * Widen every wrapper between the button and the row.
-             *
-             * Telling the button to grow achieves nothing on its own: it only grows if the
-             * element directly above it is a flex container that lets it, and Discord's
-             * action bar nests them deeper than one level. So the whole chain up to the
-             * row is stretched, which is what actually carries the width down to the
-             * button instead of leaving it the size of its own label.
-             */
-            for (let node = button.parentElement; node && node !== bar; node = node.parentElement) {
-                style(node, "display", "flex");
-                style(node, "flex", "1 1 0");
-                style(node, "gap", "8px");
-            }
-        }
-
-        return () => {
-            for (let i = undo.length - 1; i >= 0; i--) undo[i]();
-        };
-    });
-
-    return (
-        <div className={cl("footnote")} ref={ref}>
-            <PrivateIcon />
-            <span><strong>@{author}</strong> &mdash; only you can see this</span>
-        </div>
-    );
-}
 
 function InspectModal({ rootProps, message }: { rootProps: RenderModalProps; message: Message; }) {
     const [content, setContent] = useState(message.content ?? "");
@@ -223,9 +132,27 @@ function InspectModal({ rootProps, message }: { rootProps: RenderModalProps; mes
             size="md"
             title="Inspect Message"
             notice={error ? { message: error, type: "critical" } : undefined}
-            actionBarInput={<Footnote author={message.author?.username ?? "unknown"} />}
             actions={actions}
         >
+            <section className={cl("section")}>
+                <h3 className={cl("label")}>Message</h3>
+                <TextArea
+                    value={content}
+                    onChange={next => {
+                        setContent(next);
+                        // keep following the text until you decide for yourself
+                        if (!highlightTouched) setHighlight(looksLikePing(next));
+                    }}
+                    rows={3}
+                    autosize
+                    spellCheck={false}
+                    placeholder="What the message says (markdown works)"
+                    onKeyDown={(e: React.KeyboardEvent) => {
+                        if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) apply();
+                    }}
+                />
+            </section>
+
             <section className={cl("section")}>
                 <h3 className={cl("label")}>Sent</h3>
                 <DateTimeField
@@ -239,18 +166,18 @@ function InspectModal({ rootProps, message }: { rootProps: RenderModalProps; mes
                     {OFFSETS.map(({ label, ms }) => (
                         <Chip key={label} onClick={() => nudge(ms)}>{label}</Chip>
                     ))}
-                    <Chip onClick={() => setTimestamp(toInputValue(new Date()))}>Now</Chip>
-                    <Chip onClick={() => setTimestamp(toInputValue(originalDate))}>Original</Chip>
+                    <Chip wide onClick={() => setTimestamp(toInputValue(new Date()))}>Now</Chip>
+                    <Chip wide onClick={() => setTimestamp(toInputValue(originalDate))}>Original</Chip>
                 </div>
             </section>
 
-            <section className={cl("section")}>
+            <section className={cl("section", "section-last")}>
                 <h3 className={cl("label")}>Appearance</h3>
                 <div className={cl("card")}>
                     <FormSwitch
                         className={cl("switch")}
                         title="Highlighted message"
-                        description="The message looks as if it had mentioned you"
+                        description="Looks as if it mentioned you"
                         value={highlight}
                         onChange={next => {
                             setHighlight(next);
@@ -264,7 +191,7 @@ function InspectModal({ rootProps, message }: { rootProps: RenderModalProps; mes
                     <FormSwitch
                         className={cl("switch")}
                         title={"Show \"(edited)\" tag"}
-                        description="Adds the edited marker, at a time you choose"
+                        description="Adds the edited marker"
                         value={showEdited}
                         onChange={setShowEdited}
                         hideBorder
@@ -289,25 +216,11 @@ function InspectModal({ rootProps, message }: { rootProps: RenderModalProps; mes
                         </div>
                     )}
                 </div>
-            </section>
 
-            <section className={cl("section", "section-last")}>
-                <h3 className={cl("label")}>Content</h3>
-                <TextArea
-                    value={content}
-                    onChange={next => {
-                        setContent(next);
-                        // keep following the text until you decide for yourself
-                        if (!highlightTouched) setHighlight(looksLikePing(next));
-                    }}
-                    rows={3}
-                    autosize
-                    spellCheck={false}
-                    placeholder="Message content (markdown works)"
-                    onKeyDown={(e: React.KeyboardEvent) => {
-                        if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) apply();
-                    }}
-                />
+                <div className={cl("footnote")}>
+                    <LockIcon height={14} width={14} />
+                    <span>Only you see this change. Nothing is sent to Discord.</span>
+                </div>
             </section>
         </Modal>
     );

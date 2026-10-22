@@ -8,18 +8,18 @@ import "./styles.css";
 
 import { ModalAction, RenderModalProps } from "@vencord/discord-types";
 import { findByPropsLazy } from "@webpack";
-import { ColorPicker, Modal, moment, openModal, ScrollerThin, SearchableSelect, showToast, TextArea, TextInput, useEffect, useRef, UserStore, useState } from "@webpack/common";
+import { ColorPicker, Modal, moment, openModal, ScrollerThin, SearchableSelect, showToast, TextArea, TextInput, Tooltip, useEffect, useRef, UserStore, useState } from "@webpack/common";
 
 import { Badge, BADGES, badgesFor, GROUPS, realKeys, withBadge } from "./badges";
 import { CollectiblesTab, decorationPicture } from "./Collectibles";
 import { DateField } from "./DateField";
-import { BookmarkIcon, CheckIcon, CloseIcon, CopyIcon, IconComponent, ImageIcon, LinkIcon, MasksIcon, PaletteIcon, PersonIcon, StarIcon, TrashIcon, UndoIcon } from "./icons";
+import { AccountsIcon, BookmarkIcon, CheckIcon, CloseIcon, CopyIcon, IconComponent, ImageIcon, LinkIcon, MasksIcon, PaletteIcon, PersonIcon, StarIcon, TrashIcon, UndoIcon } from "./icons";
 import { keep } from "./images";
 import { realActivities, realOutbox, realStatus } from "./presence";
 import { pictureUrl, realProfile, realUser } from "./rewrite";
 import { loadWhole, PARTS, skippedParts, stealLook, toggleStealPart } from "./steal";
 import {
-    Connection, deletePreset, Look, lookFor, NOTHING, presetCalled, presetNames, revert, savePreset, setLook, summary, tidyName,
+    Connection, deletePreset, inSwitcher, Look, lookFor, NOTHING, presetCalled, presetNames, revert, savePreset, setInSwitcher, setLook, summary, tidyName,
 } from "./store";
 import { cl, IconButton } from "./ui";
 
@@ -746,6 +746,7 @@ function PresetsTab({ userId, look, replace }: { userId: string; look: Look; rep
                                             showToast({ text: `You now look like ${called}`, variant: "success" });
                                         }}>Wear</IconButton>
                                     )}
+                                    <SwitcherToggle name={called} onChange={() => redraw(n => n + 1)} />
                                     <button className={cl("icon-button", "icon-danger")} aria-label={`Delete ${called}`} onClick={() => { deletePreset(called); redraw(n => n + 1); }}>
                                         <TrashIcon height={16} width={16} />
                                     </button>
@@ -756,6 +757,33 @@ function PresetsTab({ userId, look, replace }: { userId: string; look: Look; rep
                 </div>
             </Field>
         </div>
+    );
+}
+
+/** Put a preset in Switch Accounts, or take it out: choosing it there wears it */
+export function SwitcherToggle({ name, onChange }: { name: string; onChange?(): void; }) {
+    const on = inSwitcher(name);
+    const label = on ? "Remove from Switch Accounts" : "Add to Switch Accounts";
+
+    return (
+        <Tooltip text={label}>
+            {(props: any) => (
+                <button
+                    {...props}
+                    type="button"
+                    aria-label={label}
+                    aria-pressed={on}
+                    className={cl("icon-button", on ? "icon-on" : "")}
+                    onClick={() => {
+                        setInSwitcher(name, !on);
+                        showToast({ text: on ? `${name} is no longer in Switch Accounts` : `${name} is in Switch Accounts. Choose it there to wear it`, variant: "success" });
+                        onChange?.();
+                    }}
+                >
+                    <AccountsIcon height={16} width={16} />
+                </button>
+            )}
+        </Tooltip>
     );
 }
 

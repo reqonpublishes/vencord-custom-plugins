@@ -46,10 +46,6 @@
     min-width: 0;
 }
 
-/* lines up with the text of the rows above it, which start after an icon */
-.vc-hub-item-indent {
-    padding-left: 42px;
-}
 
 .vc-hub-item-name {
     color: var(--text-default);
