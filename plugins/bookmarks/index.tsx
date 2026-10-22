@@ -73,18 +73,18 @@ function personOf(user?: User, channel?: Channel): any {
     return (channel as any)?.type === 1 && recipients[0] ? UserStore.getUser(recipients[0]) : null;
 }
 
-/** Whether Shift was held on the press that opened the menu, read before Discord builds it */
-let shiftHeld = false;
-const noteShift = (event: MouseEvent) => void (shiftHeld = event.shiftKey);
-window.addEventListener("contextmenu", noteShift, true);
-window.addEventListener("mousedown", noteShift, true);
+/** Whether Ctrl was held on the press that opened the menu, read before Discord builds it */
+let ctrlHeld = false;
+const noteCtrl = (event: MouseEvent) => void (ctrlHeld = event.ctrlKey);
+window.addEventListener("contextmenu", noteCtrl, true);
+window.addEventListener("mousedown", noteCtrl, true);
 
 const menu: NavContextMenuPatchCallback = (children, { user, channel }: { user?: User; channel?: Channel; }) => {
     // A shared screen should not show who is worth keeping within reach.
     if (shared()) return;
     // When right-click buttons show at all, as chosen on Additional Settings
     const mode: string = (window as any).vcMenuMode ?? "always";
-    if (mode === "never" || (mode === "shift" && !shiftHeld)) return;
+    if (mode === "never" || (mode !== "always" && !ctrlHeld)) return;
 
     const person = personOf(user, channel);
     if (!person?.id || person.id === UserStore.getCurrentUser()?.id) return;

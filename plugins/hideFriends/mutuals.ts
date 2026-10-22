@@ -8,7 +8,7 @@ import { Logger } from "@utils/Logger";
 import { findStore } from "@webpack";
 import { FluxDispatcher } from "@webpack/common";
 
-import { changes, isBlocked, isHidden } from "./store";
+import { changes, showsAsGone } from "./friends";
 
 const logger = new Logger("HideFriends");
 
@@ -50,7 +50,7 @@ function without(list: any) {
 
     const kept = list.filter(entry => {
         const id = idOf(entry);
-        return !id || !(isHidden(id) || isBlocked(id));
+        return !id || !showsAsGone(id);
     });
 
     // Nobody taken out: hand back the very list Discord made, so nothing sees a difference.

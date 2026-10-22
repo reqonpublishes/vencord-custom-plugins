@@ -77,7 +77,7 @@ const userMenu = (enabled: () => boolean): NavContextMenuPatchCallback => (child
 
     const { inspectEntry, stealEntry, resetEntry } = settings.store;
 
-    place(children, 33,
+    place(children, 6,
         inspectEntry !== false && <Menu.MenuItem
             id="vc-cip-inspect"
             key="vc-cip-inspect"

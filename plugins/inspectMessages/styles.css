@@ -180,7 +180,7 @@
  * One rule, matched only against buttons this plugin tagged, so revealing them is a
  * single class toggle on <body> with no React work.
  */
-body:not(.vc-cim-shift-down) .vc-cim-shift-only {
+body:not(.vc-cim-ctrl-down) .vc-cim-ctrl-only {
     display: none !important;
 }
 

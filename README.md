@@ -11,18 +11,21 @@ Custom plugins for [Vencord](https://vencord.dev).
 | Plugin | What it does |
 | --- | --- |
 | **[Hide&nbsp;Messages](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/hideMessages)** | Hide messages, or a whole chat's history, from your own Discord. Nothing is deleted and the other person still sees everything. |
-| **[Inspect&nbsp;Messages](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/inspectMessages)** | Change what a message says and when it was sent, on your screen only. |
-| **[Fake&nbsp;Messages](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/fakeMessages)** | Put a message in a conversation that nobody sent. Choose who it came from, what it says and when. |
 | **[Hide&nbsp;DMs](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/hideDMs)** | Take a conversation out of your DM list. Nothing is closed on Discord and the messages are all still there. |
-| **[Hide&nbsp;Friends](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/hideFriends)** | Hide friends from your friends list, one at a time or all at once. Can also fake a block, a friend request or a friendship. |
+| **[Hide&nbsp;Friends](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/hideFriends)** | Hide friends from your friends list, one at a time or all at once, and hide friend requests without answering them. |
 | **[Hide&nbsp;Servers](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/hideServers)** | Take a server off your server list, or all of them at once. You stay in every one. |
+| **[Inspect&nbsp;Messages](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/inspectMessages)** | Change what a message says and when it was sent, on your screen only. |
+| **[Inspect&nbsp;Profiles](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/inspectProfiles)** | Change how any profile looks to you, or steal a whole profile and wear it. |
+| **[Fake&nbsp;Messages](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/fakeMessages)** | Put a message in a conversation that nobody sent. Choose who it came from, what it says and when. |
+| **[Fake&nbsp;Friends](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/fakeFriends)** | Fake a friend, a friend request either way, or a block. Accept, Decline and Unblock on anything fake never reach Discord. |
 | **[Fake&nbsp;Calls](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/fakeCalls)** | Add a call to any DM: who rang, when, how long it lasted, and whether you picked up. |
-| **[Fake&nbsp;Mod](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/fakeMod)** | Menu entries that look like moderator tools: review, flag, suspend, disable. None of them do anything. |
 | **[Fake&nbsp;Notifications](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/fakeNotifications)** | Choose what the badges say: friend requests and message requests. |
-| **[Plugin&nbsp;Hub](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/pluginHub)** | Adds **Additional Settings** under Vencord: every plugin here in one place with an on/off switch, and one button to see the real Discord. |
-| **[Bookmarks](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/bookmarks)** | Bookmark people so you can close their DM and still find them, in a Bookmarked tab on the Friends page. |
-| **[Quick&nbsp;Restart](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/quickRestart)** | Restart Discord in milliseconds instead of seconds, without losing your connection. |
-| **[Cloud&nbsp;Sync](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/cloudSync)** | Sync everything these plugins hold between this computer and your phone. One link joins them: **Sync to Cloud** uploads, **Sync from Cloud** downloads. |
+| **[Fake&nbsp;Mod](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/fakeMod)** | Menu entries that look like moderator tools: review, flag, suspend, disable. None of them do anything. |
+| **[Plugin&nbsp;Hub](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/pluginHub)** | Adds **Additional Settings** under Vencord: every plugin here in one place, Screen Share Protection, and a switch to look like plain Discord. |
+| **[Bookmarks](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/bookmarks)** | Bookmark anyone's profile and find them again in a Bookmarked tab on the Friends page, even after closing their DM. |
+| **[Cloud&nbsp;Sync](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/cloudSync)** | Sync everything these plugins hold between this computer and your phone with one private code. Nothing syncs until you press a button. |
+| **[Quick&nbsp;Restart](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/quickRestart)** | Ctrl+R restarts Discord about five times faster. |
+| **[Smoother](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/smoother)** | Fixes chats that get stuck on their loading placeholder when you scroll up through blocked messages. |
 
 Click a plugin for how to use it and what its settings do.
 

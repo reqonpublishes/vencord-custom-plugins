@@ -17,7 +17,7 @@ export const settings = definePluginSettings({
         displayName: "Hide button on hover",
         description: "When the Hide button shows in the bar above a message.",
         options: [
-            { label: "While holding Shift", value: "shift", default: true },
+            { label: "While holding Ctrl", value: "ctrl", default: true },
             { label: "Always", value: "always" },
             { label: "Never", value: "never" }
         ]

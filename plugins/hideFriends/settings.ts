@@ -7,9 +7,9 @@
 import { definePluginSettings } from "@api/Settings";
 import { OptionType } from "@utils/types";
 
+import { forgetSaved } from "./friends";
 import { HiddenList } from "./HiddenList";
 import { startImplicit, stopImplicit } from "./implicit";
-import { forgetSaved } from "./store";
 
 /** Whether the plugin is running, so a setting changed while it is off waits for it to be on */
 let running = false;
@@ -29,7 +29,7 @@ export const settings = definePluginSettings({
     userMenu: {
         type: OptionType.BOOLEAN,
         displayName: "Show in the people menu",
-        description: "Hide Friend and Fake Relationship show when you right-click someone.",
+        description: "Hide Friend shows when you right-click someone.",
         default: true
     },
     hideNew: {
@@ -41,10 +41,10 @@ export const settings = definePluginSettings({
     persist: {
         type: OptionType.BOOLEAN,
         displayName: "Keep after restart",
-        description: "Hidden and faked friends stay after a restart.",
+        description: "Hidden friends stay hidden after a restart.",
         default: true,
         // switching it off should not leave the old list sitting on disk
-        onChange: (value: boolean) => void (value || forgetSaved())
+        onChange: (value: boolean) => void (value || forgetSaved("hide"))
     },
     hideImplicit: {
         type: OptionType.BOOLEAN,

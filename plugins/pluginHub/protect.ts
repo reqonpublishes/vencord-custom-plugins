@@ -249,7 +249,7 @@ function widen() {
 /**
  * Say on the window whether the screen is shared, for the other plugins to read.
  *
- * They keep their menu entries and hover buttons out of sight while it is, unless Shift is
+ * They keep their menu entries and hover buttons out of sight while it is, unless Ctrl is
  * held. Left on the window rather than asked of this plugin so that none of them depends on
  * this one being installed.
  */

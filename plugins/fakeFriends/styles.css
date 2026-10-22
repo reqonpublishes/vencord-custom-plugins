@@ -1,0 +1,22 @@
+/* ---------------------------------------------------------------- add by ID */
+
+.vc-cff-add {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.vc-cff-add .vc-cff-label {
+    margin: 0;
+}
+
+.vc-cff-hint-bad {
+    color: var(--text-feedback-critical, var(--status-danger, #f23f43));
+}
+
+.vc-cff-input-bad,
+.vc-cff-input-bad:hover,
+.vc-cff-input-bad:focus {
+    border-color: var(--text-feedback-critical, var(--status-danger, #f23f43));
+}

@@ -39,7 +39,7 @@ message first.
 
 | Setting | Default | What it does |
 | --- | --- | --- |
-| Hover button on messages | Only while Shift is held | When the toolbar button appears |
+| Hover button on messages | Only while Ctrl is held | When the toolbar button appears |
 | Add "Inspect Message" to the right-click menu | On | Adds the context menu entry |
 | Keep after restart | On | Keeps your edits between restarts |
 | Revert All | — | Undoes every edit and starts fresh |

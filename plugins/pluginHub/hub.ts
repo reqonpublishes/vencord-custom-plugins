@@ -9,7 +9,7 @@ import { Logger } from "@utils/Logger";
 import { Flux } from "@webpack/common";
 
 import {
-    BellIcon, BoltIcon, BookmarkIcon, ChatAddIcon, ChatIcon, CloudIcon, EyeOffIcon, IconComponent, InspectIcon, MasksIcon, PersonOffIcon,
+    BellIcon, BoltIcon, BookmarkIcon, ChatAddIcon, ChatIcon, CloudIcon, EyeOffIcon, IconComponent, InspectIcon, MasksIcon, PersonAddIcon, PersonOffIcon,
 PhoneAddIcon, ServerIcon, ShieldIcon, SpeedIcon
 } from "./icons";
 
@@ -45,11 +45,12 @@ export const SECTIONS: { id: Section; title: string; }[] = [
 export const ENTRIES: Entry[] = [
     { plugin: "HideMessages", label: "Hide Messages", icon: EyeOffIcon, section: "hide", about: "Hide messages, ranges or whole conversations" },
     { plugin: "HideDMs", label: "Hide DMs", icon: ChatIcon, section: "hide", about: "Hide conversations from your DM list" },
-    { plugin: "HideFriends", label: "Hide Friends", icon: PersonOffIcon, section: "hide", about: "Hide friends, or fake a relationship" },
+    { plugin: "HideFriends", label: "Hide Friends", icon: PersonOffIcon, section: "hide", about: "Hide friends and friend requests" },
     { plugin: "HideServers", label: "Hide Servers", icon: ServerIcon, section: "hide", about: "Hide servers from your server list" },
     { plugin: "InspectMessages", label: "Inspect Messages", icon: InspectIcon, section: "inspect", about: "Change what a message says and when it was sent" },
     { plugin: "InspectProfiles", label: "Inspect Profiles", icon: MasksIcon, section: "inspect", about: "Change how any profile looks, and steal whole profiles" },
     { plugin: "FakeMessages", label: "Fake Messages", icon: ChatAddIcon, section: "fake", about: "Add messages nobody sent" },
+    { plugin: "FakeFriends", label: "Fake Friends", icon: PersonAddIcon, section: "fake", about: "Fake friends, friend requests and blocks" },
     { plugin: "FakeCalls", label: "Fake Calls", icon: PhoneAddIcon, section: "fake", about: "Add calls that never happened" },
     { plugin: "FakeNotifications", label: "Fake Notifications", icon: BellIcon, section: "fake", about: "Set the numbers on your badges" },
     { plugin: "FakeMod", label: "Fake Mod", icon: ShieldIcon, section: "fake", about: "Menus that look like moderator tools" },

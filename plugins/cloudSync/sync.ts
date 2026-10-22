@@ -21,7 +21,7 @@ const logger = new Logger("CloudSync");
  * is still yours, just not being applied.
  */
 function picked(): Adapter[] {
-    return ADAPTERS.filter(adapter => settings.store[adapter.shelfKey] !== false && isPluginEnabled(adapter.plugin));
+    return ADAPTERS.filter(adapter => settings.store[adapter.option ?? adapter.shelfKey] !== false && isPluginEnabled(adapter.plugin));
 }
 
 /**
@@ -61,7 +61,8 @@ export async function sendUp(): Promise<{ at: string | null; sent: string[]; ski
         const ours = await adapter.read();
         if (!ours) continue;
 
-        next.plugins[adapter.shelfKey] = overlay(shelf.plugins?.[adapter.shelfKey] ?? {}, ours);
+        // Onto what is being sent rather than what was fetched: two plugins can share a record
+        next.plugins[adapter.shelfKey] = overlay(next.plugins[adapter.shelfKey] ?? {}, ours);
         sent.push(adapter.label);
     }
 

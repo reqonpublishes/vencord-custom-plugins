@@ -27,13 +27,13 @@ export function About({ icon: Icon, title, steps, menus, note = "Only you see th
     icon: IconComponent;
     title: string;
     steps: ReactNode[];
-    /** whether the steps mention right-click buttons, which may only show while Shift is held */
+    /** whether the steps mention right-click buttons, which may only show while Ctrl is held */
     menus?: boolean;
     /** the reassurance under the steps, or false where there is nothing to reassure about */
     note?: string | false;
 }) {
     // chosen on Additional Settings, and left on the window for every plugin to read
-    const shiftOnly = menus && (window as any).vcMenuMode === "shift";
+    const ctrlOnly = menus && ["ctrl", "shift"].includes((window as any).vcMenuMode);
 
     return (
         <div className={cl("about")}>
@@ -46,9 +46,9 @@ export function About({ icon: Icon, title, steps, menus, note = "Only you see th
             <ul className={cl("steps")}>
                 {steps.map((step, i) => <li key={i}>{step}</li>)}
             </ul>
-            {shiftOnly && (
+            {ctrlOnly && (
                 <div className={cl("private")}>
-                    <span>Right-click buttons show while you hold <kbd>Shift</kbd>. Change this on Additional Settings.</span>
+                    <span>Right-click buttons show while you hold <kbd>Ctrl</kbd>. Change this on Additional Settings.</span>
                 </div>
             )}
             {note && (

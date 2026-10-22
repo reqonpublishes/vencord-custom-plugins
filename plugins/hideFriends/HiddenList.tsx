@@ -7,17 +7,14 @@
 import { Button } from "@components/Button";
 import { useForceUpdater } from "@utils/react";
 
-import { EyeIcon, EyeOffIcon, PersonOffIcon, UndoIcon } from "./icons";
-import {
-    clearRequest, counts, hideAllFriends, infoOf, listed, removeFakeFriend, restoreEverything,
-    restoreRequest, showAllFriends, showFriend, unblockUser
-} from "./store";
+import { clearAll, counts, hideAllFriends, infoOf, listed, restoreRequest, showAllFriends, showFriend } from "./friends";
+import { EyeIcon, EyeOffIcon, PersonOffIcon } from "./icons";
 import { cl, Empty, IconButton, Panel, Row } from "./ui";
 
-function Group({ title, rows, undo, onChange }: {
+function Group({ title, rows, run, onChange }: {
     title: string;
     rows: [string, string][];
-    undo: { label: string; run(id: string): void; };
+    run(id: string): void;
     onChange(): void;
 }) {
     if (!rows.length) return null;
@@ -34,11 +31,11 @@ function Group({ title, rows, undo, onChange }: {
                             size="small"
                             variant="secondary"
                             onClick={() => {
-                                undo.run(id);
+                                run(id);
                                 onChange();
                             }}
                         >
-                            {undo.label}
+                            Unhide
                         </Button>
                     </Row>
                 );
@@ -48,7 +45,7 @@ function Group({ title, rows, undo, onChange }: {
 }
 
 /**
- * Everybody this client is showing differently, and the way back for each.
+ * Everybody hidden, and the way back for each.
  *
  * The list is the way back because the usual one is gone: somebody shown as not added is not
  * in your friends list to be right-clicked.
@@ -57,11 +54,11 @@ export function HiddenList() {
     const update = useForceUpdater();
     const all = listed();
     const n = counts();
-    const any = n.hidden + n.blocked + n.pending + n.incoming + n.dismissed + n.friended;
+    const any = n.hidden + n.dismissed;
 
     return (
         <Panel
-            title="Hidden and faked"
+            title="Hidden"
             count={any}
             actions={
                 <>
@@ -75,50 +72,34 @@ export function HiddenList() {
                     >
                         Hide All
                     </IconButton>
-                    {!!n.hidden && (<IconButton
-                        icon={EyeIcon}
-                        variant="secondary"
-                        onClick={() => {
-                            showAllFriends();
-                            update();
-                        }}
-                    >
-                        Unhide All
-                    </IconButton>)}
-                    {!!any && (<IconButton
-                        icon={UndoIcon}
-                        variant="dangerSecondary"
-                        onClick={() => {
-                            restoreEverything();
-                            update();
-                        }}
-                    >
-                        Reset
-                    </IconButton>)}
+                    {!!any && (
+                        <IconButton
+                            icon={EyeIcon}
+                            variant="secondary"
+                            onClick={() => {
+                                showAllFriends();
+                                clearAll("hide");
+                                update();
+                            }}
+                        >
+                            Unhide All
+                        </IconButton>
+                    )}
                 </>
             }
         >
             {!any && (
                 <Empty
                     icon={PersonOffIcon}
-                    title="Nobody is hidden or faked"
+                    title="Nobody is hidden"
                     text="Right-click a friend and choose Hide Friend, or hide them all at once."
                 />
             )}
 
             {!!any && (
                 <div className={cl("rows")}>
-                    <Group title="Hidden friends" rows={all.hidden} undo={{ label: "Unhide", run: showFriend }} onChange={update} />
-                    <Group title="Fake blocks" rows={all.blocked} undo={{ label: "Remove", run: unblockUser }} onChange={update} />
-                    <Group title="Fake friends" rows={all.friended} undo={{ label: "Remove", run: removeFakeFriend }} onChange={update} />
-                    <Group title="Fake incoming requests" rows={all.incoming} undo={{ label: "Remove", run: clearRequest }} onChange={update} />
-                    <Group
-                        title="Fake outgoing requests"
-                        rows={all.pending.map(id => [id, ""] as [string, string])}
-                        undo={{ label: "Remove", run: clearRequest }}
-                        onChange={update}
-                    />
-                    <Group title="Hidden friend requests" rows={all.dismissed} undo={{ label: "Unhide", run: restoreRequest }} onChange={update} />
+                    <Group title="Friends" rows={all.hidden} run={showFriend} onChange={update} />
+                    <Group title="Friend requests" rows={all.dismissed} run={restoreRequest} onChange={update} />
                 </div>
             )}
         </Panel>

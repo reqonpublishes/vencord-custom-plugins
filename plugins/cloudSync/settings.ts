@@ -35,6 +35,7 @@ export const PARTS: { key: string; plugin: string; label: string; }[] = [
     { key: "hideServers", plugin: "HideServers", label: "Hide Servers" },
     { key: "inspectMessages", plugin: "InspectMessages", label: "Inspect Messages" },
     { key: "fakeMessages", plugin: "FakeMessages", label: "Fake Messages" },
+    { key: "fakeFriends", plugin: "FakeFriends", label: "Fake Friends" },
     { key: "fakeCalls", plugin: "FakeCalls", label: "Fake Calls" },
     { key: "fakeNotifications", plugin: "FakeNotifications", label: "Fake Notifications" },
 ];
@@ -119,7 +120,15 @@ export const settings = definePluginSettings({
         hidden: true,
         disabled: off("HideFriends"),
         displayName: "Hide Friends",
-        description: "Sync hidden friends, fake blocks and fake requests",
+        description: "Sync hidden friends and hidden requests",
+        default: true
+    },
+    fakeFriends: {
+        type: OptionType.BOOLEAN,
+        hidden: true,
+        disabled: off("FakeFriends"),
+        displayName: "Fake Friends",
+        description: "Sync fake friends, requests and blocks",
         default: true
     },
     hideServers: {

@@ -57,7 +57,7 @@ export const settings = definePluginSettings({
     shareHideMenus: {
         type: OptionType.BOOLEAN,
         displayName: "Hide right-click buttons",
-        description: "No plugin buttons in menus, or the Bookmarked tab, while you share. Shift still shows them.",
+        description: "No plugin buttons in menus, or the Bookmarked tab, while you share. Ctrl still shows them.",
         default: true,
         onChange: () => refresh()
     },
@@ -87,10 +87,10 @@ export const settings = definePluginSettings({
         default: [] as string[],
         onChange: () => refresh()
     },
-    // When the plugins' right-click buttons show: "always", "shift" or "never". Chosen on the page.
+    // When the plugins' right-click buttons show: "always", "ctrl" or "never". Chosen on the page.
     menuButtons: {
         type: OptionType.CUSTOM,
-        default: "shift" as "always" | "shift" | "never",
+        default: "ctrl" as "always" | "ctrl" | "never",
         onChange: () => publishMenuMode()
     }
 });
@@ -102,7 +102,7 @@ export const settings = definePluginSettings({
  * gone, the choice is gone and every button shows.
  */
 export function publishMenuMode(on = true) {
-    (window as any).vcMenuMode = on ? settings.store.menuButtons ?? "shift" : undefined;
+    (window as any).vcMenuMode = on ? settings.store.menuButtons ?? "ctrl" : undefined;
 }
 
 /** Put this page in Discord's settings sidebar, or take it out */
@@ -152,6 +152,8 @@ export default definePlugin({
 
     start() {
         listed(true);
+        // "shift" was the held key before Ctrl
+        if ((settings.store.menuButtons as string) === "shift") settings.store.menuButtons = "ctrl";
         publishMenuMode();
         unwatch = onProtectionChange(() => listed(!pageHidden()));
 

@@ -14,6 +14,7 @@ import definePlugin from "@utils/types";
 import { Message } from "@vencord/discord-types";
 import { ChannelStore, FluxDispatcher, Menu } from "@webpack/common";
 
+import { ctrlGated, GatedIcon, isCtrlHeldForMenu, startCtrlTracking, stopCtrlTracking } from "./ctrlGate";
 import {
     countEdits,
     hasEdits,
@@ -32,12 +33,11 @@ import { InspectIcon as InspectGlyph } from "./icons";
 import { openInspectModal } from "./InspectModal";
 import { isShared, place } from "./menu";
 import { settings } from "./settings";
-import { GatedIcon, isShiftHeldForMenu, shiftGated, startShiftTracking, stopShiftTracking } from "./shiftGate";
 import { About } from "./ui";
 
 const InspectIcon: GatedIcon = InspectGlyph;
 
-const ShiftInspectIcon = shiftGated(InspectIcon);
+const CtrlInspectIcon = ctrlGated(InspectIcon);
 
 const logger = new Logger("InspectMessages");
 
@@ -90,11 +90,11 @@ function interceptor(action: any) {
 
 const shouldOffer = () => {
     const mode = settings.store.button;
-    return mode !== "never" && (mode !== "shift" || isShiftHeldForMenu());
+    return mode !== "never" && (mode !== "ctrl" || isCtrlHeldForMenu());
 };
 
-// Built when the menu opens, reading the Shift state as it was at that moment, so nothing
-// appears unless Shift was down and nothing shifts around while the menu sits open.
+// Built when the menu opens, reading the Ctrl state as it was at that moment, so nothing
+// appears unless Ctrl was down and nothing shifts around while the menu sits open.
 const messageCtx: NavContextMenuPatchCallback = (children, { message }: { message: Message; }) => {
     if (!message || !settings.store.messageMenu || !shouldOffer()) return;
 
@@ -109,7 +109,7 @@ const messageCtx: NavContextMenuPatchCallback = (children, { message }: { messag
         />
     );
 
-    place(children, 32, item);
+    place(children, 5, item);
 };
 
 migratePluginSettings("InspectMessages", "CustomPluginInspectMessages", "CustomPluginQuickInspect", "CustomQuickInspect", "QuickInspect");
@@ -118,7 +118,7 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 export default definePlugin({
     name: "InspectMessages",
-    description: "Change what any message says, when it was sent and whether it shows as edited. Hold Shift to reveal the buttons. Nothing is sent to Discord and nobody else sees it.",
+    description: "Change what any message says, when it was sent and whether it shows as edited. Hold Ctrl to reveal the buttons. Nothing is sent to Discord and nobody else sees it.",
     tags: ["Chat", "Utility"],
     authors: [{ name: "reqon", id: 497562304498368513n }],
     enabledByDefault: true,
@@ -138,7 +138,7 @@ export default definePlugin({
             icon={InspectGlyph}
             title="Change how a message looks to you"
             steps={[
-                <>Hold <kbd>Shift</kbd> and hover a message, or right-click it, and choose <strong>Inspect Message</strong>.</>,
+                <>Hold <kbd>Ctrl</kbd> and hover a message, or right-click it, and choose <strong>Inspect Message</strong>.</>,
                 <>Change the text, the time it was sent, the edited tag or the mention highlight.</>,
                 <>Open it again and press <strong>Revert</strong> to show the real message.</>
             ]}
@@ -172,7 +172,7 @@ export default definePlugin({
 
             return {
                 label: "Inspect",
-                icon: mode === "shift" || isShared() ? ShiftInspectIcon : InspectIcon,
+                icon: mode === "ctrl" || isShared() ? CtrlInspectIcon : InspectIcon,
                 message,
                 channel: ChannelStore.getChannel(message.channel_id),
                 onClick: () => openInspectModal(message)
@@ -181,7 +181,9 @@ export default definePlugin({
     },
 
     async start() {
-        startShiftTracking();
+        // "shift" was the held key before Ctrl
+        if ((settings.store.button as string) === "shift") settings.store.button = "ctrl";
+        startCtrlTracking();
         startStyles();
 
         alive = true;
@@ -206,7 +208,7 @@ export default definePlugin({
     stop() {
         alive = false;
         enabled = false;
-        stopShiftTracking();
+        stopCtrlTracking();
         stopStyles();
         // put messages back as they really are, but keep the saved edits for when it's re-enabled
         restoreVisuals();

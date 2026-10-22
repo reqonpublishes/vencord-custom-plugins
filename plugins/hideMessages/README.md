@@ -30,14 +30,14 @@ The history goes blank, but the conversation carries on as normal.
 button in the plugin's settings.
 
 > [!TIP]
-> The buttons only show while you hold **Shift**, so Discord looks untouched the rest of
+> The buttons only show while you hold **Ctrl**, so Discord looks untouched the rest of
 > the time. Change that under *Hover button on messages*.
 
 ## Settings
 
 | Setting | Default | What it does |
 | --- | --- | --- |
-| Hover button on messages | Only while Shift is held | When the toolbar button appears |
+| Hover button on messages | Only while Ctrl is held | When the toolbar button appears |
 | Right-click menu entries | On | Which menus get an entry — message, channel, user, profile |
 | Keep after restart | On | Keeps your hides between restarts |
 | Unhide All | — | Unhides everything, everywhere |

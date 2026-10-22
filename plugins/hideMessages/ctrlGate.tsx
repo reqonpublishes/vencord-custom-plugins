@@ -10,25 +10,25 @@ import type { ReactNode, Ref } from "react";
 
 // Namespaced per plugin so two copies of this file can't fight over the same classes.
 const NS = "vc-chm";
-export const GATED_CLASS = `${NS}-shift-only`;
-const BODY_CLASS = `${NS}-shift-down`;
+export const GATED_CLASS = `${NS}-ctrl-only`;
+const BODY_CLASS = `${NS}-ctrl-down`;
 
 export type GatedIcon = (props: IconProps & { innerRef?: Ref<SVGSVGElement>; } & Record<string, any>) => ReactNode;
 
 let held = false;
 
-/** Live Shift state, for menus that are built at click time rather than rendered */
-export const isShiftHeld = () => held;
+/** Live Ctrl state, for menus that are built at click time rather than rendered */
+export const isCtrlHeld = () => held;
 
 /**
- * Shift as it was when the menu opened.
+ * Ctrl as it was when the menu opened.
  *
  * Context menus re-render while they're open, so reading the live state made entries pop
  * in and out a beat behind the key as Discord got round to redrawing. Freezing it at open
  * time means the menu you get is the menu you asked for, and it stays put.
  */
 let heldAtOpen = false;
-export const isShiftHeldForMenu = () => heldAtOpen;
+export const isCtrlHeldForMenu = () => heldAtOpen;
 
 // capture phase, so it runs before Discord builds the menu
 const onContextMenu = () => (heldAtOpen = held);
@@ -41,19 +41,19 @@ function setHeld(next: boolean) {
 }
 
 // key repeat fires these continuously while held, but setHeld bails on no-op changes
-const onKeyDown = (e: KeyboardEvent) => e.key === "Shift" && setHeld(true);
-const onKeyUp = (e: KeyboardEvent) => e.key === "Shift" && setHeld(false);
-// releasing Shift while another window has focus never reaches us, so reset on blur
+const onKeyDown = (e: KeyboardEvent) => e.key === "Control" && setHeld(true);
+const onKeyUp = (e: KeyboardEvent) => e.key === "Control" && setHeld(false);
+// releasing Ctrl while another window has focus never reaches us, so reset on blur
 const onBlur = () => setHeld(false);
 
-export function startShiftTracking() {
+export function startCtrlTracking() {
     window.addEventListener("contextmenu", onContextMenu, true);
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
     window.addEventListener("blur", onBlur);
 }
 
-export function stopShiftTracking() {
+export function stopCtrlTracking() {
     window.removeEventListener("contextmenu", onContextMenu, true);
     window.removeEventListener("keydown", onKeyDown);
     window.removeEventListener("keyup", onKeyUp);
@@ -62,15 +62,15 @@ export function stopShiftTracking() {
 }
 
 /**
- * Wrap a toolbar icon so its entire button only exists visually while Shift is held.
+ * Wrap a toolbar icon so its entire button only exists visually while Ctrl is held.
  *
  * The button is tagged once on mount and everything after that is a single class on
- * <body>, so pressing Shift costs one class toggle and a style recalc scoped to those
+ * <body>, so pressing Ctrl costs one class toggle and a style recalc scoped to those
  * buttons: no React renders, no DOM queries, no per-frame work. Tagging happens in a
  * layout effect, so the button is already hidden before the first paint.
  */
-export function shiftGated(Icon: GatedIcon): GatedIcon {
-    return function ShiftGatedIcon(props) {
+export function ctrlGated(Icon: GatedIcon): GatedIcon {
+    return function CtrlGatedIcon(props) {
         const ref = useRef<SVGSVGElement>(null);
 
         useLayoutEffect(() => {

@@ -13,10 +13,10 @@ import definePlugin from "@utils/types";
 import { Channel, Message, User } from "@vencord/discord-types";
 import { ChannelStore, FluxDispatcher, Menu, SelectedChannelStore } from "@webpack/common";
 
+import { ctrlGated, GatedIcon, isCtrlHeldForMenu, startCtrlTracking, stopCtrlTracking } from "./ctrlGate";
 import { CloseIcon, EyeIcon, EyeOffIcon, FlagIcon } from "./icons";
 import { isShared, place } from "./menu";
 import { settings } from "./settings";
-import { GatedIcon, isShiftHeldForMenu, shiftGated, startShiftTracking, stopShiftTracking } from "./shiftGate";
 import {
     catchUpAll,
     hasHidesIn,
@@ -35,7 +35,7 @@ import { About } from "./ui";
 const HideIcon: GatedIcon = EyeOffIcon;
 const ShowIcon: GatedIcon = EyeIcon;
 
-const ShiftHideIcon = shiftGated(HideIcon);
+const CtrlHideIcon = ctrlGated(HideIcon);
 
 let interceptorRegistered = false;
 
@@ -44,11 +44,11 @@ let anchor: { channelId: string; messageId: string; } | null = null;
 
 const shouldOffer = () => {
     const mode = settings.store.button;
-    return mode !== "never" && (mode !== "shift" || isShiftHeldForMenu());
+    return mode !== "never" && (mode !== "ctrl" || isCtrlHeldForMenu());
 };
 
-// Built fresh on every right click, so it can just read the live Shift state: nothing
-// appears in the menu unless Shift is down, which keeps the menu looking untouched.
+// Built fresh on every right click, so it can just read the live Ctrl state: nothing
+// appears in the menu unless Ctrl is down, which keeps the menu looking untouched.
 const messageCtx: NavContextMenuPatchCallback = (children, { message }: { message: Message; }) => {
     if (!message || !settings.store.messageMenu || !shouldOffer()) return;
 
@@ -162,7 +162,7 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 export default definePlugin({
     name: "HideMessages",
-    description: "Hide a message, a range of them, or a whole conversation's history. Hold Shift to reveal the buttons. Nothing is deleted and nobody else is affected.",
+    description: "Hide a message, a range of them, or a whole conversation's history. Hold Ctrl to reveal the buttons. Nothing is deleted and nobody else is affected.",
     tags: ["Chat", "Appearance", "Privacy"],
     authors: [{ name: "reqon", id: 497562304498368513n }],
     enabledByDefault: true,
@@ -187,7 +187,7 @@ export default definePlugin({
             icon={EyeOffIcon}
             title="Hide messages from your own view"
             steps={[
-                <>Hold <kbd>Shift</kbd> and hover a message, or right-click it, and choose <strong>Hide Message</strong>.</>,
+                <>Hold <kbd>Ctrl</kbd> and hover a message, or right-click it, and choose <strong>Hide Message</strong>.</>,
                 <><strong>Hide From Here...</strong> then <strong>Hide Up To Here</strong> hides everything between two messages.</>,
                 <>Right-click a DM, channel or person and choose <strong>Hide Messages</strong> to hide the whole history.</>
             ]}
@@ -226,7 +226,7 @@ export default definePlugin({
 
             return {
                 label: "Hide Message",
-                icon: mode === "shift" || isShared() ? ShiftHideIcon : HideIcon,
+                icon: mode === "ctrl" || isShared() ? CtrlHideIcon : HideIcon,
                 message: msg,
                 channel: ChannelStore.getChannel(msg.channel_id),
                 onClick: () => hideMessage(msg.channel_id, msg.id)
@@ -235,7 +235,9 @@ export default definePlugin({
     },
 
     async start() {
-        startShiftTracking();
+        // "shift" was the held key before Ctrl
+        if ((settings.store.button as string) === "shift") settings.store.button = "ctrl";
+        startCtrlTracking();
 
         // Registered before the store is read, not after: reading it is asynchronous, and
         // a channel that finishes loading in the meantime has to be seen. Flux has no
@@ -251,7 +253,7 @@ export default definePlugin({
 
     stop() {
         anchor = null;
-        stopShiftTracking();
+        stopCtrlTracking();
         stopStore();
     }
 });

@@ -1,7 +1,7 @@
 /*
- * Shift gating. One rule, matched only against buttons this plugin tagged, so revealing
+ * Ctrl gating. One rule, matched only against buttons this plugin tagged, so revealing
  * them is a single class toggle on <body> with no React work.
  */
-body:not(.vc-chm-shift-down) .vc-chm-shift-only {
+body:not(.vc-chm-ctrl-down) .vc-chm-ctrl-only {
     display: none !important;
 }

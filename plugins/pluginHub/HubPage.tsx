@@ -128,22 +128,22 @@ function SyncRow() {
 
 /** One switch of Screen Share Protection's, as a quieter row under it */
 /** When the plugins' buttons show in right-click menus - one choice for all of them */
-const MENU_CHOICES: { value: "always" | "shift" | "never"; label: string; }[] = [
+const MENU_CHOICES: { value: "always" | "ctrl" | "never"; label: string; }[] = [
     { value: "always", label: "Always" },
-    { value: "shift", label: "Holding Shift" },
+    { value: "ctrl", label: "Holding Ctrl" },
     { value: "never", label: "Never" },
 ];
 
 function MenuButtons() {
     const { menuButtons } = settings.use(["menuButtons"]);
-    const current = menuButtons ?? "shift";
+    const current = menuButtons ?? "ctrl";
 
     return (
         <div className={cl("item")}>
             <div className={cl("item-text")}>
                 <div className={cl("item-name")}>Right-click buttons</div>
                 <div className={cl("item-detail")}>
-                    When entries like Hide DM show in right-click menus. Holding Shift keeps menus looking like normal Discord.
+                    When entries like Hide DM show in right-click menus. Holding Ctrl keeps menus looking like normal Discord.
                 </div>
             </div>
             <div className={cl("choice")} role="radiogroup" aria-label="Right-click buttons">
@@ -244,7 +244,7 @@ function ShareOptions() {
 
             <ShareSwitch name="streamerMode" label="Also when Streamer Mode is on" detail="Discord can turn Streamer Mode on by itself when it sees OBS or another recorder." />
             <ShareSwitch name="shareHideNew" label="Hide anything new" detail="New friends, DMs and servers stay hidden until the share ends." />
-            <ShareSwitch name="shareHideMenus" label="Hide right-click buttons" detail="No plugin buttons in menus, or the Bookmarked tab. Shift still shows them." />
+            <ShareSwitch name="shareHideMenus" label="Hide right-click buttons" detail="No plugin buttons in menus, or the Bookmarked tab. Ctrl still shows them." />
             <ShareSwitch name="shareHidePage" label="Hide this page" detail="Takes Additional Settings out of the sidebar." />
             <ShareSwitch name="sharePlain" label="Look like plain Discord" detail="Hides Vencord and turns off your other plugins. The hide and fake plugins stay on." />
             <ShareSwitch name="shareRestore" label="Turn plugins back off after" detail="Plugins turned on for the share go back off when it ends." />

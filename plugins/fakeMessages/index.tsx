@@ -47,7 +47,7 @@ const messageCtx: NavContextMenuPatchCallback = (children, { message }: { messag
     if (isFake(channelId, message.id)) {
         // Editing one is Inspect Messages' job - it rewrites the text, the time and the
         // edited tag of any message, and these are messages like any other. But its own
-        // entry only shows while Shift is held, which nobody guesses on a message they made
+        // entry only shows while Ctrl is held, which nobody guesses on a message they made
         // up themselves, so the way in is offered here in plain sight.
         place(children, 44,
             <Menu.MenuItem

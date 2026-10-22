@@ -34,6 +34,8 @@ export interface Adapter {
     plugin: string;
     /** what it is called on the shelf, shared with the phone */
     shelfKey: string;
+    /** its switch under What to sync, when that is not the shelf key - two plugins can share a record */
+    option?: string;
     /** for the settings page */
     label: string;
     /** read this client's storage into the shelf's shape, or null when there is nothing */
@@ -153,29 +155,37 @@ const hideDMs: Adapter = {
     }
 };
 
-/** The parts of a hidden-friends record this client keeps. The phone keeps more. */
-const FRIEND_KEYS = ["hidden", "hiddenWas", "blocked", "blockedWas", "pending", "incoming", "dismissed", "friended"];
+/**
+ * The phone keeps hidden and faked friends in one record, and so does the shelf. Here they are
+ * two plugins - Hide Friends and Fake Friends - each with the parts of that record it owns.
+ * The phone keeps more parts than either.
+ */
+const HIDE_FRIEND_KEYS = ["hidden", "hiddenWas", "dismissed"];
+const FAKE_FRIEND_KEYS = ["blocked", "blockedWas", "pending", "incoming", "friended"];
 
-const hideFriends: Adapter = {
-    plugin: "HideFriends",
+const friendParts = (plugin: string, key: string, option: string, label: string, fields: string[]): Adapter => ({
+    plugin,
     shelfKey: "hideFriends",
-    label: "Hide Friends",
+    option,
+    label,
 
     async read() {
-        const stored = await get<Record<string, any>>("HideFriends_State");
+        // Fakes were kept with Hide Friends before the split, until Fake Friends first starts
+        const stored = await get<Record<string, any>>(key) ?? (key === "FakeFriends_State" ? await get<Record<string, any>>("HideFriends_State") : null);
         if (!stored) return null;
 
-        const out: Record<string, any> = {};
-        for (const key of FRIEND_KEYS) out[key] = stored[key] ?? {};
-        return out;
+        return Object.fromEntries(fields.map(field => [field, stored[field] ?? {}]));
     },
 
     async write(held) {
-        const next: Record<string, any> = {};
-        for (const key of FRIEND_KEYS) next[key] = held[key] ?? {};
-        await set("HideFriends_State", next);
+        // Anything else already there is left for whoever owns it
+        const stored = await get<Record<string, any>>(key) ?? {};
+        await set(key, { ...stored, ...Object.fromEntries(fields.map(field => [field, held[field] ?? {}])) });
     }
-};
+});
+
+const hideFriends = friendParts("HideFriends", "HideFriends_State", "hideFriends", "Hide Friends", HIDE_FRIEND_KEYS);
+const fakeFriends = friendParts("FakeFriends", "FakeFriends_State", "fakeFriends", "Fake Friends", FAKE_FRIEND_KEYS);
 
 const hideServers: Adapter = {
     plugin: "HideServers",
@@ -243,7 +253,7 @@ const fakeNotifications: Adapter = {
 };
 
 export const ADAPTERS: Adapter[] = [
-    hideMessages, inspectMessages, fakeMessages, hideDMs, hideFriends, hideServers, fakeCalls, fakeNotifications
+    hideMessages, inspectMessages, fakeMessages, hideDMs, hideFriends, fakeFriends, hideServers, fakeCalls, fakeNotifications
 ];
 
 /**
