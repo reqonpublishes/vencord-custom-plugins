@@ -11,7 +11,7 @@ import { UserStore } from "@webpack/common";
 import { badgesFor, realKeys } from "./badges";
 import { isStored, urlOf } from "./images";
 import { realActivities, realOutbox, realStatus, realWidgets } from "./presence";
-import { changes, Look, lookFor, NOTHING, presetCalled, switcherNames } from "./store";
+import { changes, Look, lookFor, NOTHING, presetCalled, switcherNames, wornPreset } from "./store";
 
 const logger = new Logger("InspectProfiles");
 
@@ -22,6 +22,13 @@ const logger = new Logger("InspectProfiles");
  * address first - see the patches in index.tsx. Starting a_ lets a gif be allowed to move.
  */
 const MARK = "a_vcip";
+
+/**
+ * Your own row in Switch Accounts while you wear one of its presets. The preset has a row of
+ * its own then, so yours shows the real you - the way back - and its picture is drawn from
+ * this mark rather than from the look every other picture of you follows.
+ */
+const REAL = "vcreal_";
 
 let UserProfileStore: any = null;
 const profileStore = () => (UserProfileStore ??= findStore("UserProfileStore"));
@@ -174,11 +181,19 @@ function profileCopy(profile: any) {
 export function avatarFor(user: any): string | undefined {
     if (!running) return;
     const id = user?.id ?? user?.userId;
+    if (typeof user?.avatar === "string" && user.avatar.startsWith(REAL)) return realPicture(id, user.avatar.slice(REAL.length));
+
     const preset = presetForAccount(id);
     if (preset) return pictureUrl(presetCalled(preset)?.avatar);
 
     const chosen = lookFor(id)?.avatar;
     return pictureUrl(chosen);
+}
+
+/** Your real picture, as Discord's own address for it */
+function realPicture(id: string, hash: string) {
+    if (!hash) return `https://cdn.discordapp.com/embed/avatars/${Number((BigInt(id) >> 22n) % 6n)}.png`;
+    return `https://cdn.discordapp.com/avatars/${id}/${hash}.${hash.startsWith("a_") ? "gif" : "png"}?size=128`;
 }
 
 export function bannerFor(user: any): string | undefined {
@@ -311,9 +326,13 @@ function accountsCopy(key: string, list: any[]) {
     const held = accountLists.get(key);
     if (held && held.from === list && held.version === changes()) return held.list;
 
+    const me = realGetCurrentUser?.call(UserStore)?.id;
+    const wearing = !!wornPreset(me);
+
     const copy = list.map(account => {
         const look = lookFor(account?.id);
         if (!look) return account;
+        if (wearing && account.id === me) return { ...account, avatar: REAL + (account.avatar ?? "") };
 
         const shown = { ...account };
         if (look.username !== undefined) shown.username = look.username;

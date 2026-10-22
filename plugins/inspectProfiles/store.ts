@@ -244,6 +244,15 @@ export function setInSwitcher(name: string, on: boolean) {
     save();
 }
 
+/** The Switch Accounts preset somebody wears right now, when their look is exactly one of them */
+export function wornPreset(userId?: string | null): string | undefined {
+    const look = lookFor(userId);
+    if (!look) return;
+
+    const worn = JSON.stringify(look);
+    return switcherNames().find(name => JSON.stringify(state.presets[name]) === worn);
+}
+
 /** What is in a look, so a row says what it would do before anybody presses it */
 export function summary(look?: Look): string {
     if (!look) return "Nothing in it";

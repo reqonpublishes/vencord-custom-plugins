@@ -10,7 +10,8 @@ import { NavContextMenuPatchCallback } from "@api/ContextMenu";
 import { definePluginSettings, Settings } from "@api/Settings";
 import definePlugin, { OptionType } from "@utils/types";
 import { User } from "@vencord/discord-types";
-import { FluxDispatcher, Menu, showToast, UserStore } from "@webpack/common";
+import { findByPropsLazy } from "@webpack";
+import { FluxDispatcher, Menu, SelectedChannelStore, showToast, UserStore } from "@webpack/common";
 
 import { InspectIcon, MasksIcon, UndoIcon } from "./icons";
 import { forgetUnused, preload, whenReady } from "./images";
@@ -18,10 +19,18 @@ import { openInspect } from "./InspectModal";
 import { place } from "./menu";
 import { redrawPresence, startPresence, stopPresence } from "./presence";
 import { ProfilesPanel } from "./ProfilesPanel";
-import { avatarFor, bannerFor, joinedAt, presetForAccount, profileLoaded, realAccountCount, redraw, startRewriting, stopRewriting } from "./rewrite";
+import { avatarFor, bannerFor, joinedAt, presetAccountId, presetForAccount, profileLoaded, realAccountCount, redraw, startRewriting, stopRewriting } from "./rewrite";
 import { loadWhole, stealLook } from "./steal";
-import { asRecord, editedIds, invalidate, load, lookFor, onChange, presetCalled, presetNames, revert, savePreset, setInSwitcher, setLook } from "./store";
+import { asRecord, editedIds, invalidate, load, lookFor, onChange, presetCalled, presetNames, revert, savePreset, setInSwitcher, setLook, wornPreset } from "./store";
 import { About, menuChips } from "./ui";
+
+/** Discord's own voice actions; disconnect is what the hang-up button runs */
+const VoiceActions = findByPropsLazy("selectVoiceChannel", "disconnect");
+
+/** A real account switch drops your call and anything you share in it, so a preset switch does too */
+function hangUp() {
+    if (SelectedChannelStore.getVoiceChannelId()) VoiceActions.disconnect();
+}
 
 const settings = definePluginSettings({
     entries: {
@@ -220,6 +229,30 @@ export default definePlugin({
             ]
         },
         {
+            // The account menu's Switch Accounts list. Discord ticks the row with your id and
+            // will not switch to it; while you wear a preset the tick is the preset's, and your
+            // own row is the way back.
+            find: 'navId:"switch-accounts-submenu"',
+            replacement: [
+                {
+                    match: /(\i)=(\i)\.id===(\i)\?\.id(,\i=\i\.tokenStatus===)/,
+                    replace: "$1=$self.isActiveRow($2.id,$3?.id)$4"
+                },
+                {
+                    match: /\((\i)=(\i)\.id\)!==(\i)\?\.id&&\(/,
+                    replace: "!$self.isActiveRow($1=$2.id,$3?.id)&&("
+                }
+            ]
+        },
+        {
+            // Manage Accounts: the same, for its "Active account" label and Switch button
+            find: ".MULTI_ACCOUNTS_LIST),",
+            replacement: {
+                match: /(\i=\i&&)(\i)\?\.id===(\i)\.id(,\i=\i\.tokenStatus===)/,
+                replace: "$1$self.isActiveRow($3.id,$2?.id)$4"
+            }
+        },
+        {
             // Member Since on a profile, which works the day out from the id rather than reading
             // it off the user - so the day chosen has to be answered here as well.
             find: /textClassName:\i,tooltipDelay:\i\}=\i/,
@@ -245,17 +278,25 @@ export default definePlugin({
             if (!look) return false;
 
             setLook(me, { ...look });
+            hangUp();
             showToast({ text: `You now look like ${name}`, variant: "success" });
             return true;
         }
 
         if (accountId === me && lookFor(me)) {
             revert(me);
+            hangUp();
             showToast({ text: "You look like yourself again", variant: "success" });
             return true;
         }
 
         return false;
+    },
+
+    /** Which Switch Accounts row is ticked: the preset you wear, rather than the account wearing it */
+    isActiveRow(rowId: string, meId?: string) {
+        const worn = active && meId ? wornPreset(meId) : undefined;
+        return worn ? rowId === presetAccountId(worn) : rowId === meId;
     },
 
     /** A preset row's X: off the list, the preset itself kept */
