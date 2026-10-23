@@ -11,7 +11,7 @@ where it was.
 
 | Setting | What it does |
 | --- | --- |
-| **Show** | **Whole call** (how long the call has gone on), **Your time** (how long you have been in it), or **Both** side by side |
+| **Show** | **Whole call** (how long the call has gone on), **Your time** (how long you have been in it), or **Both** side by side. Hover the timer to see when the call started |
 
 > [!NOTE]
 > A server voice channel never says when it started, so there the timer counts your own time,

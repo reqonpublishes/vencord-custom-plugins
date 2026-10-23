@@ -103,11 +103,18 @@ const Timer = ErrorBoundary.wrap(({ channelId }: { channelId: string; }) => {
     const mine = formatDuration(Math.max(0, now - joined), human);
     const whole = call ? formatDuration(Math.max(0, now - Math.min(call, joined)), human) : null;
 
-    const text = show === "you" || !whole
-        ? mine
-        : show === "both" && whole !== mine ? `${whole} · you ${mine}` : whole;
+    // Both always says both, even when they match, so it is plain which is which - and where the
+    // call's start is not known (a server voice channel), it says the one number is yours.
+    const text = show === "both"
+        ? whole ? `${whole} · you ${mine}` : `you ${mine}`
+        : show === "you" || !whole ? mine : whole;
 
-    return <p style={{ margin: 0, fontFamily: "var(--font-code)" }}>{text}</p>;
+    const clock = (at: number) => new Date(at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    const said = call
+        ? `Call started at ${clock(Math.min(call, joined))}, you joined at ${clock(joined)}`
+        : `Discord does not say when this call started, so this is your time, since ${clock(joined)}`;
+
+    return <p title={said} style={{ margin: 0, fontFamily: "var(--font-code)" }}>{text}</p>;
 }, { noop: true });
 
 /** Call Timer's own drawing, put back when this is switched off */
