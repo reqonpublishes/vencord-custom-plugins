@@ -38,8 +38,14 @@ const settings = definePluginSettings({
 /** When an id was made: a call message's id is when the call began */
 const timeOfId = (id: string) => Number(BigInt(id) >> 22n) + 1420070400000;
 
-/** The calls already asked about, so each is asked once */
-const asked = new Set<string>();
+/**
+ * When each call was last asked about, and how many times. Asked again every so often until
+ * the answer comes: an ask made while Discord is still connecting, straight after a restart,
+ * is dropped without a word.
+ */
+const asked = new Map<string, { at: number; times: number; }>();
+const ASK_EVERY = 10_000;
+const ASK_TIMES = 12;
 
 /**
  * When the call in a channel began, for a DM or group call: from the message Discord posts
@@ -48,8 +54,8 @@ const asked = new Set<string>();
  *
  * Discord only asks the server about the call in the chat you have open - when you open it,
  * and again on connecting. In a call whose chat is not open, after a restart say, it never
- * hears when the call began. So it is asked here the way opening that chat asks, once; the
- * answer comes back as the call's own update and the timer catches up a moment later.
+ * hears when the call began. So it is asked here the way opening that chat asks; the answer
+ * comes back as the call's own update and the timer catches up a moment later.
  */
 function callStartedAt(channelId: string): number | null {
     try {
@@ -64,8 +70,9 @@ function callStartedAt(channelId: string): number | null {
         const ongoing = loaded.findLast(message => message.type === 3 && message.call && !message.call.endedTimestamp && !message.call.ended_timestamp);
         if (ongoing) return timeOfId(ongoing.id);
 
-        if (!asked.has(channelId)) {
-            asked.add(channelId);
+        const last = asked.get(channelId);
+        if (!last || (Date.now() - last.at > ASK_EVERY && last.times < ASK_TIMES)) {
+            asked.set(channelId, { at: Date.now(), times: (last?.times ?? 0) + 1 });
             FluxDispatcher.dispatch({ type: "CALL_CONNECT", channelId } as any);
         }
         return null;
