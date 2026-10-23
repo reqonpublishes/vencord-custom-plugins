@@ -12,11 +12,11 @@ import { definePluginSettings, Settings } from "@api/Settings";
 import definePlugin, { OptionType } from "@utils/types";
 import { Channel, User } from "@vencord/discord-types";
 import { findStoreLazy } from "@webpack";
-import { FluxDispatcher, Menu, RelationshipStore, showToast, UserStore } from "@webpack/common";
+import { FluxDispatcher, Menu, React, RelationshipStore, showToast, UserStore } from "@webpack/common";
 
 import { BookmarkList } from "./BookmarkList";
-import BookmarksPage from "./BookmarksPage";
 import { BookmarkAddIcon, BookmarkIcon } from "./icons";
+import { filterRows, useVersion } from "./rows";
 import { add, count, isBookmarked, load, remove } from "./store";
 import { About } from "./ui";
 
@@ -86,14 +86,16 @@ window.addEventListener("mousedown", noteCtrl, true);
 const menu: NavContextMenuPatchCallback = (children, { user, channel }: { user?: User; channel?: Channel; }) => {
     // A shared screen should not show who is worth keeping within reach.
     if (shared()) return;
-    // When right-click buttons show at all, as chosen on Additional Settings
-    const mode: string = (window as any).vcMenuMode ?? "always";
-    if (mode === "never" || (mode !== "always" && !ctrlHeld)) return;
-
     const person = personOf(user, channel);
     if (!person?.id || person.id === UserStore.getCurrentUser()?.id) return;
 
     const saved = isBookmarked(person.id);
+
+    // When right-click buttons show at all, as chosen on Additional Settings - except Remove
+    // Bookmark on the Bookmarked tab itself, the one place it is the thing you came to do.
+    const mode: string = (window as any).vcMenuMode ?? "always";
+    const onTab = saved && FriendsStore.getState?.()?.section === SECTION && location.pathname === "/channels/@me";
+    if (!onTab && (mode === "never" || (mode !== "always" && !ctrlHeld))) return;
     const Icon = saved ? BookmarkIcon : BookmarkAddIcon;
 
     const item = (
@@ -156,7 +158,7 @@ export default definePlugin({
             note="Kept on this computer only. Nobody is told they were bookmarked."
             steps={[
                 <>Right-click someone, or open the <strong>...</strong> menu on their profile, and choose <strong>Bookmark</strong>.</>,
-                <>Open <strong>Friends</strong> and the <strong>Bookmarked</strong> tab. Click someone to open their profile, or the chat button to message them.</>,
+                <>Open <strong>Friends</strong> and the <strong>Bookmarked</strong> tab. Click someone to message them, or right-click them for the rest.</>,
                 <>They stay there even after you close their DM.</>
             ]}
         />
@@ -171,13 +173,47 @@ export default definePlugin({
                     match: /className:(\i\.\i)\},\{id:(\i\.\i)\.SUGGESTIONS,show:/,
                     replace: "className:$1},{id:$self.SECTION,show:$self.tabShown(),className:$1,content:\"Bookmarked\",announceName:\"Bookmarked\"},{id:$2.SUGGESTIONS,show:"
                 },
+            ]
+        },
+        {
+            // The list every tab but Add Friend shares. Ours is drawn by it too, from the
+            // bookmarks, so it looks and behaves exactly like All and Pending - see rows.ts.
+            find: "Unexpected pending friend requests section index",
+            replacement: [
                 {
-                    // What is drawn under the tabs. Add Friend has a page of its own and every
-                    // other tab shares the list; this gives ours a page of its own as well.
-                    match: /=(\i)===(\i\.\i)\.ADD_FRIEND\?(?=\(0,\i\.jsx\)\(\i,\{\}\):\(0,\i\.jsx\)\(\i,\{titleId:)/,
-                    replace: "=$1===$self.SECTION?$self.renderPage():$1===$2.ADD_FRIEND?"
+                    // each tab starts with an empty search; Discord only lists its own tabs,
+                    // and a tab with no entry reads as one being searched
+                    match: /(for\(let (\i) of Object\.values\(\i\.\i\)\)(\i)\[\2\]="";)/,
+                    replace: "$1$3[$self.SECTION]=\"\";"
+                },
+                {
+                    // the rows of the open tab
+                    match: /(\i)=(\i\.useMemo)\(\(\)=>(\i)\.filter\((\i),(\i)\[\4\]\),\[\3,\5,\4\]\)/,
+                    replace: "$1=$2(()=>$self.filterRows($3,$4,$5[$4]),[$3,$5,$4,$self.useVersion()])"
+                },
+                {
+                    // the count above them: "Bookmarked — 12"
+                    match: /(function\(\i,(\i),\i,\i\)\{switch\(\i\)\{)(case \i\.\i\.ONLINE:return)/,
+                    replace: "$1case $self.SECTION:return $self.title($2);$3"
                 }
             ]
+        },
+        {
+            // The picture a tab shows with nobody in it. Ours has one of its own words.
+            find: '"FriendsEmptyState: Invalid empty state"',
+            replacement: {
+                match: /(case"SECTION_NO_RESULTS":return (\i)\.SECTION_NO_RESULTS;)(default:throw)/,
+                replace: "$1case $self.SECTION:return $self.empty($2.SECTION_ONLINE);$3"
+            }
+        },
+        {
+            // A row's ... button. A friend's opens calls and Remove Friend; a bookmark may not
+            // be a friend at all, so it opens the menu right-clicking the row opens.
+            find: "peopleListItemRef=",
+            replacement: {
+                match: /handleOpenActionsMenu=(\i)=>\{/,
+                replace: "handleOpenActionsMenu=$1=>{if(this.props.vcBookmark)return void this.peopleListItemRef.current?.handleContextMenu?.($1,this.props.user);"
+            }
         }
     ],
 
@@ -202,8 +238,22 @@ export default definePlugin({
         return n ? `${n} bookmarked` : "";
     },
 
-    renderPage() {
-        return <BookmarksPage />;
+    filterRows: (rows: any, section: string, query: string) => filterRows(rows, section, query, SECTION),
+    useVersion,
+
+    title: (n: number) => `Bookmarked — ${n}`,
+
+    /** Discord's own picture for an empty tab, with words of ours under it */
+    empty(base: any) {
+        if (!base) return base;
+        return {
+            ...base,
+            renderContent: () => {
+                const shown = base.renderContent?.();
+                const note = "Nobody bookmarked yet. Right-click someone and choose Bookmark.";
+                return React.isValidElement(shown) ? React.cloneElement(shown as any, { note }) : note;
+            }
+        };
     },
 
     contextMenus: {
