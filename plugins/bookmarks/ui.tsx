@@ -262,3 +262,33 @@ export function hoverChoice(store: () => any, detail: string) {
         );
     };
 }
+
+/** One choice out of a few, drawn as the same chips as the menu ones: "Show" -> Whole call / Your time / Both */
+export function choiceChips(store: () => any, key: string, title: string, detail: string, options: readonly (readonly [string, string])[]) {
+    return function ChoiceChips() {
+        const settings = store();
+        const current = settings.use([key])[key] ?? options[0][0];
+
+        return (
+            <div className={cl("menus")}>
+                <div className={cl("menus-title")}>{title}</div>
+                <div className={cl("menus-detail")}>{detail}</div>
+                <div className={cl("menu-chips")} role="radiogroup" aria-label={title}>
+                    {options.map(([value, label]) => (
+                        <button
+                            key={value}
+                            type="button"
+                            role="radio"
+                            aria-checked={current === value}
+                            className={cl("menu-chip", current === value ? "menu-chip-on" : "")}
+                            onClick={() => void (settings.store[key] = value)}
+                        >
+                            {current === value && <Tick />}
+                            <span>{label}</span>
+                        </button>
+                    ))}
+                </div>
+            </div>
+        );
+    };
+}

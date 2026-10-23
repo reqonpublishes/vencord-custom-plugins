@@ -9,7 +9,7 @@ import { Logger } from "@utils/Logger";
 import { Flux } from "@webpack/common";
 
 import {
-    BellIcon, BoltIcon, BookmarkIcon, ChatAddIcon, ChatOffIcon, ClockIcon, CloudIcon, IconComponent, InspectIcon, MailOffIcon, MasksIcon, PersonAddIcon, PersonOffIcon, PhoneAddIcon, ServerIcon, ShieldIcon, SpeedIcon
+    BellIcon, BoltIcon, BookmarkIcon, ChatAddIcon, ChatOffIcon, ClockIcon, CloudIcon, IconComponent, InspectIcon, MailOffIcon, MasksIcon, PersonAddIcon, PersonOffIcon, PhoneAddIcon, ServerIcon, ShieldIcon, SpeedIcon, TimerIcon
 } from "./icons";
 
 const logger = new Logger("PluginHub");
@@ -57,6 +57,7 @@ export const ENTRIES: Entry[] = [
     { plugin: "Bookmarks", label: "Bookmarks", icon: BookmarkIcon, section: "tools", about: "Bookmark profiles and find them again from Friends" },
     { plugin: "QuickRestart", label: "Quick Restart", icon: BoltIcon, section: "tools", about: "Ctrl+R restarts Discord about five times faster" },
     { plugin: "Performance", label: "Performance", icon: SpeedIcon, section: "tools", about: "Fixes the places Discord gets slow or stuck" },
+    { plugin: "CallLength", label: "Call Length", icon: TimerIcon, section: "tools", about: "Call Timer counts the whole call and keeps counting through restarts" },
     { plugin: "CloudSync", label: "Cloud Sync", icon: CloudIcon, section: "tools", about: "Sync these plugins with your phone using one private code" }
 ];
 

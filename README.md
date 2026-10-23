@@ -27,6 +27,7 @@ Custom plugins for [Vencord](https://vencord.dev).
 | **[Cloud&nbsp;Sync](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/cloudSync)** | Sync everything these plugins hold between this computer and your phone with one private code. Nothing syncs until you press a button. |
 | **[Quick&nbsp;Restart](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/quickRestart)** | Ctrl+R restarts Discord about five times faster. |
 | **[Performance](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/performance)** | Fixes the places Discord gets slow or stuck - like chats sitting on their loading placeholder when you scroll up through blocked messages. |
+| **[Call&nbsp;Length](https://github.com/reqonpublishes/vencord-custom-plugins/tree/main/plugins/callLength)** | Makes Call Timer count the whole call, not just your part, and keep counting through restarts. |
 
 Click a plugin for how to use it and what its settings do.
 
