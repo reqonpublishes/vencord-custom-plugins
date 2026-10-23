@@ -25,6 +25,8 @@ export interface Entry {
     section: Section;
     /** what the plugin is for, shown while it has nothing of its own to report */
     about: string;
+    /** a small fix or extra: listed under Tweaks, folded away, rather than as a row of its own */
+    tweak?: boolean;
 }
 
 export const SECTIONS: { id: Section; title: string; }[] = [
@@ -55,9 +57,9 @@ export const ENTRIES: Entry[] = [
     { plugin: "FakeNotifications", label: "Fake Notifications", icon: BellIcon, section: "fake", about: "Set the numbers on your request badges" },
     { plugin: "FakeMod", label: "Fake Mod", icon: ShieldIcon, section: "fake", about: "Add moderator tools that only look real" },
     { plugin: "Bookmarks", label: "Bookmarks", icon: BookmarkIcon, section: "tools", about: "Bookmark profiles and find them again from Friends" },
-    { plugin: "QuickRestart", label: "Quick Restart", icon: BoltIcon, section: "tools", about: "Ctrl+R restarts Discord about five times faster" },
-    { plugin: "Performance", label: "Performance", icon: SpeedIcon, section: "tools", about: "Fixes the places Discord gets slow or stuck" },
-    { plugin: "CallLength", label: "Call Length", icon: TimerIcon, section: "tools", about: "Call Timer counts the whole call and keeps counting through restarts" },
+    { plugin: "QuickRestart", label: "Quick Restart", icon: BoltIcon, section: "tools", about: "Ctrl+R restarts Discord about five times faster", tweak: true },
+    { plugin: "Performance", label: "Performance", icon: SpeedIcon, section: "tools", about: "Fixes the places Discord gets slow or stuck", tweak: true },
+    { plugin: "CallLength", label: "Call Length", icon: TimerIcon, section: "tools", about: "Call Timer counts the whole call and keeps counting through restarts", tweak: true },
     { plugin: "CloudSync", label: "Cloud Sync", icon: CloudIcon, section: "tools", about: "Sync these plugins with your phone using one private code" }
 ];
 

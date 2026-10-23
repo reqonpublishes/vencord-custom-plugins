@@ -15,7 +15,7 @@ import { Alerts, React } from "@webpack/common";
 import { settings } from ".";
 import { deleteAllData } from "./data";
 import { applying, Entry, flipAll, installed, isEnabled, isOn, isView, needsRestart, pluginOf, SECTIONS, setOn, summaryOf, usable } from "./hub";
-import { ChevronDownIcon, CloudDownIcon, CloudUpIcon, CursorIcon, EyeIcon, EyeOffIcon, GearIcon, IconComponent, MenuIcon, RefreshIcon, ScreenShareIcon, SyncIcon, TrashIcon, UndoIcon } from "./icons";
+import { ChevronDownIcon, CloudDownIcon, CloudUpIcon, CursorIcon, EyeIcon, EyeOffIcon, GearIcon, IconComponent, MenuIcon, RefreshIcon, ScreenShareIcon, SyncIcon, TrashIcon, UndoIcon, WrenchIcon } from "./icons";
 import { isProtecting, onProtectionChange, raisedForShare } from "./protect";
 import { say } from "./say";
 import { cl, IconButton } from "./ui";
@@ -25,7 +25,7 @@ const logger = new Logger("PluginHub");
 /** Enabled in Vencord but waiting on a restart before it can do anything */
 const isWaiting = (plugin: string) => !isOn(plugin) && isEnabled(plugin) && needsRestart(plugin);
 
-function PluginRow({ entry, onChange }: { entry: Entry; onChange(): void; }) {
+function PluginRow({ entry, onChange, sub }: { entry: Entry; onChange(): void; sub?: boolean; }) {
     const { plugin, label, icon: Icon } = entry;
     const enabled = isEnabled(plugin);
     const on = enabled && isOn(plugin);
@@ -33,12 +33,12 @@ function PluginRow({ entry, onChange }: { entry: Entry; onChange(): void; }) {
     const tag = on ? summaryOf(entry) : "";
 
     return (
-        <div className={cl("item", on ? "" : "item-off")}>
-            <div className={cl("tile")}>
-                <Icon height={20} width={20} />
-            </div>
+        <div className={sub ? cl("sub-row", on ? "" : "item-off") : cl("item", on ? "" : "item-off")}>
+            {sub
+                ? <Icon className={cl("sub-icon")} height={18} width={18} />
+                : <div className={cl("tile")}><Icon height={20} width={20} /></div>}
             <div className={cl("item-text")}>
-                <div className={cl("item-name")}>{label}</div>
+                <div className={cl(sub ? "sub-name" : "item-name")}>{label}</div>
                 <div className={cl("item-detail")}>
                     {waiting ? "Turns on after a reload." : pluginOf(plugin)?.description ?? entry.about}
                 </div>
@@ -162,6 +162,57 @@ function ButtonChoice({ setting, icon: Icon, name, detail }: { setting: "menuBut
     );
 }
 
+/**
+ * The small fixes and extras, folded into one row like Screen Share Protection's choices.
+ *
+ * Each is switched on once and forgotten, so they do not each need a row in Tools - and a new
+ * one joins them here rather than making the page longer.
+ */
+function Tweaks({ entries, onChange }: { entries: Entry[]; onChange(): void; }) {
+    const [open, setOpen] = React.useState(false);
+    const { undo } = settings.use(["undo"]);
+
+    const on = entries.filter(entry => isEnabled(entry.plugin) && isOn(entry.plugin)).length + (undo !== false ? 1 : 0);
+    const total = entries.length + 1;
+
+    return (
+        <>
+            <div className={cl("item", open ? "item-open" : "")}>
+                <div className={cl("tile")}><WrenchIcon height={20} width={20} /></div>
+                <div className={cl("item-text")}>
+                    <div className={cl("item-name")}>Tweaks</div>
+                    <div className={cl("item-detail")}>Small fixes and extras, {on} of {total} on.</div>
+                </div>
+                <Button
+                    className={cl("cog", open ? "cog-open" : "")}
+                    size="iconOnly"
+                    variant="none"
+                    aria-expanded={open}
+                    aria-label={open ? "Hide the tweaks" : "Show the tweaks"}
+                    title={open ? "Hide the tweaks" : "Show the tweaks"}
+                    onClick={() => setOpen(was => !was)}
+                >
+                    <ChevronDownIcon height={20} width={20} />
+                </Button>
+            </div>
+
+            {open && (
+                <div className={cl("sub")}>
+                    {entries.map(entry => <PluginRow key={entry.plugin} entry={entry} onChange={onChange} sub />)}
+                    <div className={cl("sub-row", undo !== false ? "" : "item-off")}>
+                        <UndoIcon className={cl("sub-icon")} height={18} width={18} />
+                        <div className={cl("item-text")}>
+                            <div className={cl("sub-name")}>Undo</div>
+                            <div className={cl("item-detail")}>Ctrl+Z undoes your last change.</div>
+                        </div>
+                        <Switch checked={undo !== false} onChange={next => void (settings.store.undo = next)} />
+                    </div>
+                </div>
+            )}
+        </>
+    );
+}
+
 /** Everything saved on this computer, gone - asked about first */
 function DeleteData() {
     return (
@@ -258,7 +309,7 @@ function HubPage() {
     const [shareOpen, setShareOpen] = React.useState(false);
     const update = () => redraw(n => n + 1);
 
-    const { shareProtection, undo } = settings.use(["shareProtection", "undo"]);
+    const { shareProtection } = settings.use(["shareProtection"]);
     const protecting = isProtecting();
 
     // A share starting or ending switches plugins behind this page's back.
@@ -355,27 +406,17 @@ function HubPage() {
                 </section>
 
                 {SECTIONS.map(({ id, title }) => {
-                    const rows = all.filter(entry => entry.section === id);
-                    if (!rows.length) return null;
+                    const rows = all.filter(entry => entry.section === id && !entry.tweak);
+                    const tweaks = all.filter(entry => entry.section === id && entry.tweak);
+                    if (!rows.length && !tweaks.length) return null;
 
                     return (
                         <section className={cl("section")} key={id}>
                             <h2 className={cl("heading")}>{title}</h2>
                             {rows.map(entry => (
                                 <React.Fragment key={entry.plugin}>
-                                    {/* Undo is a tool like the rest, before the sync pair at the end */}
-                                    {entry.plugin === "CloudSync" && (
-                                        <>
-                                        <div className={cl("item")}>
-                                            <div className={cl("tile")}><UndoIcon height={20} width={20} /></div>
-                                            <div className={cl("item-text")}>
-                                                <div className={cl("item-name")}>Undo</div>
-                                                <div className={cl("item-detail")}>Ctrl+Z undoes your last change.</div>
-                                            </div>
-                                            <Switch checked={undo !== false} onChange={next => void (settings.store.undo = next)} />
-                                        </div>
-                                        </>
-                                    )}
+                                    {/* the tweaks, folded, before the sync pair at the end */}
+                                    {entry.plugin === "CloudSync" && !!tweaks.length && <Tweaks entries={tweaks} onChange={update} />}
                                     <PluginRow entry={entry} onChange={update} />
                                     {/* straight under the plugin it belongs to */}
                                     {entry.plugin === "CloudSync" && <SyncRow />}

@@ -21,6 +21,7 @@ Open Discord's settings → **Vencord** → **Additional Settings**.
 | **Turn On** | Brings back the ones that were on when you pressed Turn Off |
 | **The switch on a row** | Turns that one plugin off or on |
 | **The cog on a row** | Opens that plugin's settings |
+| **Tweaks** | The small fixes and extras - Quick Restart, Performance, Call Length, Undo - folded into one row; open it to switch them |
 | **To Cloud / From Cloud** | The two [Cloud Sync](../cloudSync) buttons, once you have a sync code |
 
 ## Screen Share Protection

@@ -181,3 +181,9 @@
     text-overflow: ellipsis;
     white-space: nowrap;
 }
+
+/* a plugin inside a fold: its own icon, small and quiet, where a full row has a tile */
+.vc-hub-sub-icon {
+    flex: 0 0 auto;
+    color: var(--icon-subtle, var(--text-muted));
+}
