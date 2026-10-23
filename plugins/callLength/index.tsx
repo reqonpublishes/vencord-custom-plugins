@@ -13,7 +13,7 @@ import { localStorage } from "@utils/localStorage";
 import { formatDuration } from "@utils/text";
 import definePlugin, { OptionType } from "@utils/types";
 import { findStoreLazy } from "@webpack";
-import { ChannelStore, React } from "@webpack/common";
+import { ChannelStore, FluxDispatcher, MessageStore, React } from "@webpack/common";
 
 import { TimerIcon } from "./icons";
 import { About, choiceChips } from "./ui";
@@ -38,10 +38,18 @@ const settings = definePluginSettings({
 /** When an id was made: a call message's id is when the call began */
 const timeOfId = (id: string) => Number(BigInt(id) >> 22n) + 1420070400000;
 
+/** The calls already asked about, so each is asked once */
+const asked = new Set<string>();
+
 /**
- * When the call in a channel began, for a DM or group call: Discord keeps the id of the
- * message it posts when a call starts, and hands it back after a restart. A server voice
- * channel has no such message, so there is nothing to say how long it has been going.
+ * When the call in a channel began, for a DM or group call: from the message Discord posts
+ * when a call starts, whose id is that moment. A server voice channel has no such message, so
+ * there is nothing to say how long it has been going.
+ *
+ * Discord only asks the server about the call in the chat you have open - when you open it,
+ * and again on connecting. In a call whose chat is not open, after a restart say, it never
+ * hears when the call began. So it is asked here the way opening that chat asks, once; the
+ * answer comes back as the call's own update and the timer catches up a moment later.
  */
 function callStartedAt(channelId: string): number | null {
     try {
@@ -49,7 +57,18 @@ function callStartedAt(channelId: string): number | null {
         if (!channel || channel.guild_id) return null;
 
         const messageId = CallStore.getMessageId?.(channelId);
-        return messageId ? timeOfId(messageId) : null;
+        if (messageId) return timeOfId(messageId);
+
+        // the "started a call" message, when the chat is loaded and the call has not ended
+        const loaded: any[] = (MessageStore.getMessages(channelId) as any)?._array ?? [];
+        const ongoing = loaded.findLast(message => message.type === 3 && message.call && !message.call.endedTimestamp && !message.call.ended_timestamp);
+        if (ongoing) return timeOfId(ongoing.id);
+
+        if (!asked.has(channelId)) {
+            asked.add(channelId);
+            FluxDispatcher.dispatch({ type: "CALL_CONNECT", channelId } as any);
+        }
+        return null;
     } catch {
         return null;
     }
