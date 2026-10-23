@@ -13,7 +13,7 @@ import { localStorage } from "@utils/localStorage";
 import { formatDuration } from "@utils/text";
 import definePlugin, { OptionType } from "@utils/types";
 import { findStoreLazy } from "@webpack";
-import { ChannelStore, FluxDispatcher, MessageStore, React } from "@webpack/common";
+import { ChannelStore, FluxDispatcher, MessageStore, React, SelectedChannelStore, useStateFromStores } from "@webpack/common";
 
 import { TimerIcon } from "./icons";
 import { About, choiceChips } from "./ui";
@@ -109,10 +109,18 @@ function remember(channelId: string, at: number) {
     } catch { /* counts from now next time instead */ }
 }
 
-/** The line Call Timer draws, counting from when the call began, when you joined, or both */
-const Timer = ErrorBoundary.wrap(({ channelId }: { channelId: string; }) => {
+/**
+ * The line Call Timer draws, counting from when the call began, when you joined, or both.
+ *
+ * Call Timer hands over the channel as `this.props.channel.id`, but the voice panel it patches
+ * is a function, which has no `this` - so the channel always arrives empty. Call Timer only
+ * uses it to know when to start again; this needs to know which call it is, so it asks Discord
+ * which voice channel you are connected to, which is the one the panel shows.
+ */
+const Timer = ErrorBoundary.wrap(({ channelId: given }: { channelId?: string; }) => {
+    const channelId = useStateFromStores([SelectedChannelStore], () => given ?? SelectedChannelStore.getVoiceChannelId() ?? "");
     const [, tick] = React.useState(0);
-    const [joined] = React.useState(() => joinedAt(channelId));
+    const joined = React.useMemo(() => joinedAt(channelId), [channelId]);
     const show = settings.use(["show"]).show ?? "call";
 
     React.useEffect(() => {
