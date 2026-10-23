@@ -1,21 +1,22 @@
 # Call Length
 
-Makes Vencord's **Call Timer** count the whole call, and keep counting through restarts. On
-by default; it switches Call Timer on with it.
+A call timer under **Voice Connected** that counts the whole call, and keeps counting through
+restarts. On by default.
 
-Call Timer starts at zero when you join and starts over every time Discord reloads. With this,
-joining a DM or group call two minutes in starts the timer at 2:00, and a restart picks up
-where it was.
+Join a DM or group call two minutes in and it starts at 2:00. Restart Discord mid-call and it
+picks up where it was. Hover the timer to see when the call started and when you joined.
 
 ## Settings
 
 | Setting | What it does |
 | --- | --- |
-| **Show** | **Whole call** (how long the call has gone on), **Your time** (how long you have been in it), or **Both** side by side. Hover the timer to see when the call started |
+| **Show** | **Whole call** (how long the call has gone on), **Your time** (how long you have been in it), or **Both** side by side |
+| **Format** | **1h 22m 26s** or **01:22:26** |
 
 > [!NOTE]
 > A server voice channel never says when it started, so there the timer counts your own time,
 > still kept through restarts.
 
-Call Timer itself is not changed: this lends it a different timer while it is on, and gives
-its own back when switched off.
+It replaces Vencord's **Call Timer**, which it switches off so there are not two timers. If
+Call Timer was on when you first started this, its time format is carried over, and the
+timer stays right until your next restart while both are loaded.

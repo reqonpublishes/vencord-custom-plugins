@@ -1,0 +1,5 @@
+/* Room for the timer's line under Voice Connected: the panel is a fixed height without it */
+[class*="panels"] [class*="inner"],
+[class*="rtcConnectionStatus"] {
+    height: fit-content !important;
+}

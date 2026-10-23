@@ -59,7 +59,7 @@ export const ENTRIES: Entry[] = [
     { plugin: "Bookmarks", label: "Bookmarks", icon: BookmarkIcon, section: "tools", about: "Bookmark profiles and find them again from Friends" },
     { plugin: "QuickRestart", label: "Quick Restart", icon: BoltIcon, section: "tools", about: "Ctrl+R restarts Discord about five times faster", tweak: true },
     { plugin: "Performance", label: "Performance", icon: SpeedIcon, section: "tools", about: "Fixes the places Discord gets slow or stuck", tweak: true },
-    { plugin: "CallLength", label: "Call Length", icon: TimerIcon, section: "tools", about: "Call Timer counts the whole call and keeps counting through restarts", tweak: true },
+    { plugin: "CallLength", label: "Call Length", icon: TimerIcon, section: "tools", about: "A call timer that counts the whole call and keeps counting through restarts", tweak: true },
     { plugin: "CloudSync", label: "Cloud Sync", icon: CloudIcon, section: "tools", about: "Sync these plugins with your phone using one private code" }
 ];
 

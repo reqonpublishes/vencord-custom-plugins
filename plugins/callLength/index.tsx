@@ -16,11 +16,13 @@ import { findStoreLazy } from "@webpack";
 import { ChannelStore, FluxDispatcher, MessageStore, React, SelectedChannelStore, useStateFromStores } from "@webpack/common";
 
 import { TimerIcon } from "./icons";
+import panelFix from "./panelFix.css?managed";
 import { About, choiceChips } from "./ui";
 
 const CallStore: any = findStoreLazy("CallStore");
 
 const SHOW = [["call", "Whole call"], ["you", "Your time"], ["both", "Both"]] as const;
+const FORMATS = [["human", "1h 22m 26s"], ["stopwatch", "01:22:26"]] as const;
 
 const settings = definePluginSettings({
     showChoice: {
@@ -32,6 +34,16 @@ const settings = definePluginSettings({
         hidden: true,
         description: "What the timer counts",
         default: "call"
+    },
+    formatChoice: {
+        type: OptionType.COMPONENT,
+        component: choiceChips(() => settings, "format", "Format", "How the time is written.", FORMATS)
+    },
+    format: {
+        type: OptionType.STRING,
+        hidden: true,
+        description: "How the time is written",
+        default: "human"
     }
 });
 
@@ -110,12 +122,12 @@ function remember(channelId: string, at: number) {
 }
 
 /**
- * The line Call Timer draws, counting from when the call began, when you joined, or both.
+ * The line under Voice Connected, counting from when the call began, when you joined, or both.
  *
- * Call Timer hands over the channel as `this.props.channel.id`, but the voice panel it patches
- * is a function, which has no `this` - so the channel always arrives empty. Call Timer only
- * uses it to know when to start again; this needs to know which call it is, so it asks Discord
- * which voice channel you are connected to, which is the one the panel shows.
+ * Drawn from this plugin's own patch, which hands over the panel's channel. When it is lent to
+ * Call Timer instead (see start) the channel arrives empty - Call Timer reads it off `this`,
+ * which the panel, a function, does not have - so the voice channel you are connected to,
+ * which is the one the panel shows, stands in.
  */
 const Timer = ErrorBoundary.wrap(({ channelId: given }: { channelId?: string; }) => {
     const channelId = useStateFromStores([SelectedChannelStore], () => given ?? SelectedChannelStore.getVoiceChannelId() ?? "");
@@ -131,7 +143,7 @@ const Timer = ErrorBoundary.wrap(({ channelId: given }: { channelId?: string; })
         return () => clearInterval(timer);
     }, [channelId, joined]);
 
-    const human = Settings.plugins.CallTimer?.format === "human";
+    const human = (settings.use(["format"]).format ?? "human") === "human";
     const now = Date.now();
     const call = callStartedAt(channelId);
     const mine = formatDuration(Math.max(0, now - joined), human);
@@ -151,18 +163,31 @@ const Timer = ErrorBoundary.wrap(({ channelId: given }: { channelId?: string; })
     return <p title={said} style={{ margin: 0, fontFamily: "var(--font-code)" }}>{text}</p>;
 }, { noop: true });
 
-/** Call Timer's own drawing, put back when this is switched off */
+/** Call Timer's own drawing, while it is lent this one; put back when this is switched off */
 let original: any = null;
 
 export default definePlugin({
     name: "CallLength",
-    description: "Call Timer counts the whole call and keeps counting through restarts.",
+    description: "A call timer that counts the whole call and keeps counting through restarts.",
     authors: [{ name: "reqon", id: 497562304498368513n }],
-    dependencies: ["CallTimer"],
-    // what Call Timer should have done all along
     enabledByDefault: true,
+    managedStyle: panelFix,
 
     settings,
+
+    patches: [
+        {
+            // The voice panel's line with the call's name. The timer goes under it, given the
+            // channel the panel is for - which sits a few lines above, in its right-click menu.
+            find: '"RTCConnectionMenu"',
+            replacement: {
+                match: /(channel:(\i),onInteraction:\(0,\i\.\i\)\("RTCConnectionMenu".{0,400}?lineClamp:1,children:)(\i)(?=,|}\))/,
+                replace: "$1[$3,$self.renderTimer({channelId:$2?.id})]"
+            }
+        }
+    ],
+
+    renderTimer: Timer,
 
     settingsAboutComponent: () => (
         <About
@@ -170,21 +195,31 @@ export default definePlugin({
             title="A call timer that knows the call"
             note={false}
             steps={[
-                <>Call Timer starts at zero when you join. This makes it count from when the call itself began, so joining a call two minutes in starts at 2:00.</>,
-                <>A restart no longer resets it: it picks up where it was.</>,
+                <>Shows how long the call has gone on under Voice Connected: join a call two minutes in and it starts at 2:00.</>,
+                <>A restart does not reset it: it picks up where it was.</>,
                 <>Choose <strong>Your time</strong> to count only your part, or <strong>Both</strong> for the two side by side.</>,
                 <>A server voice channel never says when it started, so there it counts your time.</>
             ]}
         />
     ),
 
-    // Call Timer's patch asks it for renderTimer each time the panel draws, so lending it
-    // this one is all it takes - Call Timer itself is left as it is.
     start() {
         const timer: any = plugins.CallTimer;
         if (!timer) return;
-        original ??= timer.renderTimer;
-        timer.renderTimer = Timer;
+
+        // Two timers would draw two lines, and Call Timer's patch goes in before this one, so
+        // while it is on this one has nowhere to go. It is switched off for the next start...
+        if (Settings.plugins.CallTimer?.enabled) {
+            if (Settings.plugins.CallTimer.format) settings.store.format = Settings.plugins.CallTimer.format;
+            Settings.plugins.CallTimer.enabled = false;
+        }
+
+        // ...and until then its line is lent this timer: its patch asks it for renderTimer each
+        // time the panel draws.
+        if (timer.started) {
+            original ??= timer.renderTimer;
+            timer.renderTimer = Timer;
+        }
     },
 
     stop() {
