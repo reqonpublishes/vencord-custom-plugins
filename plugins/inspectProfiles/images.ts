@@ -118,12 +118,14 @@ export async function keep(file: Blob, kind: keyof typeof LIMIT): Promise<string
     const blob = await shrink(file, kind);
     const id = await nameFor(blob);
 
-    if (!ready.has(id)) {
+    // Asked of the disk, not of what is in memory: a picture let go of is still drawable but no
+    // longer saved, and choosing it again has to save it again.
+    const index = (await get<string[]>(INDEX)) ?? [];
+    if (!index.includes(id)) {
         await set(KEY(id), blob);
-        ready.set(id, URL.createObjectURL(blob));
-        const index = (await get<string[]>(INDEX)) ?? [];
-        if (!index.includes(id)) await set(INDEX, [...index, id]);
+        await set(INDEX, [...index, id]);
     }
+    if (!ready.has(id)) ready.set(id, URL.createObjectURL(blob));
 
     return PREFIX + id;
 }
@@ -136,11 +138,10 @@ export async function forgetUnused(inUse: (string | undefined)[]) {
     if (!gone.length) return;
 
     for (const id of gone) {
+        // Off the disk, but the picture itself is kept for as long as Discord is open: a spot
+        // that has not redrawn since may still be showing it, and letting it go would leave a
+        // broken picture there. It is small, and gone with the next restart.
         await del(KEY(id));
-        const url = ready.get(id);
-        if (url) URL.revokeObjectURL(url);
-        ready.delete(id);
-        reading.delete(id);
     }
 
     await set(INDEX, index.filter(id => keep.has(id)));

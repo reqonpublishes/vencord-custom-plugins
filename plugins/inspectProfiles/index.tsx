@@ -13,6 +13,7 @@ import { User } from "@vencord/discord-types";
 import { findByPropsLazy, findStoreLazy } from "@webpack";
 import { FluxDispatcher, Menu, showToast, UserStore } from "@webpack/common";
 
+import { startHealing, stopHealing } from "./heal";
 import { InspectIcon, MasksIcon, UndoIcon } from "./icons";
 import { forgetUnused, preload, whenReady } from "./images";
 import { openInspect } from "./InspectModal";
@@ -373,6 +374,7 @@ export default definePlugin({
         if (mine !== runs) return;
 
         startRewriting();
+        startHealing();
         startPresence();
         loadMine();
         unwatch = onChange(() => {
@@ -389,6 +391,7 @@ export default definePlugin({
         unwatch?.();
         unwatch = null;
         stopRewriting();
+        stopHealing();
         stopPresence();
     }
 });
