@@ -16,6 +16,49 @@ const Calendar: { CalendarPicker: any; } = findByPropsLazy("CalendarPicker");
 const two = (n: number) => String(n).padStart(2, "0");
 
 /**
+ * An hour or minutes box you can simply type in.
+ *
+ * What is typed stays exactly as typed until you leave the box, so nothing is padded, clamped
+ * or replaced under your fingers. Each number that fits counts straight away, so everything
+ * else on the window keeps up; one that does not fit is tidied into range on leaving. Kept
+ * outside DateField on purpose: defined inside, it was a new component each draw, and React
+ * threw the box away, focus and all, on every keystroke.
+ */
+function TimeBox({ val, min, max, label, onSet }: { val: number; min: number; max: number; label: string; onSet(n: number): void; }) {
+    const [typed, setTyped] = useState<string | null>(null);
+
+    const leave = () => {
+        if (typed === null) return;
+        const n = parseInt(typed, 10);
+        if (!isNaN(n)) onSet(Math.min(max, Math.max(min, n)));
+        setTyped(null);
+    };
+
+    return (
+        <input
+            className={cl("time-num")}
+            aria-label={label}
+            inputMode="numeric"
+            maxLength={2}
+            value={typed ?? two(val)}
+            onFocus={e => e.currentTarget.select()}
+            onBlur={leave}
+            onChange={e => {
+                const text = e.currentTarget.value.replace(/\D/g, "").slice(0, 2);
+                setTyped(text);
+                const n = parseInt(text, 10);
+                if (n >= min && n <= max) onSet(n);
+            }}
+            onKeyDown={e => {
+                if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); }
+                if (e.key === "ArrowUp") { e.preventDefault(); setTyped(null); onSet(val >= max ? min : val + 1); }
+                if (e.key === "ArrowDown") { e.preventDefault(); setTyped(null); onSet(val <= min ? max : val - 1); }
+            }}
+        />
+    );
+}
+
+/**
  * A day, and optionally a time, chosen the way Discord chooses them.
  *
  * The day is a button that opens Discord's calendar floating under it, the way its own pickers
@@ -51,24 +94,6 @@ export function DateField({ value, onChange, withTime, maxToday = true }: {
         onChange(next.getTime());
     };
 
-    /** A number box that takes typing, and the arrow keys, within its range */
-    const Num = ({ val, min, max, label, onSet }: { val: number; min: number; max: number; label: string; onSet(n: number): void; }) => (
-        <input
-            className={cl("time-num")}
-            aria-label={label}
-            inputMode="numeric"
-            value={two(val)}
-            onChange={e => {
-                const n = parseInt(e.currentTarget.value.replace(/\D/g, "").slice(-2), 10);
-                if (!isNaN(n)) onSet(Math.min(max, Math.max(min, n)));
-            }}
-            onKeyDown={e => {
-                if (e.key === "ArrowUp") { e.preventDefault(); onSet(val >= max ? min : val + 1); }
-                if (e.key === "ArrowDown") { e.preventDefault(); onSet(val <= min ? max : val - 1); }
-            }}
-        />
-    );
-
     return (
         <div className={cl("date")}>
             <div className={cl("date-row")}>
@@ -100,9 +125,9 @@ export function DateField({ value, onChange, withTime, maxToday = true }: {
 
                 {withTime && (
                     <div className={cl("time")}>
-                        <Num val={hours12} min={1} max={12} label="Hour" onSet={h => setTime(h, day.getMinutes(), pm)} />
+                        <TimeBox val={hours12} min={1} max={12} label="Hour" onSet={h => setTime(h, day.getMinutes(), pm)} />
                         <span className={cl("time-colon")}>:</span>
-                        <Num val={day.getMinutes()} min={0} max={59} label="Minutes" onSet={m => setTime(hours12, m, pm)} />
+                        <TimeBox val={day.getMinutes()} min={0} max={59} label="Minutes" onSet={m => setTime(hours12, m, pm)} />
                         <div className={cl("time-ampm")} role="radiogroup" aria-label="AM or PM">
                             {(["AM", "PM"] as const).map(half => (
                                 <button

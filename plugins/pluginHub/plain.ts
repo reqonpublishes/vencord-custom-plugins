@@ -36,12 +36,16 @@ const KEPT_PREFIXES = ["vc-chm", "vc-cim", "vc-cfm", "vc-chd", "vc-chf", "vc-chs
  * the plugin's stylesheet, which lets the panel grow to fit an extra line, goes when the
  * plugin stops, while the timer stays - so the panel clipped "Voice Connected" and the timer
  * mid-call. Without the line the panel is Discord's own height again.
+ *
+ * The green timer on the row of the call you are in is Discord's own, not a plugin's, and goes
+ * too: it is known by its role, the one stable thing about it.
  */
 const ours = KEPT_PREFIXES.map(prefix => `[class^="${prefix}-"], [class*=" ${prefix}-"]`).join(", ");
 const PLAIN_CSS = `
 :is([class^="vc-"], .vc-chatbar-button):not(${ours}):not(:is(${ours}) *),
 button[aria-label="Enable Game Activity"], button[aria-label="Disable Game Activity"],
-section[class*="panels"] p[style*="--font-code"] {
+section[class*="panels"] p[style*="--font-code"],
+a :has(> [role="timer"]) {
     display: none !important;
 }`;
 
